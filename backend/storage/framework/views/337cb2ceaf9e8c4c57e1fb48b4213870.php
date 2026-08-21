@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Login — MedRi ERP</title>
+  <title>Login — OREKS ERP</title>
   <script>
     if (localStorage.getItem('medri_token') || sessionStorage.getItem('medri_token')) window.location.replace('<?php echo e(url('/')); ?>');
     if (localStorage.getItem('medri_dark') === 'true') document.documentElement.classList.add('dark');
@@ -31,15 +31,10 @@
     <div class="absolute top-1/4 left-1/4 w-64 h-64 rounded-full blur-3xl opacity-20" style="background:#22A845"></div>
     <div class="absolute bottom-1/4 right-1/4 w-48 h-48 rounded-full blur-3xl opacity-15" style="background:#E31E24"></div>
     <div class="relative z-10 flex flex-col items-center text-center px-12">
-      <div class="w-20 h-20 rounded-3xl flex items-center justify-center mb-6 shadow-2xl" style="background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);backdrop-filter:blur(8px)">
-        <svg viewBox="0 0 60 60" class="w-14 h-14">
-          <polyline points="6,30 14,30 18,14 24,46 30,22 36,38 40,30 54,30" fill="none" stroke="#22A845" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
+      <div class="rounded-3xl mb-6 shadow-2xl bg-white/95 px-8 py-5">
+        <img src="<?php echo e(asset('backend/public/images/oreks-logo.png')); ?>" alt="OREKS" style="height:64px;width:auto;object-fit:contain" />
       </div>
-      <div class="mb-3">
-        <span class="text-5xl font-black tracking-tight text-white">Med</span><span class="text-5xl font-black tracking-tight" style="color:#E31E24">Ri</span>
-      </div>
-      <p class="text-blue-200 text-sm font-medium mb-12 tracking-wide">Your Trusted Partner in Medical Supplies</p>
+      <p class="text-blue-200 text-sm font-medium mb-12 tracking-wide">Your Trusted Partner in Soda Fountain Systems</p>
       <div class="grid grid-cols-2 gap-4 text-left w-full max-w-sm">
         <template x-for="f in features" :key="f.title">
           <div class="rounded-2xl p-4" style="background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.12)">
@@ -59,14 +54,7 @@
 
       <!-- Mobile logo -->
       <div class="lg:hidden text-center mb-8">
-        <div class="inline-flex items-center gap-3 mb-1">
-          <div class="w-10 h-10 rounded-2xl flex items-center justify-center" style="background:linear-gradient(135deg,#1B3EB6,#0D2272)">
-            <svg viewBox="0 0 36 36" class="w-7 h-7"><polyline points="4,18 8,18 10,10 13,26 16,14 19,22 22,18 32,18" fill="none" stroke="#22A845" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          </div>
-          <div>
-            <span class="text-3xl font-black" style="color:#1B3EB6">Med</span><span class="text-3xl font-black" style="color:#E31E24">Ri</span>
-          </div>
-        </div>
+        <img src="<?php echo e(asset('backend/public/images/oreks-logo.png')); ?>" alt="OREKS" class="mx-auto" style="height:44px;width:auto;object-fit:contain" />
       </div>
 
       <!-- Card -->
@@ -88,7 +76,7 @@
             <label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1.5 uppercase tracking-wider">Email Address</label>
             <div class="relative">
               <svg class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
-              <input x-model="form.email" type="email" placeholder="you@medri.lk" required autocomplete="email"
+              <input x-model="form.email" type="email" placeholder="you@oreksglobal.com" required autocomplete="email"
                 class="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"/>
             </div>
           </div>
@@ -118,7 +106,7 @@
           <button type="submit" :disabled="loading"
             class="w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white font-semibold rounded-xl text-base transition-all focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 flex items-center justify-center gap-2">
             <svg x-show="loading" class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
-            <span x-text="loading ? 'Signing in...' : 'Sign in to MedRi'"></span>
+            <span x-text="loading ? 'Signing in...' : 'Sign in to OREKS'"></span>
           </button>
         </form>
 
@@ -133,7 +121,7 @@
           </button>
         </div>
       </div>
-      <p class="text-center text-xs text-gray-400 dark:text-gray-600 mt-6">© 2026 MedRi Medical Supplies · All rights reserved</p>
+      <p class="text-center text-xs text-gray-400 dark:text-gray-600 mt-6">© 2026 OREKS · All rights reserved</p>
     </div>
   </div>
 </div>
@@ -143,7 +131,7 @@ const API_URL = '<?php echo e(url('/api')); ?>';
 
 function loginPage() {
   return {
-    form: { email: 'admin@medri.lk', password: 'password', remember: false },
+    form: { email: '', password: '', remember: false },
     loading: false,
     error: '',
     showPw: false,
@@ -152,7 +140,7 @@ function loginPage() {
       { icon: '🏢', title: 'Multi-Branch', desc: 'Manage all branches from one place' },
       { icon: '📊', title: 'Smart Reports', desc: 'Real-time analytics & insights' },
       { icon: '🔐', title: 'Role-Based', desc: 'Granular access control' },
-      { icon: '💊', title: 'Medical Focus', desc: 'Built for medical equipment' },
+      { icon: '🥤', title: 'Fountain Focus', desc: 'Built for soda fountain machines' },
     ],
     async submit() {
       this.error = '';

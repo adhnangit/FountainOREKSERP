@@ -223,7 +223,7 @@ elseif (request()->is('access-control*') || request()->is('settings/branches*') 
       </div>
       <!-- Expanded: full logo image -->
       <div x-show="sidebarOpen" class="py-2 flex justify-center w-full">
-        <img src="{{ asset('backend/public/images/medri-logo.png') }}" alt="MedRi" style="height:40px;width:auto;object-fit:contain" />
+        <img src="{{ asset('backend/public/images/oreks-logo.png') }}" alt="OREKS" style="height:40px;width:auto;object-fit:contain" />
       </div>
     </div>
 
