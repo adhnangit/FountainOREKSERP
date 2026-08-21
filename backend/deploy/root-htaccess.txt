@@ -1,0 +1,11 @@
+RewriteEngine On
+
+# Strip /backend/public from URL if anyone hits it directly — keep URLs clean
+RewriteCond %{THE_REQUEST} \s/+backend/public/(\S*) [NC]
+RewriteRule ^ /%1 [R=301,L]
+
+# Route all requests through Laravel's front controller
+RewriteRule ^$ backend/public/index.php [L]
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^(.+)$ backend/public/$1 [L]

@@ -1,0 +1,37 @@
+name: Deploy to cPanel via FTP
+
+on:
+  push:
+    branches: [master]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy to live server
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: 198.54.115.213
+          username: orekqvyv
+          password: ${{ secrets.FTP_PASSWORD }}
+          local-dir: ./
+          server-dir: /fountainsystem.oreksglobal.com/
+          exclude: |
+            .htaccess
+            **/.git*
+            **/.git*/**
+            **/.github/**
+            **/.cpanel.yml
+            **/node_modules/**
+            **/.env
+            **/storage/app/public/**
+            **/storage/logs/**
+            **/storage/framework/**
+
+      - name: Clear application caches
+        run: |
+          curl -fsS "https://fountainsystem.oreksglobal.com/_deploy/clear?token=${{ secrets.DEPLOY_TOKEN }}" \
+            || echo "Cache clear skipped — set the DEPLOY_TOKEN repo secret and add the same DEPLOY_TOKEN to the server backend/.env"
