@@ -252,7 +252,7 @@ class PurchaseController extends Controller
 
     public function showPO(PurchaseOrder $purchaseOrder): JsonResponse
     {
-        return response()->json($purchaseOrder->load(['items.product', 'supplier', 'branch', 'grns', 'payments.cheque']));
+        return response()->json($purchaseOrder->load(['items.product', 'supplier', 'branch', 'grns.items.product', 'payments.cheque']));
     }
 
     /**

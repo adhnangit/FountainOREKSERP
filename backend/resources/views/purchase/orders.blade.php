@@ -3,6 +3,18 @@
 @section('page-title', 'Supplier Invoices')
 @section('page-desc', 'Manage purchase invoices and supplier payments')
 
+@push('head')
+<style>
+  /* Native number-input spinner arrows eat width inside these narrow, right-aligned
+     cells and can crowd out the digits themselves (e.g. "12" rendering as invisible
+     under the spinner) — hide them and rely on the qty/cost steppers elsewhere for
+     increment/decrement instead. */
+  .no-spinner::-webkit-outer-spin-button,
+  .no-spinner::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+  .no-spinner { -moz-appearance: textfield; }
+</style>
+@endpush
+
 @section('content')
 <div x-data="supplierInvListPage()" x-init="init()">
 
@@ -161,21 +173,21 @@
                     </div>
 
                     <div x-show="!receiveLoading">
-                        <p class="text-xs text-gray-400 mb-3">Review quantities, update batch info and selling prices before confirming receipt.</p>
+                        <p class="text-xs text-gray-500 mb-3">Review quantities, update batch info and selling prices before confirming receipt.</p>
 
                         <div class="overflow-x-auto rounded-xl border border-gray-200 dark:border-gray-700">
                             <table class="w-full text-xs">
-                                <thead style="background:#f0fdf4">
+                                <thead style="background:#dcfce7">
                                     <tr>
-                                        <th class="text-left px-3 py-2 font-semibold text-gray-600 min-w-[140px]">Product</th>
-                                        <th class="text-right px-3 py-2 font-semibold text-gray-600 w-16">Stock</th>
-                                        <th class="text-right px-3 py-2 font-semibold text-gray-600 w-16">Qty</th>
-                                        <th class="text-right px-3 py-2 font-semibold text-gray-600 w-24">Cost Price</th>
-                                        <th class="text-left px-3 py-2 font-semibold text-gray-600 w-24">Batch #</th>
-                                        <th class="text-left px-3 py-2 font-semibold text-gray-600 w-28">Expiry Date</th>
-                                        <th class="text-right px-3 py-2 font-semibold text-gray-600 w-24 bg-yellow-50">Current Sell</th>
-                                        <th class="text-right px-3 py-2 font-semibold text-emerald-700 w-24 bg-emerald-50">New Sell Price</th>
-                                        <th class="text-right px-3 py-2 font-semibold text-gray-600 w-24">Total</th>
+                                        <th class="text-left px-3 py-2 font-bold text-gray-800 min-w-[140px]">Product</th>
+                                        <th class="text-right px-3 py-2 font-bold text-gray-800 w-16">Stock</th>
+                                        <th class="text-right px-3 py-2 font-bold text-gray-800 w-20">Qty</th>
+                                        <th class="text-right px-3 py-2 font-bold text-gray-800 w-24">Cost Price</th>
+                                        <th class="text-left px-3 py-2 font-bold text-gray-800 w-24">Batch #</th>
+                                        <th class="text-left px-3 py-2 font-bold text-gray-800 w-28">Expiry Date</th>
+                                        <th class="text-right px-3 py-2 font-bold text-amber-800 w-24 bg-yellow-100">Current Sell</th>
+                                        <th class="text-right px-3 py-2 font-bold text-emerald-800 w-24 bg-emerald-100">New Sell Price</th>
+                                        <th class="text-right px-3 py-2 font-bold text-gray-800 w-24">Total</th>
                                     </tr>
                                 </thead>
                                 <tbody class="divide-y divide-gray-100 dark:divide-gray-700/40 bg-white dark:bg-gray-900">
@@ -183,7 +195,7 @@
                                         <tr class="hover:bg-gray-50 dark:hover:bg-gray-800/20">
                                             <td class="px-3 py-2">
                                                 <div class="font-semibold text-gray-800 dark:text-gray-100" x-text="row.product_name"></div>
-                                                <div class="text-gray-400 text-xs" x-text="row.unit"></div>
+                                                <div class="text-gray-500 text-xs" x-text="row.unit"></div>
                                             </td>
                                             <td class="px-3 py-2 text-right tabular-nums">
                                                 <span class="font-semibold" :class="row.current_stock > 0 ? 'text-emerald-700' : 'text-gray-400'"
@@ -192,12 +204,12 @@
                                             <td class="px-3 py-2">
                                                 <input type="number" x-model.number="row.quantity_received"
                                                        min="0.01" step="0.01"
-                                                       class="input text-xs py-1 text-right tabular-nums w-full" />
+                                                       class="no-spinner input text-sm font-semibold text-gray-900 dark:text-gray-100 py-1 text-right tabular-nums w-full" />
                                             </td>
                                             <td class="px-3 py-2">
                                                 <input type="number" x-model.number="row.unit_cost"
                                                        min="0" step="0.01"
-                                                       class="input text-xs py-1 text-right tabular-nums w-full" />
+                                                       class="no-spinner input text-sm font-semibold text-gray-900 dark:text-gray-100 py-1 text-right tabular-nums w-full" />
                                             </td>
                                             <td class="px-3 py-2">
                                                 <input type="text" x-model="row.batch_number"
@@ -208,12 +220,12 @@
                                                        class="input text-xs py-1 w-full" />
                                             </td>
                                             <td class="px-3 py-2 text-right tabular-nums bg-yellow-50/50 dark:bg-yellow-900/10">
-                                                <span class="text-yellow-700 font-semibold" x-text="fmtMoney(row.current_selling_price)"></span>
+                                                <span class="text-amber-800 font-semibold" x-text="fmtMoney(row.current_selling_price)"></span>
                                             </td>
                                             <td class="px-3 py-2 bg-emerald-50/50 dark:bg-emerald-900/10">
                                                 <input type="number" x-model.number="row.selling_price"
                                                        min="0" step="0.01"
-                                                       class="input text-xs py-1 text-right tabular-nums w-full border-emerald-300 focus:border-emerald-500"
+                                                       class="no-spinner input text-sm font-semibold text-gray-900 dark:text-gray-100 py-1 text-right tabular-nums w-full border-emerald-300 focus:border-emerald-500"
                                                        placeholder="0.00" />
                                             </td>
                                             <td class="px-3 py-2 text-right font-semibold tabular-nums text-gray-700 dark:text-gray-200"
@@ -532,14 +544,19 @@ function supplierInvListPage() {
             this.receiveLoading = true;
             this.showReceive = true;
 
-            const draftGrn = (po.grns ?? []).find(g => g.status === 'draft');
-            if (!draftGrn || !draftGrn.items) {
-                this.receiveLoading = false;
-                return;
-            }
-
-            // Load product stock + prices for current branch
             try {
+                // Re-fetch fresh rather than trusting the row already on this page —
+                // the list can go stale (e.g. just-created GRN items) and this modal
+                // writes real stock.
+                const fresh = await apiFetch('/purchase-orders/' + po.id).then(r => r.json());
+                this.selReceivePo = fresh;
+
+                const draftGrn = (fresh.grns ?? []).find(g => g.status === 'draft');
+                if (!draftGrn || !draftGrn.items || !draftGrn.items.length) {
+                    this.receiveLoading = false;
+                    return;
+                }
+
                 const branchId = parseInt(localStorage.getItem('medri_branch')) || null;
                 const prodR = await apiFetch('/products?per_page=999' + (branchId ? '&branch_id=' + branchId : '')).then(r => r.json());
                 const prodList = prodR.data ?? prodR ?? [];
@@ -551,19 +568,22 @@ function supplierInvListPage() {
                     };
                 });
 
-                this.receiveFormItems = draftGrn.items.map(item => ({
-                    grn_item_id:           item.id,
-                    product_id:            item.product_id,
-                    product_name:          item.product?.name ?? item.product_name ?? '—',
-                    unit:                  item.product?.unit ?? item.unit ?? '',
-                    quantity_received:     parseFloat(item.quantity_received) || parseFloat(item.quantity_ordered) || 0,
-                    unit_cost:             parseFloat(item.unit_cost) || 0,
-                    batch_number:          item.batch_number ?? '',
-                    expiry_date:           item.expiry_date ? item.expiry_date.slice(0, 10) : '',
-                    current_stock:         prodMap[item.product_id]?.stock ?? 0,
-                    current_selling_price: prodMap[item.product_id]?.selling_price ?? 0,
-                    selling_price:         prodMap[item.product_id]?.selling_price ?? 0,
-                }));
+                this.receiveFormItems = draftGrn.items.map(item => {
+                    const qty = Number(item.quantity_received) || Number(item.quantity_ordered) || 0;
+                    return {
+                        grn_item_id:           item.id,
+                        product_id:            item.product_id,
+                        product_name:          item.product?.name ?? item.product_name ?? '—',
+                        unit:                  item.product?.unit ?? item.unit ?? '',
+                        quantity_received:     qty,
+                        unit_cost:             Number(item.unit_cost) || 0,
+                        batch_number:          item.batch_number ?? '',
+                        expiry_date:           item.expiry_date ? item.expiry_date.slice(0, 10) : '',
+                        current_stock:         prodMap[item.product_id]?.stock ?? 0,
+                        current_selling_price: prodMap[item.product_id]?.selling_price ?? 0,
+                        selling_price:         prodMap[item.product_id]?.selling_price ?? 0,
+                    };
+                });
             } catch (e) {
                 toast('Could not load product details', 'error');
             } finally {
