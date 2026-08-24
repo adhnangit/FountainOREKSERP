@@ -103,11 +103,14 @@ class PermissionsSeeder extends Seeder
             // Reports
             'reports.view',
 
-            // Calendar & Tasks
+            // Calendar
             'calendar.view',
             'calendar.create',
-            'tasks.view',
-            'tasks.create',
+
+            // Task Manager (internal admin work tracker)
+            'task_manager.view',
+            'task_manager.manage',
+            'task_manager.categories.manage',
 
             // Office Directory
             'directory.view',
@@ -220,7 +223,6 @@ class PermissionsSeeder extends Seeder
                 'accounting.view','accounting.reports',
                 'reports.view',
                 'calendar.view','calendar.create',
-                'tasks.view','tasks.create',
                 'directory.view','directory.create',
                 'users.view',
                 'branches.view',
@@ -237,7 +239,6 @@ class PermissionsSeeder extends Seeder
                 'expenses.view','expenses.create',
                 'targets.view',
                 'calendar.view','calendar.create',
-                'tasks.view','tasks.create',
                 'directory.view',
                 'reports.view',
             ],
@@ -253,7 +254,6 @@ class PermissionsSeeder extends Seeder
                 'accounting.view','accounting.journal.create','accounting.reports','accounting.settings',
                 'reports.view',
                 'calendar.view',
-                'tasks.view',
                 'directory.view',
             ],
             'inventory_manager' => [
@@ -266,7 +266,6 @@ class PermissionsSeeder extends Seeder
                 'purchase_orders.view',
                 'reports.view',
                 'calendar.view',
-                'tasks.view',
                 'directory.view',
             ],
             'purchase_officer'  => [
@@ -279,7 +278,6 @@ class PermissionsSeeder extends Seeder
                 'inventory.view',
                 'cheques.view','cheques.details',
                 'calendar.view',
-                'tasks.view',
                 'directory.view',
                 'reports.view',
             ],
@@ -289,7 +287,6 @@ class PermissionsSeeder extends Seeder
                 'expenses.view','expenses.create','expenses.approve',
                 'targets.view','targets.create','targets.edit',
                 'calendar.view','calendar.create',
-                'tasks.view','tasks.create',
                 'directory.view','directory.create',
                 'activity_log.view',
                 'hr.employees.view','hr.employees.create','hr.employees.edit','hr.employees.delete',
@@ -327,7 +324,6 @@ class PermissionsSeeder extends Seeder
                 'accounting.view','accounting.reports',
                 'reports.view',
                 'calendar.view',
-                'tasks.view',
                 'directory.view',
             ],
         ];

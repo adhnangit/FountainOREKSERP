@@ -1,9 +1,8 @@
-@extends('layouts.app')
-@section('title', 'Tasks')
-@section('page-title', 'Task Board')
-@section('page-desc', 'Manage team tasks and track progress')
+<?php $__env->startSection('title', 'Tasks'); ?>
+<?php $__env->startSection('page-title', 'Task Board'); ?>
+<?php $__env->startSection('page-desc', 'Manage team tasks and track progress'); ?>
 
-@section('content')
+<?php $__env->startSection('content'); ?>
 <div x-data="tasksPage()" x-init="init()">
 
     <!-- Toolbar -->
@@ -134,9 +133,9 @@
         </div>
     </div>
 </div>
-@endsection
+<?php $__env->stopSection(); ?>
 
-@push('scripts')
+<?php $__env->startPush('scripts'); ?>
 <script>
 function tasksPage() {
     return {
@@ -270,4 +269,6 @@ function tasksPage() {
     };
 }
 </script>
-@endpush
+<?php $__env->stopPush(); ?>
+
+<?php echo $__env->make('layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH E:\xampp8.2\htdocs\FountainOREKS\backend\resources\views/tasks/index.blade.php ENDPATH**/ ?>

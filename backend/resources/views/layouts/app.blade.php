@@ -199,6 +199,7 @@ elseif (request()->is('expenses*'))                                             
 elseif (request()->is('accounting*'))                                                                      $sec = 'accounting';
 elseif (request()->is('reports*'))                                                                         $sec = 'reports';
 elseif (request()->is('hr*'))                                                                              $sec = 'hr';
+elseif (request()->is('task-manager*'))                                                                    $sec = 'task_manager';
 elseif (request()->is('access-control*') || request()->is('settings/branches*') || request()->is('settings/banks*') || request()->is('settings/districts-cities*') || request()->is('settings/dashboard-widgets*')) $sec = 'admin';
 @endphp
 
@@ -432,17 +433,25 @@ elseif (request()->is('access-control*') || request()->is('settings/branches*') 
         <span x-show="sidebarOpen" class="text-[13px]">Calendar</span>
       </a>
 
-      {{-- TASKS --}}
-      <a href="{{ url('/tasks') }}" x-show="hasPerm('tasks.view')"
-         class="n-link {{ request()->is('tasks*') ? 'active' : '' }}"
-         :class="sidebarOpen ? '' : 'collapsed-link'">
-        <div class="n-icon">
-          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
-          </svg>
+      {{-- TASK MANAGER --}}
+      <div x-show="hasPerm('task_manager.view')">
+        <button @click="sidebarOpen ? toggle('task_manager') : null"
+                class="n-group {{ $sec === 'task_manager' ? 'sec-active' : '' }}"
+                :class="sidebarOpen ? '' : 'collapsed-btn'">
+          <div class="n-icon">
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
+            </svg>
+          </div>
+          <span x-show="sidebarOpen" class="flex-1 text-[13px]">Task Manager</span>
+          <svg x-show="sidebarOpen" class="n-chevron w-3.5 h-3.5" :class="{'open': open.task_manager}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg>
+        </button>
+        <div x-show="open.task_manager && sidebarOpen" class="n-sub-list">
+          <a href="{{ url('/task-manager') }}"            class="n-sub {{ request()->is('task-manager') ? 'active' : '' }}">Dashboard</a>
+          <a href="{{ url('/task-manager/board') }}"       class="n-sub {{ request()->is('task-manager/board*') ? 'active' : '' }}">Task Board</a>
+          <a href="{{ url('/task-manager/categories') }}"  class="n-sub {{ request()->is('task-manager/categories*') ? 'active' : '' }}">Categories</a>
         </div>
-        <span x-show="sidebarOpen" class="text-[13px]">Tasks</span>
-      </a>
+      </div>
 
       {{-- REPORTS --}}
       <div x-show="hasPerm('reports.view')">
@@ -942,6 +951,7 @@ function layout() {
       accounting:  '{{ $sec }}' === 'accounting',
       reports:     '{{ $sec }}' === 'reports',
       hr:          '{{ $sec }}' === 'hr',
+      task_manager: '{{ $sec }}' === 'task_manager',
       admin:       '{{ $sec }}' === 'admin',
     },
     hasPerm(p) {

@@ -131,8 +131,11 @@ Route::get('/my',                  fn() => view('my.dashboard'))->name('my.dashb
 Route::get('/manager/team',        fn() => view('manager.team'))->name('manager.team');
 
 Route::get('/calendar',  fn() => view('calendar.index'))->name('calendar');
-Route::get('/tasks',     fn() => view('tasks.index'))->name('tasks');
 Route::get('/directory', fn() => view('directory.index'))->name('directory');
+
+Route::get('/task-manager',            fn() => view('task-manager.dashboard'))->name('task-manager.dashboard');
+Route::get('/task-manager/board',      fn() => view('task-manager.board'))->name('task-manager.board');
+Route::get('/task-manager/categories', fn() => view('task-manager.categories'))->name('task-manager.categories');
 
 Route::get('/access-control/users',           fn() => view('access-control.users'))->name('users');
 Route::get('/access-control/users/{id}/edit', fn() => view('access-control.users'))->name('users.edit');

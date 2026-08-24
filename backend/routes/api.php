@@ -49,7 +49,8 @@ use App\Http\Controllers\Api\ReportController;
 use App\Http\Controllers\Api\SettingsController;
 use App\Http\Controllers\Api\SupplierController;
 use App\Http\Controllers\Api\TargetController;
-use App\Http\Controllers\Api\TaskController;
+use App\Http\Controllers\Api\WorkTaskController;
+use App\Http\Controllers\Api\WorkTaskCategoryController;
 use App\Http\Controllers\Api\DashboardWidgetSettingsController;
 use App\Http\Controllers\Api\UserController;
 use Illuminate\Support\Facades\Route;
@@ -283,12 +284,18 @@ Route::middleware(['auth:sanctum', 'branch.context'])->group(function () {
     Route::apiResource('events', CalendarController::class, ['only' => ['store', 'update', 'destroy']])->middleware('permission:calendar.create');
     Route::middleware('permission:calendar.create')->post('/events/{calendarEvent}/complete', [CalendarController::class, 'complete']);
 
-    // Tasks — no dedicated edit/delete permission; "create" covers manage
-    // Must be registered before the {task} wildcard routes below, else "assignable-users" is matched as a task id.
-    Route::middleware('permission:tasks.create')->get('/tasks/assignable-users', [TaskController::class, 'assignableUsers']);
-    Route::apiResource('tasks', TaskController::class, ['only' => ['index', 'show']])->middleware('permission:tasks.view');
-    Route::apiResource('tasks', TaskController::class, ['only' => ['store', 'update', 'destroy']])->middleware('permission:tasks.create');
-    Route::middleware('permission:tasks.create')->post('/tasks/{task}/comments', [TaskController::class, 'addComment']);
+    // Task Manager — internal admin work tracker
+    // Must be registered before the {workTask} wildcard routes below, else "dashboard"/"assignable-users" is matched as a task id.
+    Route::middleware('permission:task_manager.view')->get('/work-tasks/dashboard', [WorkTaskController::class, 'dashboard']);
+    Route::middleware('permission:task_manager.view')->get('/work-tasks/assignable-users', [WorkTaskController::class, 'assignableUsers']);
+    Route::apiResource('work-tasks', WorkTaskController::class, ['only' => ['index', 'show']])->middleware('permission:task_manager.view');
+    Route::apiResource('work-tasks', WorkTaskController::class, ['only' => ['store', 'update', 'destroy']])->middleware('permission:task_manager.manage');
+    Route::middleware('permission:task_manager.manage')->group(function () {
+        Route::patch('/work-tasks/{workTask}/status', [WorkTaskController::class, 'quickStatus']);
+        Route::post('/work-tasks/{workTask}/followups', [WorkTaskController::class, 'addFollowup']);
+    });
+    Route::apiResource('work-task-categories', WorkTaskCategoryController::class, ['only' => ['index']])->middleware('permission:task_manager.view');
+    Route::apiResource('work-task-categories', WorkTaskCategoryController::class, ['only' => ['store', 'update', 'destroy']])->middleware('permission:task_manager.categories.manage');
 
     // Directory — no dedicated edit/delete permission; "create" covers manage
     Route::apiResource('directory', DirectoryController::class, ['only' => ['index', 'show']])->middleware('permission:directory.view');

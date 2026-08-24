@@ -199,6 +199,7 @@ elseif (request()->is('expenses*'))                                             
 elseif (request()->is('accounting*'))                                                                      $sec = 'accounting';
 elseif (request()->is('reports*'))                                                                         $sec = 'reports';
 elseif (request()->is('hr*'))                                                                              $sec = 'hr';
+elseif (request()->is('task-manager*'))                                                                    $sec = 'task_manager';
 elseif (request()->is('access-control*') || request()->is('settings/branches*') || request()->is('settings/banks*') || request()->is('settings/districts-cities*') || request()->is('settings/dashboard-widgets*')) $sec = 'admin';
 ?>
 
@@ -433,16 +434,24 @@ elseif (request()->is('access-control*') || request()->is('settings/branches*') 
       </a>
 
       
-      <a href="<?php echo e(url('/tasks')); ?>" x-show="hasPerm('tasks.view')"
-         class="n-link <?php echo e(request()->is('tasks*') ? 'active' : ''); ?>"
-         :class="sidebarOpen ? '' : 'collapsed-link'">
-        <div class="n-icon">
-          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
-          </svg>
+      <div x-show="hasPerm('task_manager.view')">
+        <button @click="sidebarOpen ? toggle('task_manager') : null"
+                class="n-group <?php echo e($sec === 'task_manager' ? 'sec-active' : ''); ?>"
+                :class="sidebarOpen ? '' : 'collapsed-btn'">
+          <div class="n-icon">
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
+            </svg>
+          </div>
+          <span x-show="sidebarOpen" class="flex-1 text-[13px]">Task Manager</span>
+          <svg x-show="sidebarOpen" class="n-chevron w-3.5 h-3.5" :class="{'open': open.task_manager}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg>
+        </button>
+        <div x-show="open.task_manager && sidebarOpen" class="n-sub-list">
+          <a href="<?php echo e(url('/task-manager')); ?>"            class="n-sub <?php echo e(request()->is('task-manager') ? 'active' : ''); ?>">Dashboard</a>
+          <a href="<?php echo e(url('/task-manager/board')); ?>"       class="n-sub <?php echo e(request()->is('task-manager/board*') ? 'active' : ''); ?>">Task Board</a>
+          <a href="<?php echo e(url('/task-manager/categories')); ?>"  class="n-sub <?php echo e(request()->is('task-manager/categories*') ? 'active' : ''); ?>">Categories</a>
         </div>
-        <span x-show="sidebarOpen" class="text-[13px]">Tasks</span>
-      </a>
+      </div>
 
       
       <div x-show="hasPerm('reports.view')">
@@ -942,6 +951,7 @@ function layout() {
       accounting:  '<?php echo e($sec); ?>' === 'accounting',
       reports:     '<?php echo e($sec); ?>' === 'reports',
       hr:          '<?php echo e($sec); ?>' === 'hr',
+      task_manager: '<?php echo e($sec); ?>' === 'task_manager',
       admin:       '<?php echo e($sec); ?>' === 'admin',
     },
     hasPerm(p) {

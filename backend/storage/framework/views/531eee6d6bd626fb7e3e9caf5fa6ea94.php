@@ -1,12 +1,11 @@
-@extends('layouts.app')
-@section('title', 'Journal Entries')
-@section('page-title', 'Journal Entries')
-@section('page-desc', 'Double-entry bookkeeping ledger')
+<?php $__env->startSection('title', 'Journal Entries'); ?>
+<?php $__env->startSection('page-title', 'Journal Entries'); ?>
+<?php $__env->startSection('page-desc', 'Double-entry bookkeeping ledger'); ?>
 
-@section('content')
+<?php $__env->startSection('content'); ?>
 <div x-data="journalPage()" x-init="init()">
 
-  {{-- Toolbar --}}
+  
   <div class="flex flex-col sm:flex-row sm:items-center gap-3 mb-6">
     <div class="flex gap-2 flex-wrap items-end">
       <div>
@@ -41,7 +40,7 @@
     </div>
   </div>
 
-  {{-- Totals bar --}}
+  
   <div x-show="!loading && entries.length > 0" class="grid grid-cols-3 gap-4 mb-5">
     <div class="card p-4 text-center">
       <p class="text-xs text-gray-400 mb-1">Total Entries</p>
@@ -57,16 +56,16 @@
     </div>
   </div>
 
-  {{-- Loading --}}
+  
   <div x-show="loading" class="flex justify-center py-16">
     <svg class="animate-spin w-8 h-8 text-blue-500" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/></svg>
   </div>
 
-  {{-- Entries --}}
+  
   <div x-show="!loading" class="space-y-3">
     <template x-for="entry in filtered" :key="entry.id">
       <div class="card overflow-hidden">
-        {{-- Entry header --}}
+        
         <div role="button" tabindex="0" @click="entry._open = !entry._open" @keydown.enter="entry._open = !entry._open"
                 class="w-full px-5 py-3 flex items-center gap-4 hover:bg-gray-50 dark:hover:bg-gray-800/30 transition-colors text-left cursor-pointer">
           <div class="flex-shrink-0 w-9 h-9 rounded-xl flex items-center justify-center" :style="typeStyle(entry.type)">
@@ -94,7 +93,7 @@
           </div>
         </div>
 
-        {{-- Lines --}}
+        
         <div x-show="entry._open" x-transition class="border-t border-gray-100 dark:border-gray-700/40">
           <table class="min-w-full">
             <thead class="bg-gray-50 dark:bg-gray-800/40">
@@ -133,7 +132,7 @@
     </div>
   </div>
 
-  {{-- Create Manual Entry Modal --}}
+  
   <div x-show="modal.open" x-transition.opacity class="fixed inset-0 z-50 flex items-start justify-center p-4 overflow-y-auto" style="background:rgba(0,0,0,0.5)">
     <div @click.away="modal.open = false" class="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-7xl my-6">
       <div class="px-6 py-4 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
@@ -161,7 +160,7 @@
           <input type="text" x-model="modal.description" class="input text-sm" placeholder="e.g. Opening balance adjustment" />
         </div>
 
-        {{-- Lines --}}
+        
         <div>
           <div class="flex items-center justify-between mb-2">
             <label class="label mb-0">Lines <span class="text-red-500">*</span></label>
@@ -249,9 +248,9 @@
   </div>
 
 </div>
-@endsection
+<?php $__env->stopSection(); ?>
 
-@push('scripts')
+<?php $__env->startPush('scripts'); ?>
 <script>
 const JE_TYPE_COLORS = {
   manual:           'background:#374151',
@@ -374,4 +373,6 @@ function journalPage() {
   };
 }
 </script>
-@endpush
+<?php $__env->stopPush(); ?>
+
+<?php echo $__env->make('layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH E:\xampp8.2\htdocs\FountainOREKS\backend\resources\views/accounting/journal.blade.php ENDPATH**/ ?>

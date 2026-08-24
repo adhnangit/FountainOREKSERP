@@ -4,19 +4,17 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-class TaskComment extends Model
+class WorkTaskFollowup extends Model
 {
-    protected $table = 'task_comments';
-
-    protected $fillable = ['task_id', 'user_id', 'comment', 'attachment'];
+    protected $fillable = ['task_id', 'user_id', 'note', 'status_snapshot'];
 
     public function task(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
-        return $this->belongsTo(Task::class);
+        return $this->belongsTo(WorkTask::class, 'task_id');
     }
 
     public function user(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(User::class, 'user_id');
     }
 }
