@@ -188,7 +188,30 @@ class InventoryController extends Controller
     {
         $q = StockAdjustment::query();
         $this->branchContext->applyScope($q);
-        return response()->json($q->with(['branch', 'createdBy', 'items.product'])->latest()->paginate($request->input('per_page', 20)));
+        return response()->json($q->with(['branch', 'createdBy', 'items.product', 'items.batch'])->latest()->paginate($request->input('per_page', 20)));
+    }
+
+    /**
+     * Snapshot the system quantity + unit cost for one adjustment line. When a
+     * batch is targeted, both are read off that specific batch (so the diff —
+     * and later approval — apply to it alone) instead of the product's
+     * branch-wide total.
+     */
+    private function snapshotAdjustmentItem(array $item, int $branchId): array
+    {
+        $batchId = $item['batch_id'] ?? null;
+        if ($batchId) {
+            $batch = \App\Models\Batch::where('id', $batchId)
+                ->where('product_id', $item['product_id'])
+                ->where('branch_id', $branchId)
+                ->first();
+            abort_unless($batch, 422, 'Selected batch does not belong to this product/branch.');
+            return [(float) $batch->quantity_remaining, (float) $batch->cost_price];
+        }
+
+        $systemQty = $this->stockService->getAvailableStock($item['product_id'], $branchId);
+        $unitCost = \App\Models\ProductBranchStock::where('product_id', $item['product_id'])->where('branch_id', $branchId)->value('avg_cost') ?? 0;
+        return [$systemQty, $unitCost];
     }
 
     public function storeAdjustment(Request $request): JsonResponse
@@ -199,6 +222,7 @@ class InventoryController extends Controller
             'reason' => 'nullable|string',
             'items' => 'required|array|min:1',
             'items.*.product_id' => 'required|exists:products,id',
+            'items.*.batch_id' => 'nullable|exists:batches,id',
             'items.*.physical_quantity' => 'required|numeric|min:0',
         ]);
 
@@ -213,25 +237,25 @@ class InventoryController extends Controller
             ]);
 
             foreach ($data['items'] as $item) {
-                $systemQty = $this->stockService->getAvailableStock($item['product_id'], $data['branch_id']);
-                $difference = $item['physical_quantity'] - $systemQty;
+                [$systemQty, $unitCost] = $this->snapshotAdjustmentItem($item, $data['branch_id']);
                 StockAdjustmentItem::create([
                     'adjustment_id' => $adjustment->id,
                     'product_id' => $item['product_id'],
+                    'batch_id' => $item['batch_id'] ?? null,
                     'system_quantity' => $systemQty,
                     'physical_quantity' => $item['physical_quantity'],
-                    'difference' => $difference,
-                    'unit_cost' => \App\Models\ProductBranchStock::where('product_id', $item['product_id'])->where('branch_id', $data['branch_id'])->value('avg_cost') ?? 0,
+                    'difference' => $item['physical_quantity'] - $systemQty,
+                    'unit_cost' => $unitCost,
                 ]);
             }
 
-            return response()->json($adjustment->load(['items.product', 'branch']), 201);
+            return response()->json($adjustment->load(['items.product', 'items.batch', 'branch']), 201);
         }, 5);
     }
 
     public function showAdjustment(StockAdjustment $stockAdjustment): JsonResponse
     {
-        return response()->json($stockAdjustment->load(['items.product', 'branch', 'createdBy']));
+        return response()->json($stockAdjustment->load(['items.product', 'items.batch', 'branch', 'createdBy']));
     }
 
     public function updateAdjustment(Request $request, StockAdjustment $stockAdjustment): JsonResponse
@@ -245,6 +269,7 @@ class InventoryController extends Controller
             'reason' => 'nullable|string',
             'items' => 'required|array|min:1',
             'items.*.product_id' => 'required|exists:products,id',
+            'items.*.batch_id' => 'nullable|exists:batches,id',
             'items.*.physical_quantity' => 'required|numeric|min:0',
         ]);
 
@@ -258,18 +283,19 @@ class InventoryController extends Controller
             // reflects current stock, not stock at original creation time.
             $stockAdjustment->items()->delete();
             foreach ($data['items'] as $item) {
-                $systemQty = $this->stockService->getAvailableStock($item['product_id'], $stockAdjustment->branch_id);
+                [$systemQty, $unitCost] = $this->snapshotAdjustmentItem($item, $stockAdjustment->branch_id);
                 StockAdjustmentItem::create([
                     'adjustment_id' => $stockAdjustment->id,
                     'product_id' => $item['product_id'],
+                    'batch_id' => $item['batch_id'] ?? null,
                     'system_quantity' => $systemQty,
                     'physical_quantity' => $item['physical_quantity'],
                     'difference' => $item['physical_quantity'] - $systemQty,
-                    'unit_cost' => \App\Models\ProductBranchStock::where('product_id', $item['product_id'])->where('branch_id', $stockAdjustment->branch_id)->value('avg_cost') ?? 0,
+                    'unit_cost' => $unitCost,
                 ]);
             }
 
-            return response()->json($stockAdjustment->fresh()->load(['items.product', 'branch']));
+            return response()->json($stockAdjustment->fresh()->load(['items.product', 'items.batch', 'branch']));
         }, 5);
     }
 
@@ -291,6 +317,25 @@ class InventoryController extends Controller
 
         return DB::transaction(function () use ($stockAdjustment, $request) {
             foreach ($stockAdjustment->items as $item) {
+                if ((float) $item->difference == 0.0) continue;
+
+                if ($item->batch_id) {
+                    if ($item->difference > 0) {
+                        $this->stockService->restockBatch(
+                            $item->batch_id, (float) $item->difference, 'adjustment_in',
+                            'adjustment', $stockAdjustment->id,
+                            $request->user()->id, $stockAdjustment->adjustment_date->toDateString()
+                        );
+                    } else {
+                        $this->stockService->deductFromBatch(
+                            $item->batch_id, abs((float) $item->difference), 'adjustment_out',
+                            'adjustment', $stockAdjustment->id,
+                            $request->user()->id, $stockAdjustment->adjustment_date->toDateString()
+                        );
+                    }
+                    continue;
+                }
+
                 if ($item->difference > 0) {
                     $sellingPrice = (float) (\App\Models\Product::where('id', $item->product_id)->value('selling_price') ?? 0);
                     $this->stockService->receiveBatch(

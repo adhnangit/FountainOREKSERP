@@ -6,8 +6,30 @@
 @section('content')
 <div x-data="adjustmentsPage()" x-init="init()">
 
+    <!-- Pending-approval banner — a draft has NOT touched stock yet -->
+    <div x-show="!loading && pendingCount > 0"
+         class="mb-4 flex items-center justify-between gap-3 px-4 py-3 rounded-xl border border-amber-300 bg-amber-50 dark:bg-amber-900/10 dark:border-amber-800">
+        <div class="flex items-center gap-2.5">
+            <svg class="w-4.5 h-4.5 text-amber-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z"/></svg>
+            <span class="text-sm text-amber-800 dark:text-amber-300">
+                <strong x-text="pendingCount"></strong>
+                <span x-text="pendingCount === 1 ? 'adjustment is' : 'adjustments are'"></span>
+                still in draft — stock hasn't changed for <span x-text="pendingCount === 1 ? 'it' : 'them'"></span> yet.
+            </span>
+        </div>
+        <button @click="showPendingOnly = true; search = ''" x-show="!showPendingOnly"
+                class="text-xs font-semibold text-amber-700 dark:text-amber-400 hover:underline flex-shrink-0">Show pending</button>
+    </div>
+
     <div class="flex items-center justify-between mb-6">
-        <input x-model="search" type="text" placeholder="Search ref# or product…" class="input w-64" />
+        <div class="flex items-center gap-2">
+            <input x-model="search" type="text" placeholder="Search ref# or product…" class="input w-64" />
+            <button @click="showPendingOnly = !showPendingOnly"
+                    :class="showPendingOnly ? 'bg-amber-100 border-amber-400 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300' : 'border-gray-200 dark:border-gray-600 text-gray-500'"
+                    class="text-xs font-semibold px-3 py-2 rounded-lg border transition-colors">
+                Pending only
+            </button>
+        </div>
         <a href="{{ url('/inventory/adjustments/create') }}" class="btn-primary inline-flex items-center gap-2">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
             New Adjustment
@@ -102,6 +124,7 @@
                                 <thead class="bg-gray-50 dark:bg-gray-700/40">
                                     <tr>
                                         <th class="table-hd">Product</th>
+                                        <th class="table-hd">Batch</th>
                                         <th class="table-hd text-right">System Qty</th>
                                         <th class="table-hd text-right">Physical Qty</th>
                                         <th class="table-hd text-right">Difference</th>
@@ -111,6 +134,7 @@
                                     <template x-for="it in (detail.items ?? [])" :key="it.id">
                                         <tr>
                                             <td class="table-td" x-text="it.product?.name ?? ('#' + it.product_id)"></td>
+                                            <td class="table-td text-gray-500" x-text="it.batch?.batch_code ?? 'All batches'"></td>
                                             <td class="table-td text-right tabular-nums" x-text="parseFloat(it.system_quantity)"></td>
                                             <td class="table-td text-right tabular-nums" x-text="parseFloat(it.physical_quantity)"></td>
                                             <td class="table-td text-right font-semibold tabular-nums"
@@ -156,12 +180,18 @@ function adjustmentsPage() {
         items: [],
         loading: true,
         search: '',
+        showPendingOnly: false,
         detail: null,
         approving: false,
+        get pendingCount() {
+            return this.items.filter(a => a.status === 'draft').length;
+        },
         get filtered() {
             const q = this.search.toLowerCase();
-            if (!q) return this.items;
-            return this.items.filter(a =>
+            let list = this.items;
+            if (this.showPendingOnly) list = list.filter(a => a.status === 'draft');
+            if (!q) return list;
+            return list.filter(a =>
                 (a.adjustment_number ?? '').toLowerCase().includes(q) ||
                 (a.items ?? []).some(it => (it.product?.name ?? '').toLowerCase().includes(q))
             );

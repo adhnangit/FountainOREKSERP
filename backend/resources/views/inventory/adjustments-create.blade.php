@@ -46,7 +46,7 @@
             </div>
             <div class="max-h-52 overflow-y-auto py-1">
               <template x-for="p in products.filter(p => !q || p.name.toLowerCase().includes(q.toLowerCase()))" :key="p.id">
-                <button type="button" @click="form.product_id = p.id; setCurrentStock(); open = false; q = ''"
+                <button type="button" @click="form.product_id = p.id; form.batch_id = ''; setCurrentStock(); loadBatches(); open = false; q = ''"
                         class="search-dd-item" :class="form.product_id == p.id ? 'active' : ''">
                   <span class="text-sm font-medium text-gray-800 dark:text-gray-100 truncate flex-1" x-text="p.name"></span>
                 </button>
@@ -56,8 +56,23 @@
             </div>
           </div>
         </div>
-        <div x-show="currentStock !== null" class="mt-1.5 text-xs text-gray-500">
+        <div x-show="currentStock !== null && !form.batch_id" class="mt-1.5 text-xs text-gray-500">
           Current stock: <span class="font-semibold" :class="currentStock > 0 ? 'text-green-600' : 'text-red-500'" x-text="currentStock"></span>
+        </div>
+      </div>
+
+      <!-- Batch (optional — targets one specific batch instead of the product total) -->
+      <div x-show="batches.length > 0">
+        <label class="block text-xs font-semibold text-gray-500 mb-1">Batch <span class="text-gray-400 font-normal">(optional)</span></label>
+        <select x-model="form.batch_id" @change="setCurrentStock()" class="input w-full">
+          <option value="">— All batches (product total) —</option>
+          <template x-for="b in batches" :key="b.id">
+            <option :value="b.id" x-text="b.batch_code + ' — ' + parseFloat(b.available_qty) + ' remaining'"></option>
+          </template>
+        </select>
+        <div x-show="form.batch_id && currentStock !== null" class="mt-1.5 text-xs text-gray-500">
+          Current stock (this batch): <span class="font-semibold" :class="currentStock > 0 ? 'text-green-600' : 'text-red-500'" x-text="currentStock"></span>
+          <p class="mt-1 text-gray-400">Correction will apply to this batch only, not the product's overall stock.</p>
         </div>
       </div>
 
@@ -123,13 +138,28 @@
 
     </div>
 
+    <!-- Approve now vs. draft — a draft never touches stock until someone separately approves it -->
+    <div class="card p-4 flex items-start gap-3 border-2" x-show="canApprove"
+         :class="approveNow ? 'border-green-300 bg-green-50/60 dark:bg-green-900/10' : 'border-amber-300 bg-amber-50/60 dark:bg-amber-900/10'">
+      <input type="checkbox" x-model="approveNow" id="approveNow" class="mt-0.5 w-4 h-4 accent-green-600 flex-shrink-0" />
+      <label for="approveNow" class="text-sm cursor-pointer select-none">
+        <span class="font-semibold" :class="approveNow ? 'text-green-700 dark:text-green-400' : 'text-amber-700 dark:text-amber-400'"
+              x-text="approveNow ? 'Approve immediately' : 'Save as draft only'"></span>
+        <p class="text-xs text-gray-500 mt-0.5"
+           x-text="approveNow ? 'Stock updates the moment you save.' : 'Stock will NOT change until this is approved from the Adjustments list.'"></p>
+      </label>
+    </div>
+    <div x-show="!canApprove" class="text-xs text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800 rounded-lg px-3 py-2.5">
+      This saves as a draft — you don't have permission to approve adjustments. Stock won't change until someone who can approve reviews it from the Adjustments list.
+    </div>
+
     <!-- Actions -->
     <div class="flex items-center justify-end gap-3 pb-6">
       <a href="{{ url('/inventory/adjustments') }}" class="btn-secondary">Cancel</a>
       <button type="button" @click="submit()" :disabled="submitting"
               class="btn-primary flex items-center gap-2 disabled:opacity-60">
         <svg x-show="submitting" class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" stroke-dasharray="30 70"/></svg>
-        <span x-text="submitting ? 'Saving…' : (editId ? 'Update Adjustment' : 'Save Adjustment')"></span>
+        <span x-text="submitting ? 'Saving…' : saveButtonLabel"></span>
       </button>
     </div>
 
@@ -143,14 +173,18 @@ function adjustmentCreate() {
   return {
     branches: [],
     products: [],
+    batches: [],
     currentStock: null,
     submitting: false,
+    canApprove: false,
+    approveNow: true,
     editId: new URLSearchParams(window.location.search).get('edit'),
     editNumber: '',
     reasons: ['Damaged', 'Expired', 'Theft/Loss', 'Correction', 'Returned', 'Recount', 'Write-off'],
     form: {
       branch_id: '',
       product_id: '',
+      batch_id: '',
       adjustment_type: 'add',
       quantity: '',
       adjustment_date: new Date().toISOString().split('T')[0],
@@ -166,7 +200,23 @@ function adjustmentCreate() {
         : parseFloat(this.currentStock) - q;
     },
 
+    get saveButtonLabel() {
+      if (this.canApprove && this.approveNow) return this.editId ? 'Update & Approve' : 'Save & Approve';
+      return this.editId ? 'Update Draft' : 'Save as Draft';
+    },
+
+    checkCanApprove() {
+      try {
+        const u = JSON.parse(localStorage.getItem('medri_user') || 'null');
+        if (!u) return false;
+        if (u.is_super_admin) return true;
+        if ((u.roles ?? []).includes('super_admin')) return true;
+        return (u.permissions ?? []).includes('inventory.adjustments.approve');
+      } catch (e) { return false; }
+    },
+
     async init() {
+      this.canApprove = this.checkCanApprove();
       const r = await apiFetch('/branches');
       if (!r) return;
       const d = await r.json();
@@ -190,6 +240,8 @@ function adjustmentCreate() {
         const item = (a.items ?? [])[0];
         if (item) {
           this.form.product_id = item.product_id;
+          await this.loadBatches();
+          this.form.batch_id = item.batch_id ?? '';
           this.setCurrentStock();
           const diff = parseFloat(item.difference ?? 0);
           this.form.adjustment_type = diff >= 0 ? 'add' : 'remove';
@@ -205,8 +257,10 @@ function adjustmentCreate() {
 
     async loadProducts() {
       this.products = [];
+      this.batches = [];
       this.currentStock = null;
       this.form.product_id = '';
+      this.form.batch_id = '';
       if (!this.form.branch_id) return;
       const r = await apiFetch('/products?per_page=500');
       if (!r) return;
@@ -219,7 +273,25 @@ function adjustmentCreate() {
       }));
     },
 
+    async loadBatches() {
+      this.batches = [];
+      if (!this.form.product_id || !this.form.branch_id) return;
+      try {
+        const r = await apiFetch('/products/' + this.form.product_id + '/batches?branch_id=' + this.form.branch_id);
+        if (!r) return;
+        const d = await r.json();
+        this.batches = Array.isArray(d) ? d : (d.data ?? []);
+      } catch (e) {
+        this.batches = [];
+      }
+    },
+
     setCurrentStock() {
+      if (this.form.batch_id) {
+        const b = this.batches.find(x => x.id == this.form.batch_id);
+        this.currentStock = b ? b.available_qty : null;
+        return;
+      }
       const p = this.products.find(x => x.id == this.form.product_id);
       this.currentStock = p ? p.stock : null;
     },
@@ -248,7 +320,7 @@ function adjustmentCreate() {
             branch_id: this.form.branch_id,
             adjustment_date: this.form.adjustment_date,
             reason: this.form.reason + (this.form.notes ? ' — ' + this.form.notes : ''),
-            items: [{ product_id: this.form.product_id, physical_quantity: physicalQty }],
+            items: [{ product_id: this.form.product_id, batch_id: this.form.batch_id || null, physical_quantity: physicalQty }],
           }),
         });
         if (!r) return;
@@ -256,7 +328,19 @@ function adjustmentCreate() {
           const err = await r.json();
           toast(err.message ?? 'Failed to save adjustment', 'error'); return;
         }
-        toast(this.editId ? 'Adjustment updated' : 'Adjustment saved', 'success');
+        const saved = await r.json();
+
+        if (this.canApprove && this.approveNow) {
+          const ar = await apiFetch('/adjustments/' + saved.id + '/approve', { method: 'POST' });
+          if (ar && ar.ok) {
+            toast('Adjustment approved — stock updated', 'success');
+          } else {
+            const aerr = ar ? await ar.json().catch(() => ({})) : {};
+            toast('Saved as draft, but approval failed (' + (aerr.message ?? 'unknown error') + '). Approve it from the Adjustments list.', 'error');
+          }
+        } else {
+          toast('Draft saved — stock not updated yet until it\'s approved', 'success');
+        }
         window.location.href = BASE + '/inventory/adjustments';
       } catch(e) {
         toast('Failed to save adjustment', 'error');
