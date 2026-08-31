@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\WorkTask;
 use App\Models\WorkTaskCategory;
 use App\Models\WorkTaskFollowup;
+use App\Models\WorkTaskSubtask;
 use App\Models\User;
 use App\Services\BranchContextService;
 use Carbon\Carbon;
@@ -101,7 +102,7 @@ class WorkTaskController extends Controller
         }
 
         $q = WorkTask::with(['category', 'assignee'])
-            ->withCount('followups')
+            ->withCount(['followups', 'subtasks', 'subtasks as subtasks_completed_count' => fn ($q) => $q->where('completed', true)])
             ->when($categoryIds, fn ($q) => $q->whereIn('category_id', $categoryIds))
             ->when($request->status, fn ($q) => $q->where('status', $request->status))
             ->when($request->priority, fn ($q) => $q->where('priority', $request->priority))
@@ -143,7 +144,7 @@ class WorkTaskController extends Controller
 
     public function show(WorkTask $workTask): JsonResponse
     {
-        return response()->json($workTask->load(['category', 'assignee', 'creator', 'followups.user']));
+        return response()->json($workTask->load(['category', 'assignee', 'creator', 'followups.user', 'subtasks.assignee']));
     }
 
     public function update(Request $request, WorkTask $workTask): JsonResponse
@@ -210,6 +211,40 @@ class WorkTaskController extends Controller
         ]);
 
         return response()->json($followup->load('user'), 201);
+    }
+
+    public function storeSubtask(Request $request, WorkTask $workTask): JsonResponse
+    {
+        $data = $request->validate([
+            'title' => 'required|string|max:255',
+            'assigned_to' => 'nullable|exists:users,id',
+            'due_date' => 'nullable|date',
+        ]);
+
+        $data['work_task_id'] = $workTask->id;
+        $data['sort_order'] = $workTask->subtasks()->count();
+
+        $subtask = WorkTaskSubtask::create($data);
+
+        return response()->json($subtask->load('assignee'), 201);
+    }
+
+    public function toggleSubtask(WorkTask $workTask, WorkTaskSubtask $subtask): JsonResponse
+    {
+        abort_if($subtask->work_task_id !== $workTask->id, 404);
+
+        $subtask->update(['completed' => !$subtask->completed]);
+
+        return response()->json($subtask->fresh('assignee'));
+    }
+
+    public function destroySubtask(WorkTask $workTask, WorkTaskSubtask $subtask): JsonResponse
+    {
+        abort_if($subtask->work_task_id !== $workTask->id, 404);
+
+        $subtask->delete();
+
+        return response()->json(['message' => 'Sub-task removed.']);
     }
 
     private function logStatusChange(WorkTask $task, int $userId, string $from, string $to): void

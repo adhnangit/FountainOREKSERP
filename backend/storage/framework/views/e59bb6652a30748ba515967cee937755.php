@@ -96,7 +96,10 @@
                         <td class="table-td">
                             <div class="font-semibold text-gray-900 dark:text-gray-100 cursor-pointer hover:underline" @click="openDetail(task.id)" x-text="task.title"></div>
                             <div class="text-xs text-gray-400 max-w-[260px] truncate" x-show="task.description" x-text="task.description"></div>
-                            <div class="text-xs text-gray-400 mt-0.5" x-show="task.followups_count > 0" x-text="task.followups_count + ' update' + (task.followups_count > 1 ? 's' : '')"></div>
+                            <div class="flex items-center gap-3 mt-0.5">
+                                <span class="text-xs text-gray-400" x-show="task.followups_count > 0" x-text="task.followups_count + ' update' + (task.followups_count > 1 ? 's' : '')"></span>
+                                <span class="text-xs text-gray-400" x-show="task.subtasks_count > 0" x-text="'☑ ' + task.subtasks_completed_count + '/' + task.subtasks_count + ' subtasks'"></span>
+                            </div>
                         </td>
                         <td class="table-td">
                             <span x-show="task.category" class="text-[11px] font-semibold px-2 py-0.5 rounded-full"
@@ -251,6 +254,29 @@
                     </template>
                 </div>
 
+                <div class="flex items-center justify-between mb-2">
+                    <div class="text-xs font-bold uppercase tracking-wide text-gray-400">Sub-tasks</div>
+                    <span class="text-xs text-gray-400" x-show="(detailTask?.subtasks ?? []).length" x-text="subtaskCompletedCount + '/' + (detailTask?.subtasks ?? []).length + ' done'"></span>
+                </div>
+                <div class="space-y-1.5 mb-3">
+                    <template x-for="st in (detailTask?.subtasks ?? [])" :key="st.id">
+                        <div class="flex items-center gap-2.5 bg-gray-50 dark:bg-gray-900 rounded-lg px-3 py-2">
+                            <input type="checkbox" :checked="st.completed" @change="toggleSubtask(st)" class="rounded text-indigo-600 flex-shrink-0" />
+                            <span class="text-sm flex-1" :class="st.completed ? 'line-through text-gray-400' : 'text-gray-700 dark:text-gray-200'" x-text="st.title"></span>
+                            <span class="text-xs text-gray-400 flex-shrink-0" x-show="st.assignee" x-text="st.assignee?.name"></span>
+                            <span class="text-xs flex-shrink-0" :class="st.due_date && !st.completed && new Date(st.due_date) < new Date().setHours(0,0,0,0) ? 'text-red-500 font-semibold' : 'text-gray-400'" x-show="st.due_date" x-text="fmtDate(st.due_date)"></span>
+                            <button @click="deleteSubtask(st)" class="text-gray-300 hover:text-red-500 flex-shrink-0" title="Remove">
+                                <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M6 18L18 6M6 6l12 12"/></svg>
+                            </button>
+                        </div>
+                    </template>
+                    <p x-show="!(detailTask?.subtasks ?? []).length" class="text-sm text-gray-400 py-1">No sub-tasks yet.</p>
+                </div>
+                <div class="flex gap-2 mb-5">
+                    <input type="text" x-model="newSubtask" @keydown.enter="addSubtask()" class="input flex-1" placeholder="Add a sub-task…" />
+                    <button @click="addSubtask()" class="btn-secondary text-sm">Add</button>
+                </div>
+
                 <div class="text-xs font-bold uppercase tracking-wide text-gray-400 mb-2">Follow-ups &amp; Activity</div>
                 <div class="flex gap-2 mb-4">
                     <input type="text" x-model="newNote" @keydown.enter="addFollowup()" class="input flex-1" placeholder="Add a follow-up note…" />
@@ -301,6 +327,11 @@ function taskBoardPage() {
         showDetail: false,
         detailTask: null,
         newNote: '',
+        newSubtask: '',
+
+        get subtaskCompletedCount() {
+            return (this.detailTask?.subtasks ?? []).filter(s => s.completed).length;
+        },
 
         blank() {
             return { title: '', description: '', category_id: '', assigned_to: '', priority: 'Medium', status: 'Pending', due_date: '' };
@@ -443,6 +474,38 @@ function taskBoardPage() {
                 await this.load();
             } catch (e) {
                 toast(e.message ?? 'Failed to add follow-up', 'error');
+            }
+        },
+
+        async addSubtask() {
+            if (!this.newSubtask.trim()) return;
+            try {
+                await apiFetch('/work-tasks/' + this.detailTask.id + '/subtasks', { method: 'POST', body: JSON.stringify({ title: this.newSubtask }) });
+                this.newSubtask = '';
+                await this.openDetail(this.detailTask.id);
+                await this.load();
+            } catch (e) {
+                toast(e.message ?? 'Failed to add sub-task', 'error');
+            }
+        },
+
+        async toggleSubtask(subtask) {
+            try {
+                await apiFetch('/work-tasks/' + this.detailTask.id + '/subtasks/' + subtask.id + '/toggle', { method: 'PATCH' });
+                subtask.completed = !subtask.completed;
+                await this.load();
+            } catch (e) {
+                toast(e.message ?? 'Failed to update sub-task', 'error');
+            }
+        },
+
+        async deleteSubtask(subtask) {
+            try {
+                await apiFetch('/work-tasks/' + this.detailTask.id + '/subtasks/' + subtask.id, { method: 'DELETE' });
+                this.detailTask.subtasks = this.detailTask.subtasks.filter(s => s.id !== subtask.id);
+                await this.load();
+            } catch (e) {
+                toast(e.message ?? 'Failed to remove sub-task', 'error');
             }
         },
 

@@ -46,6 +46,14 @@ alter table `work_task_followups` add constraint `work_task_followups_user_id_fo
 drop table if exists `task_comments`;
 drop table if exists `tasks`;
 
+-- ----------------------------------------------------------------
+-- Migration: 2026_08_31_100000_create_work_task_subtasks_table.php
+-- Table(s): work_task_subtasks
+-- ----------------------------------------------------------------
+create table `work_task_subtasks` (`id` bigint unsigned not null auto_increment primary key, `work_task_id` bigint unsigned not null, `title` varchar(191) not null, `completed` tinyint(1) not null default '0', `assigned_to` bigint unsigned null, `due_date` date null, `sort_order` int unsigned not null default '0', `created_at` timestamp null, `updated_at` timestamp null) default character set utf8mb4 collate 'utf8mb4_unicode_ci';
+alter table `work_task_subtasks` add constraint `work_task_subtasks_work_task_id_foreign` foreign key (`work_task_id`) references `work_tasks` (`id`) on delete cascade;
+alter table `work_task_subtasks` add constraint `work_task_subtasks_assigned_to_foreign` foreign key (`assigned_to`) references `users` (`id`) on delete set null;
+
 SET FOREIGN_KEY_CHECKS=1;
 
 -- ----------------------------------------------------------------
@@ -60,4 +68,5 @@ INSERT INTO `migrations` (`migration`, `batch`) VALUES
 ('2026_08_24_120000_create_work_task_categories_table', @next_batch),
 ('2026_08_24_120001_create_work_tasks_table', @next_batch),
 ('2026_08_24_120002_create_work_task_followups_table', @next_batch),
-('2026_08_24_130000_drop_tasks_and_task_comments_tables', @next_batch);
+('2026_08_24_130000_drop_tasks_and_task_comments_tables', @next_batch),
+('2026_08_31_100000_create_work_task_subtasks_table', @next_batch);

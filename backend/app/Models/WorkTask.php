@@ -36,6 +36,11 @@ class WorkTask extends Model
         return $this->hasMany(WorkTaskFollowup::class, 'task_id')->orderByDesc('created_at');
     }
 
+    public function subtasks(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(WorkTaskSubtask::class, 'work_task_id')->orderBy('sort_order')->orderBy('id');
+    }
+
     public function isOverdue(): bool
     {
         return $this->due_date
