@@ -296,6 +296,7 @@ Route::middleware(['auth:sanctum', 'branch.context'])->group(function () {
         Route::post('/work-tasks/{workTask}/subtasks', [WorkTaskController::class, 'storeSubtask']);
         Route::patch('/work-tasks/{workTask}/subtasks/{subtask}/toggle', [WorkTaskController::class, 'toggleSubtask']);
         Route::delete('/work-tasks/{workTask}/subtasks/{subtask}', [WorkTaskController::class, 'destroySubtask']);
+        Route::post('/work-tasks/{workTask}/subtasks/{subtask}/followups', [WorkTaskController::class, 'storeSubtaskFollowup']);
     });
     Route::apiResource('work-task-categories', WorkTaskCategoryController::class, ['only' => ['index']])->middleware('permission:task_manager.view');
     Route::apiResource('work-task-categories', WorkTaskCategoryController::class, ['only' => ['store', 'update', 'destroy']])->middleware('permission:task_manager.categories.manage');

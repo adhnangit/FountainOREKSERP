@@ -22,4 +22,9 @@ class WorkTaskSubtask extends Model
     {
         return $this->belongsTo(User::class, 'assigned_to');
     }
+
+    public function followups(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(WorkTaskFollowup::class, 'subtask_id')->orderByDesc('created_at');
+    }
 }

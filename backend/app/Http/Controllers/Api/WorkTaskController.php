@@ -144,7 +144,7 @@ class WorkTaskController extends Controller
 
     public function show(WorkTask $workTask): JsonResponse
     {
-        return response()->json($workTask->load(['category', 'assignee', 'creator', 'followups.user', 'subtasks.assignee']));
+        return response()->json($workTask->load(['category', 'assignee', 'creator', 'followups.user', 'subtasks.assignee', 'subtasks.followups.user']));
     }
 
     public function update(Request $request, WorkTask $workTask): JsonResponse
@@ -227,6 +227,22 @@ class WorkTaskController extends Controller
         $subtask = WorkTaskSubtask::create($data);
 
         return response()->json($subtask->load('assignee'), 201);
+    }
+
+    public function storeSubtaskFollowup(Request $request, WorkTask $workTask, WorkTaskSubtask $subtask): JsonResponse
+    {
+        abort_if($subtask->work_task_id !== $workTask->id, 404);
+
+        $data = $request->validate(['note' => 'required|string|min:1']);
+
+        $followup = WorkTaskFollowup::create([
+            'task_id' => $workTask->id,
+            'subtask_id' => $subtask->id,
+            'user_id' => $request->user()->id,
+            'note' => $data['note'],
+        ]);
+
+        return response()->json($followup->load('user'), 201);
     }
 
     public function toggleSubtask(WorkTask $workTask, WorkTaskSubtask $subtask): JsonResponse

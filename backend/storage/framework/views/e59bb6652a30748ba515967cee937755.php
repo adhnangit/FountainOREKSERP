@@ -3,151 +3,378 @@
 <?php $__env->startSection('page-desc', 'Assign, filter and track internal work tasks to completion'); ?>
 
 <?php $__env->startSection('content'); ?>
+<style>
+/* ── Stats Cards ── */
+.tb-stats{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:20px}
+.tb-stat-card{background:#fff;border-radius:14px;padding:16px 18px;border:1px solid #e2e8f0;display:flex;align-items:center;gap:12px;transition:box-shadow .2s,transform .2s;cursor:pointer}
+.tb-stat-card:hover{box-shadow:0 8px 24px rgba(0,0,0,.08);transform:translateY(-2px)}
+.tb-stat-card.active{border-color:#6366f1;box-shadow:0 0 0 3px rgba(99,102,241,.12)}
+.tb-stat-icon{width:42px;height:42px;border-radius:11px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.tb-stat-icon svg{width:20px;height:20px}
+.tb-stat-val{font-size:21px;font-weight:800;line-height:1.1;letter-spacing:-.5px}
+.tb-stat-lbl{font-size:11px;color:#94a3b8;font-weight:600;margin-top:2px;text-transform:uppercase;letter-spacing:.04em}
+
+/* ── Toolbar ── */
+.tb-toolbar{background:#fff;border-radius:14px;padding:14px 18px;border:1px solid #e2e8f0;margin-bottom:16px}
+.tb-toolbar-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.tb-toolbar-row + .tb-toolbar-row{margin-top:12px;padding-top:12px;border-top:1px dashed #e2e8f0}
+.tb-search-wrap{position:relative;flex:1;min-width:200px;max-width:320px}
+.tb-search-wrap svg{position:absolute;left:10px;top:50%;transform:translateY(-50%);width:15px;height:15px;color:#94a3b8;pointer-events:none}
+.tb-search-wrap input{width:100%;border:1px solid #e2e8f0;border-radius:9px;padding:7px 12px 7px 34px;font-size:13px;color:#1e293b;background:#f8fafc;outline:none;transition:border-color .15s,box-shadow .15s}
+.tb-search-wrap input:focus{border-color:#6366f1;box-shadow:0 0 0 3px rgba(99,102,241,.12);background:#fff}
+.tb-select{border:1px solid #e2e8f0;border-radius:9px;padding:7px 30px 7px 12px;font-size:12.5px;color:#334155;background:#f8fafc;outline:none;min-width:130px;transition:border-color .15s,box-shadow .15s;appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%2394a3b8'%3E%3Cpath fill-rule='evenodd' d='M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z' clip-rule='evenodd'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 8px center;background-size:14px}
+.tb-select:focus{border-color:#6366f1;box-shadow:0 0 0 3px rgba(99,102,241,.12)}
+.tb-overdue-toggle{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:#b91c1c;cursor:pointer;background:#fef2f2;border:1px solid #fecaca;border-radius:9px;padding:7px 12px;white-space:nowrap}
+.tb-overdue-toggle input{accent-color:#dc2626;cursor:pointer}
+
+/* ── Status Tabs ── */
+.tb-tabs{display:flex;gap:4px;background:#f1f5f9;border-radius:10px;padding:3px;flex-wrap:wrap}
+.tb-tab{padding:5px 14px;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer;border:none;background:transparent;color:#64748b;transition:all .15s;white-space:nowrap}
+.tb-tab:hover{background:#e2e8f0;color:#334155}
+.tb-tab.active{background:#fff;color:#1e293b;box-shadow:0 1px 4px rgba(0,0,0,.1)}
+
+.tb-btn-primary{background:linear-gradient(135deg,#4f46e5,#6366f1);color:#fff;border-radius:10px;padding:8px 18px;font-size:13px;font-weight:700;display:inline-flex;align-items:center;gap:6px;text-decoration:none;box-shadow:0 4px 12px rgba(99,102,241,.35);transition:opacity .15s;border:none;cursor:pointer}
+.tb-btn-primary:hover{opacity:.9}
+.tb-btn-ghost{font-size:12px;font-weight:600;color:#6366f1;background:none;border:none;cursor:pointer}
+.tb-btn-ghost:hover{text-decoration:underline}
+
+/* ── Table Card ── */
+.tb-table-card{background:#fff;border-radius:14px;border:1px solid #e2e8f0;overflow:hidden}
+.tb-table{width:100%;border-collapse:separate;border-spacing:0}
+.tb-table thead th{padding:10px 16px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#94a3b8;background:#f8fafc;border-bottom:1px solid #e2e8f0;white-space:nowrap;text-align:left}
+.tb-table thead th:first-child{padding-left:20px}
+.tb-row:hover{background:#f8faff}
+.tb-table tbody td{padding:13px 16px;vertical-align:middle}
+.tb-table tbody td:first-child{padding-left:20px}
+.tb-row td{border-bottom:1px solid #f1f5f9}
+.tb-row.expandable-open td{border-bottom-color:transparent}
+
+.tb-avatar{width:32px;height:32px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:11.5px;font-weight:700;flex-shrink:0;color:#fff}
+.tb-title{font-size:13.5px;font-weight:700;color:#1e293b;cursor:pointer}
+.tb-title:hover{color:#4f46e5;text-decoration:underline}
+.tb-desc{font-size:11.5px;color:#94a3b8;margin-top:2px;max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tb-meta-btn{font-size:11px;color:#94a3b8;display:inline-flex;align-items:center;gap:4px;background:none;border:none;cursor:pointer;padding:0;margin-top:4px;margin-right:12px}
+.tb-meta-btn:hover{color:#4f46e5}
+.tb-meta-btn svg{width:11px;height:11px;transition:transform .15s}
+
+.tb-date-val{font-size:12.5px;color:#334155;font-weight:500}
+.tb-due-warn{font-size:11px;color:#ef4444;font-weight:600;display:flex;align-items:center;gap:3px;margin-top:2px}
+
+/* ── Badges ── */
+.tb-badge{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;white-space:nowrap}
+.tb-badge::before{content:'';width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.tb-badge-low{background:#f0fdf4;color:#15803d}.tb-badge-low::before{background:#22c55e}
+.tb-badge-medium{background:#fffbeb;color:#b45309}.tb-badge-medium::before{background:#f59e0b}
+.tb-badge-high{background:#fef2f2;color:#b91c1c}.tb-badge-high::before{background:#ef4444}
+.tb-status-select{appearance:none;-webkit-appearance:none;border:none;border-radius:20px;padding:4px 26px 4px 12px;font-size:11px;font-weight:700;cursor:pointer;outline:none;background-repeat:no-repeat;background-position:right 8px center;background-size:12px}
+.tb-cat-chip{font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;white-space:nowrap;display:inline-flex;align-items:center;gap:5px}
+.tb-cat-chip::before{content:'';width:6px;height:6px;border-radius:50%;flex-shrink:0;background:currentColor}
+
+/* ── Action Buttons ── */
+.tb-action-btn{width:29px;height:29px;border-radius:8px;border:1px solid #e2e8f0;background:#fff;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;transition:all .15s;color:#64748b}
+.tb-action-btn:hover{background:#f1f5f9;border-color:#c7d2fe;color:#4f46e5}
+.tb-action-btn.danger:hover{background:#fef2f2;border-color:#fecaca;color:#ef4444}
+.tb-action-btn svg{width:14px;height:14px}
+
+/* ── Expand Panel (sub-tasks) ── */
+.tb-expand-row td{background:#fafbff;padding:0 16px 16px 16px !important}
+.tb-expand-panel{max-width:640px;padding-top:2px}
+.tb-subtask{background:#fff;border:1px solid #eef0f7;border-radius:10px;padding:8px 12px;margin-bottom:6px}
+.tb-subtask-row{display:flex;align-items:center;gap:10px}
+.tb-subtask-row input[type=checkbox]{width:16px;height:16px;accent-color:#6366f1;cursor:pointer;flex-shrink:0}
+.tb-notes-link{font-size:12.5px;font-weight:600;color:#6366f1;background:#eef2ff;border:none;border-radius:7px;padding:5px 10px;cursor:pointer;white-space:nowrap;flex-shrink:0}
+.tb-notes-link:hover{background:#e0e7ff}
+.dark .tb-notes-link{background:rgba(99,102,241,.15);color:#a5b4fc}
+.dark .tb-notes-link:hover{background:rgba(99,102,241,.25)}
+.tb-note{background:#f8fafc;border-radius:8px;padding:8px 12px}
+.tb-add-row{display:flex;gap:8px;margin-top:6px}
+.tb-mini-input{flex:1;border:1px solid #e2e8f0;border-radius:8px;padding:6px 10px;font-size:12.5px;outline:none;background:#fff}
+.tb-mini-input:focus{border-color:#6366f1;box-shadow:0 0 0 3px rgba(99,102,241,.1)}
+.tb-mini-btn{border:1px solid #e2e8f0;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:600;color:#475569;background:#fff;cursor:pointer;white-space:nowrap}
+.tb-mini-btn:hover{background:#f8fafc}
+
+/* ── Pagination ── */
+.tb-pagination{display:flex;align-items:center;justify-content:space-between;padding:12px 20px;border-top:1px solid #f1f5f9}
+.tb-page-info{font-size:12.5px;color:#94a3b8}
+.tb-page-btns{display:flex;gap:4px}
+.tb-page-btn{min-width:29px;height:29px;padding:0 6px;border-radius:7px;border:1px solid #e2e8f0;background:#fff;font-size:12px;font-weight:600;color:#475569;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s}
+.tb-page-btn:hover:not(:disabled):not(.active){background:#f8fafc}
+.tb-page-btn.active{background:#6366f1;color:#fff;border-color:#6366f1}
+.tb-page-btn:disabled{opacity:.35;cursor:default}
+
+/* ── Empty / Loading ── */
+.tb-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:64px 24px;text-align:center}
+.tb-empty svg{width:52px;height:52px;color:#e2e8f0}
+.tb-empty h5{font-size:15px;font-weight:700;color:#475569;margin-top:14px}
+.tb-empty p{font-size:12.5px;color:#94a3b8;margin-top:4px}
+
+/* ── Dark Mode ── */
+.dark .tb-stat-card{background:#1e293b;border-color:#334155}
+.dark .tb-toolbar{background:#1e293b;border-color:#334155}
+.dark .tb-toolbar-row + .tb-toolbar-row{border-color:#334155}
+.dark .tb-search-wrap input,.dark .tb-select{background:#0f172a;border-color:#334155;color:#e2e8f0}
+.dark .tb-tabs{background:#0f172a}
+.dark .tb-tab:hover{background:#1e293b}
+.dark .tb-tab.active{background:#1e293b;color:#f1f5f9}
+.dark .tb-table-card{background:#1e293b;border-color:#334155}
+.dark .tb-table thead th{background:#0f172a;border-color:#334155}
+.dark .tb-row:hover{background:#1e3351}
+.dark .tb-row td{border-color:#1e293b}
+.dark .tb-title{color:#e2e8f0}
+.dark .tb-date-val{color:#cbd5e1}
+.dark .tb-action-btn{background:#1e293b;border-color:#334155;color:#94a3b8}
+.dark .tb-action-btn:hover{background:#253347;border-color:#6366f1}
+.dark .tb-expand-row td{background:#0f172a !important}
+.dark .tb-subtask{background:#1e293b;border-color:#334155}
+.dark .tb-note{background:#0f172a}
+.dark .tb-mini-input{background:#1e293b;border-color:#334155;color:#e2e8f0}
+.dark .tb-mini-btn{background:#1e293b;border-color:#334155;color:#cbd5e1}
+.dark .tb-pagination{border-color:#334155}
+.dark .tb-page-btn{background:#1e293b;border-color:#334155;color:#94a3b8}
+.dark .tb-empty svg{color:#334155}
+.dark .tb-empty h5{color:#94a3b8}
+</style>
+
 <div x-data="taskBoardPage()" x-init="init()" x-cloak>
 
-    <!-- Toolbar -->
-    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
-        <div class="flex gap-2">
-            <a href="<?php echo e(url('/task-manager')); ?>" class="btn-secondary text-sm">Dashboard</a>
-            <a href="<?php echo e(url('/task-manager/categories')); ?>" class="btn-secondary text-sm">Categories</a>
+    
+    <div class="tb-stats">
+        <div class="tb-stat-card" :class="filters.status==='' && !filters.overdue ? 'active' : ''" @click="setStatusTab('')">
+            <div class="tb-stat-icon" style="background:#ede9fe">
+                <svg fill="none" viewBox="0 0 24 24" stroke="#7c3aed" stroke-width="1.8"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+            </div>
+            <div>
+                <div class="tb-stat-val" style="color:#7c3aed" x-text="stats.total ?? 0"></div>
+                <div class="tb-stat-lbl">Total</div>
+            </div>
         </div>
-        <button @click="openCreate()" class="btn-primary inline-flex items-center gap-2">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-            Add Task
-        </button>
+        <div class="tb-stat-card" :class="filters.status==='Pending' ? 'active' : ''" @click="setStatusTab('Pending')">
+            <div class="tb-stat-icon" style="background:#fef9c3">
+                <svg fill="none" viewBox="0 0 24 24" stroke="#b45309" stroke-width="1.8"><path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            </div>
+            <div>
+                <div class="tb-stat-val" style="color:#b45309" x-text="stats.pending ?? 0"></div>
+                <div class="tb-stat-lbl">Pending</div>
+            </div>
+        </div>
+        <div class="tb-stat-card" :class="filters.status==='In Progress' ? 'active' : ''" @click="setStatusTab('In Progress')">
+            <div class="tb-stat-icon" style="background:#dbeafe">
+                <svg fill="none" viewBox="0 0 24 24" stroke="#1d4ed8" stroke-width="1.8"><path d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+            </div>
+            <div>
+                <div class="tb-stat-val" style="color:#1d4ed8" x-text="stats.in_progress ?? 0"></div>
+                <div class="tb-stat-lbl">In Progress</div>
+            </div>
+        </div>
+        <div class="tb-stat-card" :class="filters.status==='Completed' ? 'active' : ''" @click="setStatusTab('Completed')">
+            <div class="tb-stat-icon" style="background:#dcfce7">
+                <svg fill="none" viewBox="0 0 24 24" stroke="#16a34a" stroke-width="1.8"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            </div>
+            <div>
+                <div class="tb-stat-val" style="color:#16a34a" x-text="stats.completed ?? 0"></div>
+                <div class="tb-stat-lbl">Completed</div>
+            </div>
+        </div>
+        <div class="tb-stat-card" :class="filters.overdue ? 'active' : ''" @click="setOverdueTab()">
+            <div class="tb-stat-icon" style="background:#fee2e2">
+                <svg fill="none" viewBox="0 0 24 24" stroke="#b91c1c" stroke-width="1.8"><path d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
+            </div>
+            <div>
+                <div class="tb-stat-val" style="color:#b91c1c" x-text="stats.overdue ?? 0"></div>
+                <div class="tb-stat-lbl">Overdue</div>
+            </div>
+        </div>
     </div>
 
-    <!-- Filter bar -->
-    <div class="card p-4 mb-4">
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-            <div>
-                <label class="label">Category</label>
-                <select x-model="filters.category_id" @change="page=1; load()" class="input w-full">
-                    <option value="">All Categories</option>
-                    <template x-for="c in categories" :key="c.id">
-                        <option :value="c.id" x-text="'—'.repeat(c.depth) + ' ' + c.name"></option>
-                    </template>
-                </select>
+    
+    <div class="tb-toolbar">
+        <div class="tb-toolbar-row">
+            <div class="tb-search-wrap">
+                <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+                <input type="text" x-model="filters.search" @input.debounce.400ms="page=1; load()" placeholder="Search by task title…">
             </div>
-            <div>
-                <label class="label">Status</label>
-                <select x-model="filters.status" @change="page=1; load()" class="input w-full">
-                    <option value="">All Statuses</option>
-                    <option value="Pending">Pending</option>
-                    <option value="In Progress">In Progress</option>
-                    <option value="Completed">Completed</option>
-                    <option value="Cancelled">Cancelled</option>
-                </select>
-            </div>
-            <div>
-                <label class="label">Priority</label>
-                <select x-model="filters.priority" @change="page=1; load()" class="input w-full">
-                    <option value="">All Priorities</option>
-                    <option value="Low">Low</option>
-                    <option value="Medium">Medium</option>
-                    <option value="High">High</option>
-                </select>
-            </div>
-            <div>
-                <label class="label">Assignee</label>
-                <select x-model="filters.assigned_to" @change="page=1; load()" class="input w-full">
-                    <option value="">All Assignees</option>
-                    <template x-for="u in users" :key="u.id">
-                        <option :value="u.id" x-text="u.name"></option>
-                    </template>
-                </select>
-            </div>
-        </div>
-        <div class="flex flex-wrap items-center gap-3 mt-3 pt-3 border-t border-gray-100 dark:border-gray-700">
-            <div class="flex-1 min-w-[220px]">
-                <label class="label">Search</label>
-                <input type="text" x-model="filters.search" @input.debounce.400ms="page=1; load()" class="input w-full" placeholder="Search by task title…" />
-            </div>
-            <label class="flex items-center gap-2 cursor-pointer mt-4">
-                <input type="checkbox" x-model="filters.overdue" @change="page=1; load()" class="rounded text-red-600" />
-                <span class="text-sm font-medium text-red-600">Overdue only</span>
+            <select x-model="filters.category_id" @change="page=1; load()" class="tb-select">
+                <option value="">All Categories</option>
+                <template x-for="c in categories" :key="c.id">
+                    <option :value="c.id" x-text="'—'.repeat(c.depth) + ' ' + c.name"></option>
+                </template>
+            </select>
+            <select x-model="filters.priority" @change="page=1; load()" class="tb-select">
+                <option value="">All Priorities</option>
+                <option value="Low">Low</option>
+                <option value="Medium">Medium</option>
+                <option value="High">High</option>
+            </select>
+            <select x-model="filters.assigned_to" @change="page=1; load()" class="tb-select">
+                <option value="">All Assignees</option>
+                <template x-for="u in users" :key="u.id">
+                    <option :value="u.id" x-text="u.name"></option>
+                </template>
+            </select>
+            <label class="tb-overdue-toggle">
+                <input type="checkbox" x-model="filters.overdue" @change="page=1; load()">
+                Overdue only
             </label>
-            <button @click="resetFilters()" class="btn-secondary text-sm mt-4 ml-auto">Reset Filters</button>
+            <button class="tb-btn-ghost" @click="resetFilters()" style="margin-left:auto">Reset Filters</button>
+        </div>
+        <div class="tb-toolbar-row">
+            <div class="tb-tabs">
+                <button class="tb-tab" :class="filters.status==='' ? 'active' : ''" @click="setStatusTab('')">All</button>
+                <button class="tb-tab" :class="filters.status==='Pending' ? 'active' : ''" @click="setStatusTab('Pending')">Pending</button>
+                <button class="tb-tab" :class="filters.status==='In Progress' ? 'active' : ''" @click="setStatusTab('In Progress')">In Progress</button>
+                <button class="tb-tab" :class="filters.status==='Completed' ? 'active' : ''" @click="setStatusTab('Completed')">Completed</button>
+                <button class="tb-tab" :class="filters.status==='Cancelled' ? 'active' : ''" @click="setStatusTab('Cancelled')">Cancelled</button>
+            </div>
+            <button @click="openCreate()" class="tb-btn-primary" style="margin-left:auto">
+                <svg style="width:15px;height:15px" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path d="M12 5v14M5 12h14"/></svg>
+                Add Task
+            </button>
         </div>
     </div>
 
-    <!-- Loading -->
-    <div x-show="loading" class="flex items-center justify-center py-16">
-        <svg class="animate-spin w-8 h-8 text-indigo-500" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/></svg>
-    </div>
-
-    <!-- Table -->
-    <div x-show="!loading" class="card overflow-hidden">
-        <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-            <thead class="bg-gray-50 dark:bg-gray-800/40">
-                <tr>
-                    <th class="table-hd">Task</th>
-                    <th class="table-hd">Category</th>
-                    <th class="table-hd">Assignee</th>
-                    <th class="table-hd text-center">Priority</th>
-                    <th class="table-hd text-center">Status</th>
-                    <th class="table-hd">Due Date</th>
-                    <th class="table-hd text-right">Actions</th>
-                </tr>
-            </thead>
-            <tbody class="bg-white dark:bg-gray-900 divide-y divide-gray-100 dark:divide-gray-700/40">
-                <template x-for="task in tasks" :key="task.id">
-                    <tr class="hover:bg-gray-50 dark:hover:bg-gray-800/20">
-                        <td class="table-td">
-                            <div class="font-semibold text-gray-900 dark:text-gray-100 cursor-pointer hover:underline" @click="openDetail(task.id)" x-text="task.title"></div>
-                            <div class="text-xs text-gray-400 max-w-[260px] truncate" x-show="task.description" x-text="task.description"></div>
-                            <div class="flex items-center gap-3 mt-0.5">
-                                <span class="text-xs text-gray-400" x-show="task.followups_count > 0" x-text="task.followups_count + ' update' + (task.followups_count > 1 ? 's' : '')"></span>
-                                <span class="text-xs text-gray-400" x-show="task.subtasks_count > 0" x-text="'☑ ' + task.subtasks_completed_count + '/' + task.subtasks_count + ' subtasks'"></span>
-                            </div>
-                        </td>
-                        <td class="table-td">
-                            <span x-show="task.category" class="text-[11px] font-semibold px-2 py-0.5 rounded-full"
-                                  :style="'background:' + (task.category?.color || '#94a3b8') + '22; color:' + (task.category?.color || '#94a3b8')"
-                                  x-text="task.category?.name"></span>
-                            <span x-show="!task.category" class="text-gray-300 text-xs">—</span>
-                        </td>
-                        <td class="table-td text-gray-600 dark:text-gray-300" x-text="task.assignee?.name ?? '—'"></td>
-                        <td class="table-td text-center">
-                            <span class="text-[11px] font-semibold px-2 py-0.5 rounded-full"
-                                  :class="task.priority === 'High' ? 'badge-danger' : (task.priority === 'Medium' ? 'badge-warning' : 'badge-gray')"
-                                  x-text="task.priority"></span>
-                        </td>
-                        <td class="table-td text-center">
-                            <select @change="quickStatus(task, $event.target.value)" class="text-[11px] font-semibold px-2 py-1 rounded-full border-0 cursor-pointer"
-                                    :class="task.status === 'Completed' ? 'badge-success' : (task.status === 'In Progress' ? 'badge-primary' : (task.status === 'Cancelled' ? 'badge-gray' : 'badge-warning'))">
-                                <option value="Pending" :selected="task.status === 'Pending'">Pending</option>
-                                <option value="In Progress" :selected="task.status === 'In Progress'">In Progress</option>
-                                <option value="Completed" :selected="task.status === 'Completed'">Completed</option>
-                                <option value="Cancelled" :selected="task.status === 'Cancelled'">Cancelled</option>
-                            </select>
-                        </td>
-                        <td class="table-td">
-                            <span x-show="task.due_date" class="text-xs font-medium" :class="isOverdue(task) ? 'text-red-600' : 'text-gray-600 dark:text-gray-300'" x-text="fmtDate(task.due_date)"></span>
-                            <span x-show="!task.due_date" class="text-gray-300 text-xs">—</span>
-                        </td>
-                        <td class="table-td text-right">
-                            <div class="flex items-center justify-end gap-3">
-                                <button @click="openDetail(task.id)" class="text-sm font-medium text-indigo-600 hover:text-indigo-800">View</button>
-                                <button @click="openEdit(task)" class="text-sm font-medium text-indigo-600 hover:text-indigo-800">Edit</button>
-                                <button @click="deleteTask(task)" class="text-sm font-medium text-red-500 hover:text-red-700">Delete</button>
-                            </div>
-                        </td>
+    
+    <div class="tb-table-card">
+        <div class="overflow-x-auto">
+            <table class="tb-table">
+                <thead>
+                    <tr>
+                        <th>Task</th>
+                        <th>Category</th>
+                        <th>Assignee</th>
+                        <th>Priority</th>
+                        <th>Status</th>
+                        <th>Due Date</th>
+                        <th style="text-align:right;padding-right:20px">Actions</th>
                     </tr>
+                </thead>
+
+                
+                <tbody x-show="loading">
+                    <tr><td colspan="7" style="text-align:center;padding:56px 24px">
+                        <div style="display:flex;align-items:center;justify-content:center;gap:8px;color:#94a3b8;font-size:13px">
+                            <svg class="animate-spin" style="width:20px;height:20px;color:#6366f1" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/></svg>
+                            Loading tasks…
+                        </div>
+                    </td></tr>
+                </tbody>
+
+                <template x-for="task in tasks" :key="task.id">
+                    <tbody>
+                        <tr class="tb-row" :class="expandedTaskId === task.id ? 'expandable-open' : ''">
+                            <td>
+                                <div class="tb-title" @click="openDetail(task.id)" x-text="task.title"></div>
+                                <div class="tb-desc" x-show="task.description" x-text="task.description"></div>
+                                <div>
+                                    <button class="tb-meta-btn" x-show="task.followups_count > 0" @click="openDetail(task.id)">
+                                        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
+                                        <span x-text="task.followups_count"></span>
+                                    </button>
+                                    <button class="tb-meta-btn" @click="toggleExpand(task)">
+                                        <svg :class="expandedTaskId === task.id ? 'rotate-90' : ''" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+                                        <span x-text="task.subtasks_count > 0 ? (task.subtasks_completed_count + '/' + task.subtasks_count + ' subtasks') : 'Sub-tasks'"></span>
+                                    </button>
+                                </div>
+                            </td>
+                            <td>
+                                <span x-show="task.category" class="tb-cat-chip" :style="'background:' + (task.category?.color || '#94a3b8') + '1a; color:' + (task.category?.color || '#94a3b8')" x-text="task.category?.name"></span>
+                                <span x-show="!task.category" class="text-gray-300 text-xs">—</span>
+                            </td>
+                            <td>
+                                <div style="display:flex;align-items:center;gap:8px" x-show="task.assignee">
+                                    <div class="tb-avatar" :style="'background:' + avatarColor(task.assignee?.name)" x-text="initials(task.assignee?.name)"></div>
+                                    <span class="tb-date-val" x-text="task.assignee?.name"></span>
+                                </div>
+                                <span x-show="!task.assignee" class="text-gray-300 text-xs">Unassigned</span>
+                            </td>
+                            <td>
+                                <span class="tb-badge" :class="'tb-badge-' + task.priority.toLowerCase()" x-text="task.priority"></span>
+                            </td>
+                            <td>
+                                <select @change="quickStatus(task, $event.target.value)" class="tb-status-select"
+                                        :style="statusStyle(task.status)">
+                                    <option value="Pending" :selected="task.status === 'Pending'">Pending</option>
+                                    <option value="In Progress" :selected="task.status === 'In Progress'">In Progress</option>
+                                    <option value="Completed" :selected="task.status === 'Completed'">Completed</option>
+                                    <option value="Cancelled" :selected="task.status === 'Cancelled'">Cancelled</option>
+                                </select>
+                            </td>
+                            <td>
+                                <div class="tb-date-val" x-show="task.due_date" x-text="fmtDate(task.due_date)"></div>
+                                <div class="tb-due-warn" x-show="isOverdue(task)">
+                                    <svg style="width:10px;height:10px" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
+                                    Overdue
+                                </div>
+                                <span x-show="!task.due_date" class="text-gray-300 text-xs">—</span>
+                            </td>
+                            <td style="text-align:right;padding-right:20px">
+                                <div style="display:flex;align-items:center;justify-content:flex-end;gap:6px">
+                                    <button @click="openDetail(task.id)" class="tb-action-btn" title="View">
+                                        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                                    </button>
+                                    <button @click="openEdit(task)" class="tb-action-btn" title="Edit">
+                                        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                                    </button>
+                                    <button @click="deleteTask(task)" class="tb-action-btn danger" title="Delete">
+                                        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr class="tb-expand-row" x-show="expandedTaskId === task.id">
+                            <td colspan="7">
+                                <div x-show="subtaskLoading" class="text-xs text-gray-400 py-2">Loading sub-tasks…</div>
+                                <div x-show="!subtaskLoading" class="tb-expand-panel">
+                                    <template x-for="st in (subtasksCache[task.id] ?? [])" :key="st.id">
+                                        <div class="tb-subtask">
+                                            <div class="tb-subtask-row">
+                                                <input type="checkbox" :checked="st.completed" @change="toggleRowSubtask(task, st)" />
+                                                <span class="text-sm flex-1" :class="st.completed ? 'line-through text-gray-400' : 'text-gray-700 dark:text-gray-200'" x-text="st.title"></span>
+                                                <span class="text-xs text-gray-400 flex-shrink-0" x-show="st.assignee" x-text="st.assignee?.name"></span>
+                                                <button @click="openSubtaskNotes(task, st)" class="tb-notes-link" title="Follow-up notes">
+                                                    Notes<template x-if="(st.followups ?? []).length"><span x-text="' · ' + st.followups.length"></span></template>
+                                                </button>
+                                                <button @click="deleteRowSubtask(task, st)" class="text-gray-300 hover:text-red-500 flex-shrink-0" title="Remove">
+                                                    <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M6 18L18 6M6 6l12 12"/></svg>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </template>
+                                    <p x-show="!(subtasksCache[task.id] ?? []).length" class="text-sm text-gray-400 py-1">No sub-tasks yet.</p>
+                                    <div class="tb-add-row" style="margin-top:8px">
+                                        <input type="text" x-model="newRowSubtask" @keydown.enter="addRowSubtask(task)" class="tb-mini-input" placeholder="Add a sub-task…" />
+                                        <button @click="addRowSubtask(task)" class="tb-mini-btn">Add</button>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
                 </template>
 
-                <tr x-show="!loading && tasks.length === 0">
-                    <td colspan="7" class="text-center text-gray-400 py-16">No tasks found. Create a task or adjust your filters.</td>
-                </tr>
-            </tbody>
-        </table>
+                <tbody x-show="!loading && tasks.length === 0">
+                    <tr><td colspan="7">
+                        <div class="tb-empty">
+                            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.2"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+                            <h5>No tasks found</h5>
+                            <p>Create a task or adjust your filters.</p>
+                        </div>
+                    </td></tr>
+                </tbody>
+            </table>
+        </div>
 
-        <!-- Pagination -->
-        <div x-show="meta.last_page > 1" class="flex items-center justify-between px-4 py-3 border-t border-gray-100 dark:border-gray-700">
-            <span class="text-xs text-gray-400">Showing <span x-text="meta.from"></span>–<span x-text="meta.to"></span> of <span x-text="meta.total"></span></span>
-            <div class="flex gap-2">
-                <button @click="page--; load()" :disabled="page <= 1" class="btn-secondary text-xs py-1 px-2 disabled:opacity-40">Prev</button>
-                <button @click="page++; load()" :disabled="page >= meta.last_page" class="btn-secondary text-xs py-1 px-2 disabled:opacity-40">Next</button>
+        
+        <div class="tb-pagination" x-show="meta.total > 0">
+            <div class="tb-page-info" x-text="'Showing ' + meta.from + '–' + meta.to + ' of ' + meta.total + ' tasks'"></div>
+            <div class="tb-page-btns">
+                <button class="tb-page-btn" @click="page--; load()" :disabled="page <= 1">
+                    <svg style="width:12px;height:12px" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M15 19l-7-7 7-7"/></svg>
+                </button>
+                <template x-for="p in pageNumbers" :key="p">
+                    <button class="tb-page-btn" :class="p === page ? 'active' : ''" @click="page = p; load()" x-text="p"></button>
+                </template>
+                <button class="tb-page-btn" @click="page++; load()" :disabled="page >= meta.last_page">
+                    <svg style="width:12px;height:12px" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M9 5l7 7-7 7"/></svg>
+                </button>
             </div>
         </div>
     </div>
@@ -231,9 +458,7 @@
                 <div>
                     <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100" x-text="detailTask?.title"></h3>
                     <p class="text-xs text-gray-400 mt-1">
-                        <span x-show="detailTask?.category" class="text-[11px] font-semibold px-2 py-0.5 rounded-full mr-1"
-                              :style="'background:' + (detailTask?.category?.color || '#94a3b8') + '22; color:' + (detailTask?.category?.color || '#94a3b8')"
-                              x-text="detailTask?.category?.name"></span>
+                        <span x-show="detailTask?.category" class="tb-cat-chip mr-1" :style="'background:' + (detailTask?.category?.color || '#94a3b8') + '1a; color:' + (detailTask?.category?.color || '#94a3b8')" x-text="detailTask?.category?.name"></span>
                         Assigned to <span x-text="detailTask?.assignee?.name ?? 'Unassigned'"></span>
                         <template x-if="detailTask?.due_date"><span> · Due <span x-text="fmtDate(detailTask.due_date)"></span></span></template>
                     </p>
@@ -260,14 +485,19 @@
                 </div>
                 <div class="space-y-1.5 mb-3">
                     <template x-for="st in (detailTask?.subtasks ?? [])" :key="st.id">
-                        <div class="flex items-center gap-2.5 bg-gray-50 dark:bg-gray-900 rounded-lg px-3 py-2">
-                            <input type="checkbox" :checked="st.completed" @change="toggleSubtask(st)" class="rounded text-indigo-600 flex-shrink-0" />
-                            <span class="text-sm flex-1" :class="st.completed ? 'line-through text-gray-400' : 'text-gray-700 dark:text-gray-200'" x-text="st.title"></span>
-                            <span class="text-xs text-gray-400 flex-shrink-0" x-show="st.assignee" x-text="st.assignee?.name"></span>
-                            <span class="text-xs flex-shrink-0" :class="st.due_date && !st.completed && new Date(st.due_date) < new Date().setHours(0,0,0,0) ? 'text-red-500 font-semibold' : 'text-gray-400'" x-show="st.due_date" x-text="fmtDate(st.due_date)"></span>
-                            <button @click="deleteSubtask(st)" class="text-gray-300 hover:text-red-500 flex-shrink-0" title="Remove">
-                                <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M6 18L18 6M6 6l12 12"/></svg>
-                            </button>
+                        <div class="bg-gray-50 dark:bg-gray-900 rounded-lg px-3 py-2">
+                            <div class="flex items-center gap-2.5">
+                                <input type="checkbox" :checked="st.completed" @change="toggleSubtask(st)" class="rounded text-indigo-600 flex-shrink-0" />
+                                <span class="text-sm flex-1" :class="st.completed ? 'line-through text-gray-400' : 'text-gray-700 dark:text-gray-200'" x-text="st.title"></span>
+                                <span class="text-xs text-gray-400 flex-shrink-0" x-show="st.assignee" x-text="st.assignee?.name"></span>
+                                <span class="text-xs flex-shrink-0" :class="st.due_date && !st.completed && new Date(st.due_date) < new Date().setHours(0,0,0,0) ? 'text-red-500 font-semibold' : 'text-gray-400'" x-show="st.due_date" x-text="fmtDate(st.due_date)"></span>
+                                <button @click="openSubtaskNotes(detailTask, st)" class="tb-notes-link flex-shrink-0" title="Follow-up notes">
+                                    Notes<template x-if="(st.followups ?? []).length"><span x-text="' · ' + st.followups.length"></span></template>
+                                </button>
+                                <button @click="deleteSubtask(st)" class="text-gray-300 hover:text-red-500 flex-shrink-0" title="Remove">
+                                    <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M6 18L18 6M6 6l12 12"/></svg>
+                                </button>
+                            </div>
                         </div>
                     </template>
                     <p x-show="!(detailTask?.subtasks ?? []).length" class="text-sm text-gray-400 py-1">No sub-tasks yet.</p>
@@ -303,6 +533,39 @@
         </div>
     </div>
 
+    <!-- Sub-task Notes Modal -->
+    <div x-show="notesSubtask" x-cloak class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" @click.self="closeSubtaskNotes()">
+        <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-md max-h-[85vh] overflow-y-auto">
+            <div class="flex items-start justify-between px-6 py-4 border-b border-gray-100 dark:border-gray-700">
+                <div>
+                    <div class="text-xs font-bold uppercase tracking-wide text-gray-400">Sub-task Notes</div>
+                    <h3 class="text-base font-semibold text-gray-900 dark:text-gray-100 mt-0.5" x-text="notesSubtask?.title"></h3>
+                </div>
+                <button @click="closeSubtaskNotes()" class="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors flex-shrink-0">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </div>
+            <div class="p-6">
+                <div class="flex gap-2 mb-4">
+                    <input type="text" x-model="subtaskNewNote" @keydown.enter="addSubtaskNote(notesTask, notesSubtask)" class="input flex-1" placeholder="Add a note…" />
+                    <button @click="addSubtaskNote(notesTask, notesSubtask)" class="btn-primary text-sm">Add</button>
+                </div>
+                <div class="space-y-2 max-h-72 overflow-y-auto">
+                    <template x-for="f in (notesSubtask?.followups ?? [])" :key="f.id">
+                        <div class="tb-note">
+                            <div class="flex justify-between text-xs text-gray-400 mb-1">
+                                <span class="font-semibold text-gray-600 dark:text-gray-300" x-text="f.user?.name ?? 'System'"></span>
+                                <span x-text="timeAgo(f.created_at)"></span>
+                            </div>
+                            <div class="text-sm text-gray-700 dark:text-gray-200" x-text="f.note"></div>
+                        </div>
+                    </template>
+                    <p x-show="!(notesSubtask?.followups ?? []).length" class="text-sm text-gray-400 text-center py-6">No notes yet. Add the first update above.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
 </div>
 <?php $__env->stopSection(); ?>
 
@@ -317,6 +580,7 @@ function taskBoardPage() {
         page: 1,
         meta: { total: 0, from: 1, to: 0, last_page: 1 },
         filters: { category_id: '', status: '', priority: '', assigned_to: '', overdue: false, search: '' },
+        stats: {},
 
         showModal: false,
         editId: null,
@@ -329,8 +593,28 @@ function taskBoardPage() {
         newNote: '',
         newSubtask: '',
 
+        expandedTaskId: null,
+        subtasksCache: {},
+        subtaskLoading: false,
+        newRowSubtask: '',
+
+        notesTask: null,
+        notesSubtask: null,
+        subtaskNewNote: '',
+
         get subtaskCompletedCount() {
             return (this.detailTask?.subtasks ?? []).filter(s => s.completed).length;
+        },
+
+        get pageNumbers() {
+            const total = this.meta.last_page || 1;
+            const cur = this.page;
+            const span = 2;
+            let start = Math.max(1, cur - span);
+            let end = Math.min(total, cur + span);
+            const pages = [];
+            for (let i = start; i <= end; i++) pages.push(i);
+            return pages;
         },
 
         blank() {
@@ -338,7 +622,7 @@ function taskBoardPage() {
         },
 
         async init() {
-            await Promise.all([this.loadCategories(), this.loadUsers()]);
+            await Promise.all([this.loadCategories(), this.loadUsers(), this.loadStats()]);
             await this.load();
         },
 
@@ -352,6 +636,13 @@ function taskBoardPage() {
             try {
                 this.users = await apiFetch('/work-tasks/assignable-users').then(r => r.json());
             } catch (e) { /* dropdown just stays empty */ }
+        },
+
+        async loadStats() {
+            try {
+                const data = await apiFetch('/work-tasks/dashboard').then(r => r.json());
+                this.stats = data.stats ?? {};
+            } catch (e) { /* stat cards just stay at 0 */ }
         },
 
         async load() {
@@ -372,6 +663,19 @@ function taskBoardPage() {
             } finally {
                 this.loading = false;
             }
+        },
+
+        setStatusTab(status) {
+            this.filters.status = status;
+            this.filters.overdue = false;
+            this.page = 1;
+            this.load();
+        },
+
+        setOverdueTab() {
+            this.filters.overdue = !this.filters.overdue;
+            this.page = 1;
+            this.load();
         },
 
         resetFilters() {
@@ -419,6 +723,7 @@ function taskBoardPage() {
                 toast(this.editId ? 'Task updated.' : 'Task created.');
                 this.showModal = false;
                 await this.load();
+                await this.loadStats();
             } catch (e) {
                 this.formError = e.message ?? 'Unexpected error. Please try again.';
             } finally {
@@ -432,6 +737,7 @@ function taskBoardPage() {
                 await apiFetch('/work-tasks/' + task.id, { method: 'DELETE' });
                 toast('Task deleted.');
                 await this.load();
+                await this.loadStats();
             } catch (e) {
                 toast(e.message ?? 'Failed to delete task', 'error');
             }
@@ -444,6 +750,7 @@ function taskBoardPage() {
                 const idx = this.tasks.findIndex(t => t.id === task.id);
                 if (idx >= 0) this.tasks[idx] = updated;
                 if (fromDetail) await this.openDetail(task.id);
+                await this.loadStats();
                 toast('Status updated.');
             } catch (e) {
                 toast(e.message ?? 'Failed to update status', 'error');
@@ -509,8 +816,110 @@ function taskBoardPage() {
             }
         },
 
+        async toggleExpand(task) {
+            if (this.expandedTaskId === task.id) {
+                this.expandedTaskId = null;
+                return;
+            }
+            this.expandedTaskId = task.id;
+            this.newRowSubtask = '';
+            if (this.subtasksCache[task.id]) return;
+            this.subtaskLoading = true;
+            try {
+                const full = await apiFetch('/work-tasks/' + task.id).then(r => r.json());
+                this.subtasksCache[task.id] = full.subtasks ?? [];
+            } catch (e) {
+                toast(e.message ?? 'Failed to load sub-tasks', 'error');
+                this.expandedTaskId = null;
+            } finally {
+                this.subtaskLoading = false;
+            }
+        },
+
+        async addRowSubtask(task) {
+            if (!this.newRowSubtask.trim()) return;
+            try {
+                const created = await apiFetch('/work-tasks/' + task.id + '/subtasks', { method: 'POST', body: JSON.stringify({ title: this.newRowSubtask }) }).then(r => r.json());
+                (this.subtasksCache[task.id] ??= []).push(created);
+                this.newRowSubtask = '';
+                task.subtasks_count = (task.subtasks_count ?? 0) + 1;
+            } catch (e) {
+                toast(e.message ?? 'Failed to add sub-task', 'error');
+            }
+        },
+
+        async toggleRowSubtask(task, subtask) {
+            try {
+                await apiFetch('/work-tasks/' + task.id + '/subtasks/' + subtask.id + '/toggle', { method: 'PATCH' });
+                subtask.completed = !subtask.completed;
+                task.subtasks_completed_count = (task.subtasks_completed_count ?? 0) + (subtask.completed ? 1 : -1);
+            } catch (e) {
+                toast(e.message ?? 'Failed to update sub-task', 'error');
+            }
+        },
+
+        async deleteRowSubtask(task, subtask) {
+            try {
+                await apiFetch('/work-tasks/' + task.id + '/subtasks/' + subtask.id, { method: 'DELETE' });
+                this.subtasksCache[task.id] = (this.subtasksCache[task.id] ?? []).filter(s => s.id !== subtask.id);
+                task.subtasks_count = Math.max(0, (task.subtasks_count ?? 1) - 1);
+                if (subtask.completed) task.subtasks_completed_count = Math.max(0, (task.subtasks_completed_count ?? 1) - 1);
+            } catch (e) {
+                toast(e.message ?? 'Failed to remove sub-task', 'error');
+            }
+        },
+
+        openSubtaskNotes(task, subtask) {
+            this.notesTask = task;
+            this.notesSubtask = subtask;
+            this.subtaskNewNote = '';
+        },
+
+        closeSubtaskNotes() {
+            this.notesTask = null;
+            this.notesSubtask = null;
+        },
+
+        async addSubtaskNote(task, subtask) {
+            if (!this.subtaskNewNote.trim()) return;
+            try {
+                const created = await apiFetch('/work-tasks/' + task.id + '/subtasks/' + subtask.id + '/followups', { method: 'POST', body: JSON.stringify({ note: this.subtaskNewNote }) }).then(r => r.json());
+                (subtask.followups ??= []).unshift(created);
+                this.subtaskNewNote = '';
+            } catch (e) {
+                toast(e.message ?? 'Failed to add note', 'error');
+            }
+        },
+
         isOverdue(task) {
             return task.due_date && !['Completed', 'Cancelled'].includes(task.status) && new Date(task.due_date) < new Date().setHours(0, 0, 0, 0);
+        },
+
+        statusStyle(status) {
+            const map = {
+                'Pending': 'background:#fffbeb;color:#b45309',
+                'In Progress': 'background:#eff6ff;color:#1d4ed8',
+                'Completed': 'background:#f0fdf4;color:#15803d',
+                'Cancelled': 'background:#f8fafc;color:#94a3b8',
+            };
+            const dots = {
+                'Pending': '%23f59e0b', 'In Progress': '%233b82f6', 'Completed': '%2322c55e', 'Cancelled': '%2394a3b8',
+            };
+            return (map[status] ?? map['Pending']) + ";background-image:url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='" + (dots[status] ?? dots['Pending']) + "'%3E%3Cpath fill-rule='evenodd' d='M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z' clip-rule='evenodd'/%3E%3C/svg%3E\")";
+        },
+
+        initials(name) {
+            if (!name) return '?';
+            const parts = name.trim().split(/\s+/);
+            return ((parts[0]?.[0] ?? '') + (parts[1]?.[0] ?? '')).toUpperCase();
+        },
+
+        avatarColor(name) {
+            const palette = ['#4f46e5', '#0891b2', '#7c3aed', '#059669', '#d97706', '#db2777', '#0d9488', '#dc2626'];
+            if (!name) return palette[0];
+            let hash = 0;
+            for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
+            return palette[Math.abs(hash) % palette.length];
         },
 
         fmtDate(d) {

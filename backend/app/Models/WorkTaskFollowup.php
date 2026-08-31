@@ -6,11 +6,16 @@ use Illuminate\Database\Eloquent\Model;
 
 class WorkTaskFollowup extends Model
 {
-    protected $fillable = ['task_id', 'user_id', 'note', 'status_snapshot'];
+    protected $fillable = ['task_id', 'subtask_id', 'user_id', 'note', 'status_snapshot'];
 
     public function task(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
         return $this->belongsTo(WorkTask::class, 'task_id');
+    }
+
+    public function subtask(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    {
+        return $this->belongsTo(WorkTaskSubtask::class, 'subtask_id');
     }
 
     public function user(): \Illuminate\Database\Eloquent\Relations\BelongsTo

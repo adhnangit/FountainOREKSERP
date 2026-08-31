@@ -54,6 +54,13 @@ create table `work_task_subtasks` (`id` bigint unsigned not null auto_increment 
 alter table `work_task_subtasks` add constraint `work_task_subtasks_work_task_id_foreign` foreign key (`work_task_id`) references `work_tasks` (`id`) on delete cascade;
 alter table `work_task_subtasks` add constraint `work_task_subtasks_assigned_to_foreign` foreign key (`assigned_to`) references `users` (`id`) on delete set null;
 
+-- ----------------------------------------------------------------
+-- Migration: 2026_08_31_110000_add_subtask_id_to_work_task_followups_table.php
+-- Table(s): work_task_followups (adds subtask_id column — lets a follow-up note attach to a specific sub-task, not just the parent task)
+-- ----------------------------------------------------------------
+alter table `work_task_followups` add `subtask_id` bigint unsigned null after `task_id`;
+alter table `work_task_followups` add constraint `work_task_followups_subtask_id_foreign` foreign key (`subtask_id`) references `work_task_subtasks` (`id`) on delete cascade;
+
 SET FOREIGN_KEY_CHECKS=1;
 
 -- ----------------------------------------------------------------
@@ -69,4 +76,5 @@ INSERT INTO `migrations` (`migration`, `batch`) VALUES
 ('2026_08_24_120001_create_work_tasks_table', @next_batch),
 ('2026_08_24_120002_create_work_task_followups_table', @next_batch),
 ('2026_08_24_130000_drop_tasks_and_task_comments_tables', @next_batch),
-('2026_08_31_100000_create_work_task_subtasks_table', @next_batch);
+('2026_08_31_100000_create_work_task_subtasks_table', @next_batch),
+('2026_08_31_110000_add_subtask_id_to_work_task_followups_table', @next_batch);
