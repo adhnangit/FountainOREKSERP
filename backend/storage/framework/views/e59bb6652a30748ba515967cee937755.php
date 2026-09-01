@@ -66,9 +66,35 @@
 .tb-badge-low{background:#f0fdf4;color:#15803d}.tb-badge-low::before{background:#22c55e}
 .tb-badge-medium{background:#fffbeb;color:#b45309}.tb-badge-medium::before{background:#f59e0b}
 .tb-badge-high{background:#fef2f2;color:#b91c1c}.tb-badge-high::before{background:#ef4444}
-.tb-status-select{appearance:none;-webkit-appearance:none;border:none;border-radius:20px;padding:4px 26px 4px 12px;font-size:11px;font-weight:700;cursor:pointer;outline:none;background-repeat:no-repeat;background-position:right 8px center;background-size:12px}
 .tb-cat-chip{font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;white-space:nowrap;display:inline-flex;align-items:center;gap:5px}
 .tb-cat-chip::before{content:'';width:6px;height:6px;border-radius:50%;flex-shrink:0;background:currentColor}
+.tb-cat-parent{font-size:10px;color:#94a3b8;margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:180px}
+
+/* ── Status dropdown (custom, not a native <select>) ── */
+.tb-status-dd{position:relative;display:inline-block}
+.tb-status-pill{display:inline-flex;align-items:center;gap:5px;padding:3px 8px 3px 10px;border-radius:20px;font-size:11px;font-weight:700;border:none;cursor:pointer}
+.tb-status-pill::before{content:'';width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.tb-status-pill svg{width:11px;height:11px;transition:transform .15s;flex-shrink:0}
+.tb-status-pending{background:#fffbeb;color:#b45309}.tb-status-pending::before{background:#f59e0b}
+.tb-status-in-progress{background:#eff6ff;color:#1d4ed8}.tb-status-in-progress::before{background:#3b82f6}
+.tb-status-completed{background:#f0fdf4;color:#15803d}.tb-status-completed::before{background:#22c55e}
+.tb-status-cancelled{background:#f8fafc;color:#94a3b8}.tb-status-cancelled::before{background:#cbd5e1}
+.tb-status-menu{position:absolute;top:calc(100% + 4px);left:0;z-index:20;background:#fff;border:1px solid #e2e8f0;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.12);padding:4px;min-width:132px}
+.tb-status-opt{display:flex;align-items:center;gap:7px;width:100%;text-align:left;padding:6px 8px;border-radius:7px;border:none;background:none;font-size:12px;font-weight:600;color:#334155;cursor:pointer;white-space:nowrap}
+.tb-status-opt:hover{background:#f1f5f9}
+.tb-status-opt.active{background:#eef2ff;color:#4338ca}
+.tb-status-opt-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.tb-dot-pending{background:#f59e0b}.tb-dot-in-progress{background:#3b82f6}.tb-dot-completed{background:#22c55e}.tb-dot-cancelled{background:#cbd5e1}
+.dark .tb-status-menu{background:#1e293b;border-color:#334155}
+.dark .tb-status-opt{color:#cbd5e1}
+.dark .tb-status-opt:hover{background:#334155}
+.dark .tb-status-opt.active{background:rgba(99,102,241,.15);color:#a5b4fc}
+
+/* ── Days-running progress bar ── */
+.tb-progress-track{width:80px;height:5px;border-radius:3px;background:#e2e8f0;overflow:hidden;margin-top:5px}
+.tb-progress-fill{height:100%;border-radius:3px;transition:width .3s}
+.tb-progress-lbl{font-size:10px;color:#94a3b8;margin-top:2px}
+.dark .tb-progress-track{background:#334155}
 
 /* ── Action Buttons ── */
 .tb-action-btn{width:29px;height:29px;border-radius:8px;border:1px solid #e2e8f0;background:#fff;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;transition:all .15s;color:#64748b}
@@ -86,6 +112,9 @@
 .tb-notes-link:hover{background:#e0e7ff}
 .dark .tb-notes-link{background:rgba(99,102,241,.15);color:#a5b4fc}
 .dark .tb-notes-link:hover{background:rgba(99,102,241,.25)}
+.tb-assignee-select{font-size:12px;font-weight:500;color:#475569;background:#f8fafc;border:1px solid #e2e8f0;border-radius:7px;padding:4px 24px 4px 8px;outline:none;flex-shrink:0;max-width:120px;appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%2394a3b8'%3E%3Cpath fill-rule='evenodd' d='M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z' clip-rule='evenodd'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 6px center;background-size:12px}
+.tb-assignee-select:focus{border-color:#6366f1;box-shadow:0 0 0 3px rgba(99,102,241,.12)}
+.dark .tb-assignee-select{background-color:#0f172a;border-color:#334155;color:#cbd5e1}
 .tb-note{background:#f8fafc;border-radius:8px;padding:8px 12px}
 .tb-add-row{display:flex;gap:8px;margin-top:6px}
 .tb-mini-input{flex:1;border:1px solid #e2e8f0;border-radius:8px;padding:6px 10px;font-size:12.5px;outline:none;background:#fff}
@@ -276,6 +305,7 @@
                                 </div>
                             </td>
                             <td>
+                                <div class="tb-cat-parent" x-show="categoryParentPath(task)" x-text="categoryParentPath(task)"></div>
                                 <span x-show="task.category" class="tb-cat-chip" :style="'background:' + (task.category?.color || '#94a3b8') + '1a; color:' + (task.category?.color || '#94a3b8')" x-text="task.category?.name"></span>
                                 <span x-show="!task.category" class="text-gray-300 text-xs">—</span>
                             </td>
@@ -290,13 +320,20 @@
                                 <span class="tb-badge" :class="'tb-badge-' + task.priority.toLowerCase()" x-text="task.priority"></span>
                             </td>
                             <td>
-                                <select @change="quickStatus(task, $event.target.value)" class="tb-status-select"
-                                        :style="statusStyle(task.status)">
-                                    <option value="Pending" :selected="task.status === 'Pending'">Pending</option>
-                                    <option value="In Progress" :selected="task.status === 'In Progress'">In Progress</option>
-                                    <option value="Completed" :selected="task.status === 'Completed'">Completed</option>
-                                    <option value="Cancelled" :selected="task.status === 'Cancelled'">Cancelled</option>
-                                </select>
+                                <div class="tb-status-dd" x-data="{ ddOpen: false }" @click.away="ddOpen = false">
+                                    <button type="button" @click="ddOpen = !ddOpen" class="tb-status-pill" :class="'tb-status-' + task.status.toLowerCase().replace(' ', '-')">
+                                        <span x-text="task.status"></span>
+                                        <svg :class="ddOpen ? 'rotate-180' : ''" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
+                                    </button>
+                                    <div x-show="ddOpen" x-cloak class="tb-status-menu">
+                                        <template x-for="st in ['Pending','In Progress','Completed','Cancelled']" :key="st">
+                                            <button type="button" @click="quickStatus(task, st); ddOpen = false" class="tb-status-opt" :class="task.status === st ? 'active' : ''">
+                                                <span class="tb-status-opt-dot" :class="'tb-dot-' + st.toLowerCase().replace(' ', '-')"></span>
+                                                <span x-text="st"></span>
+                                            </button>
+                                        </template>
+                                    </div>
+                                </div>
                             </td>
                             <td>
                                 <div class="tb-date-val" x-show="task.due_date" x-text="fmtDate(task.due_date)"></div>
@@ -305,6 +342,15 @@
                                     Overdue
                                 </div>
                                 <span x-show="!task.due_date" class="text-gray-300 text-xs">—</span>
+
+                                <template x-if="!['Completed','Cancelled'].includes(task.status)">
+                                    <div>
+                                        <div class="tb-progress-track" x-show="task.due_date">
+                                            <div class="tb-progress-fill" :style="'width:' + runProgress(task).pct + '%; background:' + (runProgress(task).overdue ? '#ef4444' : '#6366f1')"></div>
+                                        </div>
+                                        <div class="tb-progress-lbl" :class="runProgress(task).overdue ? 'text-red-500 font-semibold' : ''" x-text="runProgress(task).label"></div>
+                                    </div>
+                                </template>
                             </td>
                             <td style="text-align:right;padding-right:20px">
                                 <div style="display:flex;align-items:center;justify-content:flex-end;gap:6px">
@@ -329,7 +375,12 @@
                                             <div class="tb-subtask-row">
                                                 <input type="checkbox" :checked="st.completed" @change="toggleRowSubtask(task, st)" />
                                                 <span class="text-sm flex-1" :class="st.completed ? 'line-through text-gray-400' : 'text-gray-700 dark:text-gray-200'" x-text="st.title"></span>
-                                                <span class="text-xs text-gray-400 flex-shrink-0" x-show="st.assignee" x-text="st.assignee?.name"></span>
+                                                <select class="tb-assignee-select" @change="assignSubtask(task, st, $event.target.value)" title="Assign to">
+                                                    <option value="" :selected="!st.assignee">Unassigned</option>
+                                                    <template x-for="u in users" :key="u.id">
+                                                        <option :value="u.id" :selected="st.assignee?.id === u.id" x-text="u.name"></option>
+                                                    </template>
+                                                </select>
                                                 <button @click="openSubtaskNotes(task, st)" class="tb-notes-link" title="Follow-up notes">
                                                     Notes<template x-if="(st.followups ?? []).length"><span x-text="' · ' + st.followups.length"></span></template>
                                                 </button>
@@ -489,7 +540,12 @@
                             <div class="flex items-center gap-2.5">
                                 <input type="checkbox" :checked="st.completed" @change="toggleSubtask(st)" class="rounded text-indigo-600 flex-shrink-0" />
                                 <span class="text-sm flex-1" :class="st.completed ? 'line-through text-gray-400' : 'text-gray-700 dark:text-gray-200'" x-text="st.title"></span>
-                                <span class="text-xs text-gray-400 flex-shrink-0" x-show="st.assignee" x-text="st.assignee?.name"></span>
+                                <select class="tb-assignee-select" @change="assignSubtask(detailTask, st, $event.target.value)" title="Assign to">
+                                    <option value="" :selected="!st.assignee">Unassigned</option>
+                                    <template x-for="u in users" :key="u.id">
+                                        <option :value="u.id" :selected="st.assignee?.id === u.id" x-text="u.name"></option>
+                                    </template>
+                                </select>
                                 <span class="text-xs flex-shrink-0" :class="st.due_date && !st.completed && new Date(st.due_date) < new Date().setHours(0,0,0,0) ? 'text-red-500 font-semibold' : 'text-gray-400'" x-show="st.due_date" x-text="fmtDate(st.due_date)"></span>
                                 <button @click="openSubtaskNotes(detailTask, st)" class="tb-notes-link flex-shrink-0" title="Follow-up notes">
                                     Notes<template x-if="(st.followups ?? []).length"><span x-text="' · ' + st.followups.length"></span></template>
@@ -816,6 +872,16 @@ function taskBoardPage() {
             }
         },
 
+        async assignSubtask(task, subtask, userId) {
+            try {
+                const updated = await apiFetch('/work-tasks/' + task.id + '/subtasks/' + subtask.id, { method: 'PATCH', body: JSON.stringify({ assigned_to: userId || null }) }).then(r => r.json());
+                subtask.assignee = updated.assignee;
+                toast('Sub-task assignee updated.');
+            } catch (e) {
+                toast(e.message ?? 'Failed to update assignee', 'error');
+            }
+        },
+
         async toggleExpand(task) {
             if (this.expandedTaskId === task.id) {
                 this.expandedTaskId = null;
@@ -895,17 +961,35 @@ function taskBoardPage() {
             return task.due_date && !['Completed', 'Cancelled'].includes(task.status) && new Date(task.due_date) < new Date().setHours(0, 0, 0, 0);
         },
 
-        statusStyle(status) {
-            const map = {
-                'Pending': 'background:#fffbeb;color:#b45309',
-                'In Progress': 'background:#eff6ff;color:#1d4ed8',
-                'Completed': 'background:#f0fdf4;color:#15803d',
-                'Cancelled': 'background:#f8fafc;color:#94a3b8',
-            };
-            const dots = {
-                'Pending': '%23f59e0b', 'In Progress': '%233b82f6', 'Completed': '%2322c55e', 'Cancelled': '%2394a3b8',
-            };
-            return (map[status] ?? map['Pending']) + ";background-image:url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='" + (dots[status] ?? dots['Pending']) + "'%3E%3Cpath fill-rule='evenodd' d='M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z' clip-rule='evenodd'/%3E%3C/svg%3E\")";
+        categoryParentPath(task) {
+            if (!task.category || !task.category.parent_id) return '';
+            const map = {};
+            this.categories.forEach(c => { map[c.id] = c; });
+            const chain = [];
+            let curId = task.category.parent_id;
+            let guard = 0;
+            while (curId && map[curId] && guard++ < 20) {
+                chain.unshift(map[curId].name);
+                curId = map[curId].parent_id;
+            }
+            return chain.join(' › ');
+        },
+
+        runProgress(task) {
+            const created = new Date(task.created_at);
+            const now = new Date();
+            const elapsedDays = Math.max(0, Math.floor((now - created) / 86400000));
+
+            if (!task.due_date) {
+                return { pct: 0, overdue: false, label: elapsedDays + ' day' + (elapsedDays !== 1 ? 's' : '') + ' running' };
+            }
+
+            const due = new Date(task.due_date);
+            const totalDays = Math.max(1, Math.ceil((due - created) / 86400000));
+            const overdue = now > due;
+            const pct = overdue ? 100 : Math.min(100, Math.round((elapsedDays / totalDays) * 100));
+            const label = overdue ? elapsedDays + ' days (overdue)' : elapsedDays + '/' + totalDays + ' days';
+            return { pct, overdue, label };
         },
 
         initials(name) {

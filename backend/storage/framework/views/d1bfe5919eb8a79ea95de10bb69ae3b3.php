@@ -9,6 +9,8 @@
         <div class="flex gap-2">
             <a href="<?php echo e(url('/task-manager')); ?>" class="btn-secondary text-sm">Dashboard</a>
             <a href="<?php echo e(url('/task-manager/board')); ?>" class="btn-secondary text-sm">Task Board</a>
+            <button @click="collapseAll()" class="btn-secondary text-sm">Collapse All</button>
+            <button @click="expandAll()" class="btn-secondary text-sm">Expand All</button>
         </div>
         <button @click="openCreate()" class="btn-primary inline-flex items-center gap-2">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
@@ -33,13 +35,18 @@
                 </tr>
             </thead>
             <tbody class="bg-white dark:bg-gray-900 divide-y divide-gray-100 dark:divide-gray-700/40">
-                <template x-for="cat in categories" :key="cat.id">
+                <template x-for="cat in visibleCategories" :key="cat.id">
                     <tr class="hover:bg-gray-50 dark:hover:bg-gray-800/20">
                         <td class="table-td font-medium text-gray-900 dark:text-gray-100">
                             <span :style="'margin-left:' + (cat.depth * 18) + 'px'" class="inline-flex items-center gap-2">
+                                <button x-show="hasChildren(cat)" @click="toggleCollapse(cat)" class="w-4 h-4 flex items-center justify-center text-gray-400 hover:text-indigo-600 flex-shrink-0">
+                                    <svg class="w-3 h-3 transition-transform" :class="collapsed[cat.id] ? '' : 'rotate-90'" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+                                </button>
+                                <span x-show="!hasChildren(cat)" class="w-4 flex-shrink-0"></span>
                                 <span x-show="cat.depth > 0" class="text-gray-300">↳</span>
                                 <span class="w-3.5 h-3.5 rounded" :style="'background:' + cat.color + '; display:inline-block; border:1px solid rgba(0,0,0,.08)'"></span>
                                 <span x-text="cat.name"></span>
+                                <span x-show="hasChildren(cat) && collapsed[cat.id]" class="text-[10px] font-semibold text-gray-400 bg-gray-100 dark:bg-gray-800 rounded-full px-1.5 py-0.5" x-text="childCount(cat) + ' hidden'"></span>
                             </span>
                         </td>
                         <td class="table-td text-center">
@@ -121,6 +128,7 @@
 function taskCategoriesPage() {
     return {
         categories: [],
+        collapsed: {},
         loading: true,
         showModal: false,
         editId: null,
@@ -130,6 +138,53 @@ function taskCategoriesPage() {
 
         blank(parentId = '') {
             return { name: '', color: '#2563EB', status: 'Active', parent_id: parentId };
+        },
+
+        hasChildren(cat) {
+            return this.categories.some(c => c.parent_id === cat.id);
+        },
+
+        childCount(cat) {
+            const ids = new Set([cat.id]);
+            let count = 0;
+            // walk the flat, depth-ordered list collecting all descendants of cat.id
+            for (const c of this.categories) {
+                if (c.parent_id !== null && ids.has(c.parent_id)) {
+                    ids.add(c.id);
+                    count++;
+                }
+            }
+            return count;
+        },
+
+        get visibleCategories() {
+            const result = [];
+            let skipDepth = null;
+            for (const cat of this.categories) {
+                if (skipDepth !== null) {
+                    if (cat.depth > skipDepth) continue;
+                    skipDepth = null;
+                }
+                result.push(cat);
+                if (this.collapsed[cat.id] && this.hasChildren(cat)) {
+                    skipDepth = cat.depth;
+                }
+            }
+            return result;
+        },
+
+        toggleCollapse(cat) {
+            this.collapsed[cat.id] = !this.collapsed[cat.id];
+        },
+
+        collapseAll() {
+            const c = {};
+            this.categories.forEach(cat => { if (this.hasChildren(cat)) c[cat.id] = true; });
+            this.collapsed = c;
+        },
+
+        expandAll() {
+            this.collapsed = {};
         },
 
         async init() {

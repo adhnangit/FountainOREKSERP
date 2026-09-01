@@ -294,6 +294,7 @@ Route::middleware(['auth:sanctum', 'branch.context'])->group(function () {
         Route::patch('/work-tasks/{workTask}/status', [WorkTaskController::class, 'quickStatus']);
         Route::post('/work-tasks/{workTask}/followups', [WorkTaskController::class, 'addFollowup']);
         Route::post('/work-tasks/{workTask}/subtasks', [WorkTaskController::class, 'storeSubtask']);
+        Route::patch('/work-tasks/{workTask}/subtasks/{subtask}', [WorkTaskController::class, 'updateSubtask']);
         Route::patch('/work-tasks/{workTask}/subtasks/{subtask}/toggle', [WorkTaskController::class, 'toggleSubtask']);
         Route::delete('/work-tasks/{workTask}/subtasks/{subtask}', [WorkTaskController::class, 'destroySubtask']);
         Route::post('/work-tasks/{workTask}/subtasks/{subtask}/followups', [WorkTaskController::class, 'storeSubtaskFollowup']);

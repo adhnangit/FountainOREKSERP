@@ -229,6 +229,21 @@ class WorkTaskController extends Controller
         return response()->json($subtask->load('assignee'), 201);
     }
 
+    public function updateSubtask(Request $request, WorkTask $workTask, WorkTaskSubtask $subtask): JsonResponse
+    {
+        abort_if($subtask->work_task_id !== $workTask->id, 404);
+
+        $data = $request->validate([
+            'title' => 'sometimes|string|max:255',
+            'assigned_to' => 'nullable|exists:users,id',
+            'due_date' => 'nullable|date',
+        ]);
+
+        $subtask->update($data);
+
+        return response()->json($subtask->fresh('assignee'));
+    }
+
     public function storeSubtaskFollowup(Request $request, WorkTask $workTask, WorkTaskSubtask $subtask): JsonResponse
     {
         abort_if($subtask->work_task_id !== $workTask->id, 404);
