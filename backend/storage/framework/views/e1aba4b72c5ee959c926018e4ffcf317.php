@@ -1,12 +1,11 @@
-@extends('layouts.app')
-@section('title', 'Roles & Permissions')
-@section('page-title', 'Roles & Permissions')
-@section('page-desc', 'Manage system roles and their permissions')
+<?php $__env->startSection('title', 'Roles & Permissions'); ?>
+<?php $__env->startSection('page-title', 'Roles & Permissions'); ?>
+<?php $__env->startSection('page-desc', 'Manage system roles and their permissions'); ?>
 
-@section('content')
+<?php $__env->startSection('content'); ?>
 <div x-data="rolesPage()" x-init="init()">
 
-    {{-- Header --}}
+    
     <div class="flex items-center justify-between mb-6">
         <div class="flex items-center gap-3">
             <div class="text-sm text-gray-500" x-text="roles.length + ' roles configured'"></div>
@@ -21,7 +20,7 @@
         </button>
     </div>
 
-    {{-- Loading --}}
+    
     <div x-show="loading" class="flex items-center justify-center py-20">
         <svg class="animate-spin w-8 h-8 text-indigo-500" fill="none" viewBox="0 0 24 24">
             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
@@ -31,7 +30,7 @@
 
     <div x-show="!loading" class="grid grid-cols-1 lg:grid-cols-12 gap-5">
 
-        {{-- ── ROLES LIST (left) ── --}}
+        
         <div class="lg:col-span-4">
             <div class="card overflow-hidden">
                 <div class="px-5 py-3.5 border-b border-gray-100 dark:border-gray-700"
@@ -47,7 +46,7 @@
                                ? 'bg-indigo-50 dark:bg-indigo-900/20 border-l-4 border-indigo-500'
                                : 'hover:bg-gray-50 dark:hover:bg-gray-800/20 border-l-4 border-transparent'"
                              @click="selectedRole = role">
-                            {{-- Role icon --}}
+                            
                             <div class="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 text-lg"
                                  :style="roleStyle(role.name)">
                                 <span x-text="roleIcon(role.name)"></span>
@@ -74,10 +73,10 @@
             </div>
         </div>
 
-        {{-- ── PERMISSIONS PANEL (right) ── --}}
+        
         <div class="lg:col-span-8">
 
-            {{-- No role selected --}}
+            
             <div x-show="!selectedRole" class="card flex flex-col items-center justify-center py-24 text-gray-400">
                 <svg class="w-14 h-14 opacity-20 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.2">
                     <path d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/>
@@ -86,10 +85,10 @@
                 <p class="text-sm mt-1">Click any role on the left to manage its permissions</p>
             </div>
 
-            {{-- Permissions grouped by category --}}
+            
             <div x-show="selectedRole" class="space-y-4">
 
-                {{-- Role summary header --}}
+                
                 <div class="card px-5 py-4 flex items-center justify-between"
                      :style="'background:' + (roleColor(selectedRole?.name) ?? '#1B3EB6') + '18;border-left:4px solid ' + (roleColor(selectedRole?.name) ?? '#1B3EB6')">
                     <div class="flex items-center gap-3">
@@ -115,10 +114,10 @@
                     </div>
                 </div>
 
-                {{-- Categories --}}
+                
                 <template x-for="cat in categories" :key="cat.key">
                     <div class="card overflow-hidden">
-                        {{-- Category header --}}
+                        
                         <div class="px-4 py-3 flex items-center justify-between border-b border-gray-100 dark:border-gray-700"
                              :style="'background:' + cat.bg">
                             <div class="flex items-center gap-2.5">
@@ -130,12 +129,12 @@
                                 </div>
                             </div>
                             <div class="flex items-center gap-2">
-                                {{-- Progress bar --}}
+                                
                                 <div class="w-20 h-1.5 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden">
                                     <div class="h-full rounded-full transition-all"
                                          :style="'width:' + catPct(cat) + '%;background:' + cat.color"></div>
                                 </div>
-                                {{-- Select all toggle --}}
+                                
                                 <button @click="toggleCategory(cat, catEnabledCount(cat) < catPermissions(cat).length)"
                                         class="text-xs font-semibold px-2.5 py-1 rounded-lg border transition-all"
                                         :style="catEnabledCount(cat) === catPermissions(cat).length
@@ -146,7 +145,7 @@
                             </div>
                         </div>
 
-                        {{-- Permission checkboxes --}}
+                        
                         <div class="p-4 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-2">
                             <template x-for="perm in catPermissions(cat)" :key="perm.id">
                                 <label class="flex items-start gap-2.5 p-2.5 rounded-xl cursor-pointer transition-all group"
@@ -171,7 +170,7 @@
         </div>
     </div>
 
-    {{-- New Role Modal --}}
+    
     <div x-show="showModal" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4"
          style="background:rgba(15,23,42,0.55);backdrop-filter:blur(4px)"
          @click.self="showModal = false">
@@ -206,9 +205,9 @@
     </div>
 
 </div>
-@endsection
+<?php $__env->stopSection(); ?>
 
-@push('scripts')
+<?php $__env->startPush('scripts'); ?>
 <script>
 function rolesPage() {
     return {
@@ -407,4 +406,6 @@ function rolesPage() {
     };
 }
 </script>
-@endpush
+<?php $__env->stopPush(); ?>
+
+<?php echo $__env->make('layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH E:\xampp8.2\htdocs\FountainOREKS\backend\resources\views/access-control/roles.blade.php ENDPATH**/ ?>
