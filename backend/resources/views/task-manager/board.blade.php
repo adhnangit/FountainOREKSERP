@@ -105,10 +105,12 @@
 
 /* ── Expand Panel (sub-tasks) ── */
 .tb-expand-row td{background:#fafbff;padding:0 16px 16px 16px !important}
-.tb-expand-panel{max-width:640px;padding-top:2px}
-.tb-subtask{background:#fff;border:1px solid #eef0f7;border-radius:10px;padding:8px 12px;margin-bottom:6px}
-.tb-subtask-row{display:flex;align-items:center;gap:10px}
-.tb-subtask-row input[type=checkbox]{width:16px;height:16px;accent-color:#6366f1;cursor:pointer;flex-shrink:0}
+.tb-expand-panel{padding-top:2px}
+.tb-subtask{background:#fff;border:1px solid #eef0f7;border-radius:10px;padding:9px 14px;margin-bottom:6px}
+.tb-subtask-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.tb-subtask-title{flex:1 1 220px;min-width:160px;font-size:13.5px}
+.tb-subtask-days{font-size:10.5px;color:#94a3b8;white-space:nowrap;flex-shrink:0}
+.tb-subtask-days.overdue{color:#ef4444;font-weight:700}
 .tb-notes-link{font-size:12.5px;font-weight:600;color:#6366f1;background:#eef2ff;border:none;border-radius:7px;padding:5px 10px;cursor:pointer;white-space:nowrap;flex-shrink:0}
 .tb-notes-link:hover{background:#e0e7ff}
 .dark .tb-notes-link{background:rgba(99,102,241,.15);color:#a5b4fc}
@@ -117,6 +119,9 @@
 .tb-assignee-select:focus{border-color:#6366f1;box-shadow:0 0 0 3px rgba(99,102,241,.12)}
 .dark .tb-assignee-select{background-color:#0f172a;border-color:#334155;color:#cbd5e1}
 .tb-note{background:#f8fafc;border-radius:8px;padding:8px 12px}
+.tb-note-link{color:#4f46e5;text-decoration:underline;word-break:break-all}
+.tb-note-link:hover{color:#4338ca}
+.dark .tb-note-link{color:#a5b4fc}
 .tb-add-row{display:flex;gap:8px;margin-top:6px}
 .tb-mini-input{flex:1;border:1px solid #e2e8f0;border-radius:8px;padding:6px 10px;font-size:12.5px;outline:none;background:#fff}
 .tb-mini-input:focus{border-color:#6366f1;box-shadow:0 0 0 3px rgba(99,102,241,.1)}
@@ -361,6 +366,9 @@
                                     <button @click="openEdit(task)" class="tb-action-btn" title="Edit">
                                         <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
                                     </button>
+                                    <button @click="scheduleOnCalendar(task)" class="tb-action-btn" title="Schedule on Calendar">
+                                        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                                    </button>
                                     <button @click="deleteTask(task)" class="tb-action-btn danger" title="Delete">
                                         <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                                     </button>
@@ -374,14 +382,34 @@
                                     <template x-for="st in (subtasksCache[task.id] ?? [])" :key="st.id">
                                         <div class="tb-subtask">
                                             <div class="tb-subtask-row">
-                                                <input type="checkbox" :checked="st.completed" @change="toggleRowSubtask(task, st)" />
-                                                <span class="text-sm flex-1" :class="st.completed ? 'line-through text-gray-400' : 'text-gray-700 dark:text-gray-200'" x-text="st.title"></span>
+                                                <div class="tb-status-dd" x-data="{ ddOpen: false }" @click.away="ddOpen = false">
+                                                    <button type="button" @click="ddOpen = !ddOpen" class="tb-status-pill" :class="'tb-status-' + st.status.toLowerCase().replace(' ', '-')">
+                                                        <span x-text="st.status"></span>
+                                                        <svg :class="ddOpen ? 'rotate-180' : ''" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
+                                                    </button>
+                                                    <div x-show="ddOpen" x-cloak class="tb-status-menu">
+                                                        <template x-for="opt in ['Pending','In Progress','Completed','Cancelled']" :key="opt">
+                                                            <button type="button" @click="patchSubtask(task, st, { status: opt }); ddOpen = false" class="tb-status-opt" :class="st.status === opt ? 'active' : ''">
+                                                                <span class="tb-status-opt-dot" :class="'tb-dot-' + opt.toLowerCase().replace(' ', '-')"></span>
+                                                                <span x-text="opt"></span>
+                                                            </button>
+                                                        </template>
+                                                    </div>
+                                                </div>
+                                                <span class="tb-subtask-title" :class="st.status === 'Completed' ? 'line-through text-gray-400' : 'text-gray-700 dark:text-gray-200'" x-text="st.title"></span>
+                                                <select class="tb-assignee-select" @change="patchSubtask(task, st, { priority: $event.target.value })" title="Priority">
+                                                    <option value="Low" :selected="st.priority === 'Low'">Low</option>
+                                                    <option value="Medium" :selected="st.priority === 'Medium'">Medium</option>
+                                                    <option value="High" :selected="st.priority === 'High'">High</option>
+                                                </select>
                                                 <select class="tb-assignee-select" @change="assignSubtask(task, st, $event.target.value)" title="Assign to">
                                                     <option value="" :selected="!st.assignee">Unassigned</option>
                                                     <template x-for="u in users" :key="u.id">
                                                         <option :value="u.id" :selected="st.assignee?.id === u.id" x-text="u.name"></option>
                                                     </template>
                                                 </select>
+                                                <input type="date" class="tb-assignee-select" style="max-width:140px" :value="st.due_date ? st.due_date.slice(0,10) : ''" @change="patchSubtask(task, st, { due_date: $event.target.value || null })" title="Due date" />
+                                                <span class="tb-subtask-days" :class="subtaskProgress(st).overdue ? 'overdue' : ''" x-show="st.status !== 'Completed' && st.status !== 'Cancelled'" x-text="subtaskProgress(st).label"></span>
                                                 <button @click="openSubtaskNotes(task, st)" class="tb-notes-link" title="Follow-up notes">
                                                     Notes<template x-if="(st.followups ?? []).length"><span x-text="' · ' + st.followups.length"></span></template>
                                                 </button>
@@ -505,7 +533,7 @@
 
     <!-- Detail / Followup Modal -->
     <div x-show="showDetail" x-cloak class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" @click.self="closeDetail()">
-        <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto" x-show="detailTask">
+        <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto" x-show="detailTask">
             <div class="flex items-start justify-between px-6 py-4 border-b border-gray-100 dark:border-gray-700">
                 <div>
                     <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100" x-text="detailTask?.title"></h3>
@@ -520,7 +548,7 @@
                 </button>
             </div>
             <div class="p-6">
-                <p class="text-sm text-gray-600 dark:text-gray-300 mb-4" x-show="detailTask?.description" x-text="detailTask?.description"></p>
+                <p class="text-sm text-gray-600 dark:text-gray-300 mb-4" style="word-break:break-word" x-show="detailTask?.description" x-html="linkify(detailTask?.description)"></p>
 
                 <div class="flex flex-wrap gap-2 mb-5">
                     <template x-for="st in ['Pending','In Progress','Completed','Cancelled']" :key="st">
@@ -537,17 +565,36 @@
                 </div>
                 <div class="space-y-1.5 mb-3">
                     <template x-for="st in (detailTask?.subtasks ?? [])" :key="st.id">
-                        <div class="bg-gray-50 dark:bg-gray-900 rounded-lg px-3 py-2">
-                            <div class="flex items-center gap-2.5">
-                                <input type="checkbox" :checked="st.completed" @change="toggleSubtask(st)" class="rounded text-indigo-600 flex-shrink-0" />
-                                <span class="text-sm flex-1" :class="st.completed ? 'line-through text-gray-400' : 'text-gray-700 dark:text-gray-200'" x-text="st.title"></span>
+                        <div class="tb-subtask" style="margin-bottom:0">
+                            <div class="tb-subtask-row">
+                                <div class="tb-status-dd" x-data="{ ddOpen: false }" @click.away="ddOpen = false">
+                                    <button type="button" @click="ddOpen = !ddOpen" class="tb-status-pill" :class="'tb-status-' + st.status.toLowerCase().replace(' ', '-')">
+                                        <span x-text="st.status"></span>
+                                        <svg :class="ddOpen ? 'rotate-180' : ''" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
+                                    </button>
+                                    <div x-show="ddOpen" x-cloak class="tb-status-menu">
+                                        <template x-for="opt in ['Pending','In Progress','Completed','Cancelled']" :key="opt">
+                                            <button type="button" @click="patchSubtask(detailTask, st, { status: opt }); ddOpen = false" class="tb-status-opt" :class="st.status === opt ? 'active' : ''">
+                                                <span class="tb-status-opt-dot" :class="'tb-dot-' + opt.toLowerCase().replace(' ', '-')"></span>
+                                                <span x-text="opt"></span>
+                                            </button>
+                                        </template>
+                                    </div>
+                                </div>
+                                <span class="tb-subtask-title" :class="st.status === 'Completed' ? 'line-through text-gray-400' : 'text-gray-700 dark:text-gray-200'" x-text="st.title"></span>
+                                <select class="tb-assignee-select" @change="patchSubtask(detailTask, st, { priority: $event.target.value })" title="Priority">
+                                    <option value="Low" :selected="st.priority === 'Low'">Low</option>
+                                    <option value="Medium" :selected="st.priority === 'Medium'">Medium</option>
+                                    <option value="High" :selected="st.priority === 'High'">High</option>
+                                </select>
                                 <select class="tb-assignee-select" @change="assignSubtask(detailTask, st, $event.target.value)" title="Assign to">
                                     <option value="" :selected="!st.assignee">Unassigned</option>
                                     <template x-for="u in users" :key="u.id">
                                         <option :value="u.id" :selected="st.assignee?.id === u.id" x-text="u.name"></option>
                                     </template>
                                 </select>
-                                <span class="text-xs flex-shrink-0" :class="st.due_date && !st.completed && new Date(st.due_date) < new Date().setHours(0,0,0,0) ? 'text-red-500 font-semibold' : 'text-gray-400'" x-show="st.due_date" x-text="fmtDate(st.due_date)"></span>
+                                <input type="date" class="tb-assignee-select" style="max-width:140px" :value="st.due_date ? st.due_date.slice(0,10) : ''" @change="patchSubtask(detailTask, st, { due_date: $event.target.value || null })" title="Due date" />
+                                <span class="tb-subtask-days" :class="subtaskProgress(st).overdue ? 'overdue' : ''" x-show="st.status !== 'Completed' && st.status !== 'Cancelled'" x-text="subtaskProgress(st).label"></span>
                                 <button @click="openSubtaskNotes(detailTask, st)" class="tb-notes-link flex-shrink-0" title="Follow-up notes">
                                     Notes<template x-if="(st.followups ?? []).length"><span x-text="' · ' + st.followups.length"></span></template>
                                 </button>
@@ -577,7 +624,7 @@
                                 <span class="font-semibold text-gray-600 dark:text-gray-300" x-text="fu.user?.name ?? 'System'"></span>
                                 <span x-text="timeAgo(fu.created_at)"></span>
                             </div>
-                            <div class="text-sm text-gray-700 dark:text-gray-200" x-text="fu.note"></div>
+                            <div class="text-sm text-gray-700 dark:text-gray-200" style="word-break:break-word" x-html="linkify(fu.note)"></div>
                         </div>
                     </template>
                     <p x-show="!(detailTask?.followups ?? []).length" class="text-sm text-gray-400 text-center py-6">No follow-ups yet. Add the first update above.</p>
@@ -585,6 +632,7 @@
             </div>
             <div class="flex justify-end gap-3 px-6 py-4 border-t border-gray-100 dark:border-gray-700">
                 <button @click="closeDetail()" class="btn-secondary">Close</button>
+                <button @click="scheduleOnCalendar(detailTask)" class="btn-secondary">Schedule on Calendar</button>
                 <button @click="openEdit(detailTask); closeDetail()" class="btn-primary">Edit Task</button>
             </div>
         </div>
@@ -592,7 +640,7 @@
 
     <!-- Sub-task Notes Modal -->
     <div x-show="notesSubtask" x-cloak class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" @click.self="closeSubtaskNotes()">
-        <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-md max-h-[85vh] overflow-y-auto">
+        <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-lg max-h-[85vh] overflow-y-auto">
             <div class="flex items-start justify-between px-6 py-4 border-b border-gray-100 dark:border-gray-700">
                 <div>
                     <div class="text-xs font-bold uppercase tracking-wide text-gray-400">Sub-task Notes</div>
@@ -614,7 +662,7 @@
                                 <span class="font-semibold text-gray-600 dark:text-gray-300" x-text="f.user?.name ?? 'System'"></span>
                                 <span x-text="timeAgo(f.created_at)"></span>
                             </div>
-                            <div class="text-sm text-gray-700 dark:text-gray-200" x-text="f.note"></div>
+                            <div class="text-sm text-gray-700 dark:text-gray-200" style="word-break:break-word" x-html="linkify(f.note)"></div>
                         </div>
                     </template>
                     <p x-show="!(notesSubtask?.followups ?? []).length" class="text-sm text-gray-400 text-center py-6">No notes yet. Add the first update above.</p>
@@ -681,6 +729,8 @@ function taskBoardPage() {
         async init() {
             await Promise.all([this.loadCategories(), this.loadUsers(), this.loadStats()]);
             await this.load();
+            const openId = new URLSearchParams(window.location.search).get('open');
+            if (openId) this.openDetail(openId);
         },
 
         async loadCategories() {
@@ -829,6 +879,19 @@ function taskBoardPage() {
             this.detailTask = null;
         },
 
+        scheduleOnCalendar(task) {
+            const prefill = {
+                title: task.title,
+                description: task.description ?? '',
+                assigned_to: task.assigned_to ?? task.assignee?.id ?? '',
+                linked_module: 'work_task',
+                linked_id: task.id,
+                date: task.due_date ? task.due_date.slice(0, 10) : null,
+            };
+            try { sessionStorage.setItem('calendar_task_prefill', JSON.stringify(prefill)); } catch (e) {}
+            window.location.href = '{{ url('/calendar') }}';
+        },
+
         async addFollowup() {
             if (!this.newNote.trim()) return;
             try {
@@ -853,16 +916,6 @@ function taskBoardPage() {
             }
         },
 
-        async toggleSubtask(subtask) {
-            try {
-                await apiFetch('/work-tasks/' + this.detailTask.id + '/subtasks/' + subtask.id + '/toggle', { method: 'PATCH' });
-                subtask.completed = !subtask.completed;
-                await this.load();
-            } catch (e) {
-                toast(e.message ?? 'Failed to update sub-task', 'error');
-            }
-        },
-
         async deleteSubtask(subtask) {
             try {
                 await apiFetch('/work-tasks/' + this.detailTask.id + '/subtasks/' + subtask.id, { method: 'DELETE' });
@@ -881,6 +934,36 @@ function taskBoardPage() {
             } catch (e) {
                 toast(e.message ?? 'Failed to update assignee', 'error');
             }
+        },
+
+        async patchSubtask(task, subtask, payload) {
+            const wasCompleted = subtask.status === 'Completed';
+            try {
+                const updated = await apiFetch('/work-tasks/' + task.id + '/subtasks/' + subtask.id, { method: 'PATCH', body: JSON.stringify(payload) }).then(r => r.json());
+                Object.assign(subtask, updated);
+                if ('status' in payload) {
+                    const nowCompleted = subtask.status === 'Completed';
+                    if (wasCompleted !== nowCompleted) {
+                        task.subtasks_completed_count = Math.max(0, (task.subtasks_completed_count ?? 0) + (nowCompleted ? 1 : -1));
+                    }
+                }
+            } catch (e) {
+                toast(e.message ?? 'Failed to update sub-task', 'error');
+            }
+        },
+
+        subtaskProgress(subtask) {
+            const created = new Date(subtask.created_at);
+            const now = new Date();
+            const elapsedDays = Math.max(0, Math.floor((now - created) / 86400000));
+
+            if (!subtask.due_date) {
+                return { overdue: false, label: elapsedDays + ' day' + (elapsedDays !== 1 ? 's' : '') + ' running' };
+            }
+
+            const due = new Date(subtask.due_date);
+            const overdue = now > due;
+            return { overdue, label: overdue ? elapsedDays + ' days (overdue)' : elapsedDays + ' days running' };
         },
 
         async toggleExpand(task) {
@@ -912,16 +995,6 @@ function taskBoardPage() {
                 task.subtasks_count = (task.subtasks_count ?? 0) + 1;
             } catch (e) {
                 toast(e.message ?? 'Failed to add sub-task', 'error');
-            }
-        },
-
-        async toggleRowSubtask(task, subtask) {
-            try {
-                await apiFetch('/work-tasks/' + task.id + '/subtasks/' + subtask.id + '/toggle', { method: 'PATCH' });
-                subtask.completed = !subtask.completed;
-                task.subtasks_completed_count = (task.subtasks_completed_count ?? 0) + (subtask.completed ? 1 : -1);
-            } catch (e) {
-                toast(e.message ?? 'Failed to update sub-task', 'error');
             }
         },
 
@@ -1020,6 +1093,26 @@ function taskBoardPage() {
             const hrs = Math.floor(mins / 60); if (hrs < 24) return hrs + 'h ago';
             const days = Math.floor(hrs / 24); if (days < 30) return days + 'd ago';
             return this.fmtDate(d);
+        },
+
+        escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text ?? '';
+            return div.innerHTML;
+        },
+
+        linkify(text) {
+            if (!text) return '';
+            const escaped = this.escapeHtml(text);
+            return escaped.replace(/(https?:\/\/[^\s<]+|www\.[^\s<]+)/gi, (match) => {
+                let trail = '';
+                while (match.length && '.,;:!?)]}\'"'.includes(match[match.length - 1])) {
+                    trail = match[match.length - 1] + trail;
+                    match = match.slice(0, -1);
+                }
+                const href = /^www\./i.test(match) ? 'https://' + match : match;
+                return '<a href="' + href + '" target="_blank" rel="noopener noreferrer" class="tb-note-link">' + match + '</a>' + trail;
+            });
         },
     };
 }

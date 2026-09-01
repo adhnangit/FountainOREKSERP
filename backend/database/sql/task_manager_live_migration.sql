@@ -61,6 +61,13 @@ alter table `work_task_subtasks` add constraint `work_task_subtasks_assigned_to_
 alter table `work_task_followups` add `subtask_id` bigint unsigned null after `task_id`;
 alter table `work_task_followups` add constraint `work_task_followups_subtask_id_foreign` foreign key (`subtask_id`) references `work_task_subtasks` (`id`) on delete cascade;
 
+-- ----------------------------------------------------------------
+-- Migration: 2026_09_01_120000_add_priority_status_to_work_task_subtasks_table.php
+-- Table(s): work_task_subtasks (adds priority + status — sub-tasks now carry the same fields as parent tasks)
+-- ----------------------------------------------------------------
+alter table `work_task_subtasks` add `priority` enum('Low', 'Medium', 'High') not null default 'Medium' after `title`;
+alter table `work_task_subtasks` add `status` enum('Pending', 'In Progress', 'Completed', 'Cancelled') not null default 'Pending' after `completed`;
+
 SET FOREIGN_KEY_CHECKS=1;
 
 -- ----------------------------------------------------------------
@@ -77,4 +84,5 @@ INSERT INTO `migrations` (`migration`, `batch`) VALUES
 ('2026_08_24_120002_create_work_task_followups_table', @next_batch),
 ('2026_08_24_130000_drop_tasks_and_task_comments_tables', @next_batch),
 ('2026_08_31_100000_create_work_task_subtasks_table', @next_batch),
-('2026_08_31_110000_add_subtask_id_to_work_task_followups_table', @next_batch);
+('2026_08_31_110000_add_subtask_id_to_work_task_followups_table', @next_batch),
+('2026_09_01_120000_add_priority_status_to_work_task_subtasks_table', @next_batch);

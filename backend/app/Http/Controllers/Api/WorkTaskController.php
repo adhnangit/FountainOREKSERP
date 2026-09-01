@@ -55,6 +55,17 @@ class WorkTaskController extends Controller
         $onTimeCount = $completedTasks->filter(fn ($t) => !$t->due_date || $t->completed_at->lte($t->due_date->copy()->endOfDay()))->count();
         $stats['on_time_rate'] = $completedTasks->count() > 0 ? round(($onTimeCount / $completedTasks->count()) * 100, 1) : null;
 
+        // Sub-tasks aren't their own WorkTask rows, so they're invisible to every
+        // count above — surface them separately rather than conflating "tasks"
+        // (which drives status/priority/category semantics) with checklist items.
+        $allSubtasks = WorkTaskSubtask::whereIn('work_task_id', $allTasks->pluck('id'))->get();
+        $stats['subtasks_total'] = $allSubtasks->count();
+        $stats['subtasks_completed'] = $allSubtasks->where('completed', true)->count();
+        $stats['subtasks_overdue'] = $allSubtasks->filter(fn ($s) => $s->due_date && !$s->completed && $s->due_date->isPast())->count();
+        $stats['subtasks_completion_rate'] = $stats['subtasks_total'] > 0
+            ? round(($stats['subtasks_completed'] / $stats['subtasks_total']) * 100, 1)
+            : null;
+
         $categories = WorkTaskCategory::orderBy('name')->get()->map(function ($cat) use ($allTasks) {
             $catTasks = $allTasks->where('category_id', $cat->id);
             $total = $catTasks->count();
@@ -106,7 +117,10 @@ class WorkTaskController extends Controller
             ->when($categoryIds, fn ($q) => $q->whereIn('category_id', $categoryIds))
             ->when($request->status, fn ($q) => $q->where('status', $request->status))
             ->when($request->priority, fn ($q) => $q->where('priority', $request->priority))
-            ->when($request->assigned_to, fn ($q) => $q->where('assigned_to', $request->assigned_to))
+            ->when($request->assigned_to, fn ($q) => $q->where(function ($sub) use ($request) {
+                $sub->where('assigned_to', $request->assigned_to)
+                    ->orWhereHas('subtasks', fn ($s) => $s->where('assigned_to', $request->assigned_to));
+            }))
             ->when($request->boolean('overdue'), fn ($q) => $q->whereNotNull('due_date')
                 ->whereDate('due_date', '<', Carbon::today())
                 ->whereNotIn('status', ['Completed', 'Cancelled']))
@@ -217,12 +231,16 @@ class WorkTaskController extends Controller
     {
         $data = $request->validate([
             'title' => 'required|string|max:255',
+            'priority' => 'nullable|in:Low,Medium,High',
+            'status' => 'nullable|in:Pending,In Progress,Completed,Cancelled',
             'assigned_to' => 'nullable|exists:users,id',
             'due_date' => 'nullable|date',
         ]);
 
         $data['work_task_id'] = $workTask->id;
         $data['sort_order'] = $workTask->subtasks()->count();
+        $data['priority'] = $data['priority'] ?? 'Medium';
+        $data['status'] = $data['status'] ?? 'Pending';
 
         $subtask = WorkTaskSubtask::create($data);
 
@@ -235,6 +253,8 @@ class WorkTaskController extends Controller
 
         $data = $request->validate([
             'title' => 'sometimes|string|max:255',
+            'priority' => 'sometimes|in:Low,Medium,High',
+            'status' => 'sometimes|in:Pending,In Progress,Completed,Cancelled',
             'assigned_to' => 'nullable|exists:users,id',
             'due_date' => 'nullable|date',
         ]);
@@ -264,7 +284,7 @@ class WorkTaskController extends Controller
     {
         abort_if($subtask->work_task_id !== $workTask->id, 404);
 
-        $subtask->update(['completed' => !$subtask->completed]);
+        $subtask->update(['status' => $subtask->completed ? 'Pending' : 'Completed']);
 
         return response()->json($subtask->fresh('assignee'));
     }

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\CalendarEvent;
 use App\Models\CalendarEventCompletion;
+use App\Models\User;
 use App\Services\BranchContextService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -12,6 +13,16 @@ use Illuminate\Http\Request;
 class CalendarController extends Controller
 {
     public function __construct(private BranchContextService $branchContext) {}
+
+    /**
+     * Minimal active-user list for the attendee/assignee picker.
+     */
+    public function assignableUsers(): JsonResponse
+    {
+        return response()->json(
+            User::where('is_active', true)->orderBy('name')->get(['id', 'name'])
+        );
+    }
 
     public function index(Request $request): JsonResponse
     {

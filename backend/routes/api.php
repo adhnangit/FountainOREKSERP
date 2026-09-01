@@ -280,6 +280,8 @@ Route::middleware(['auth:sanctum', 'branch.context'])->group(function () {
     Route::middleware('permission:inventory.adjustments.approve')->post('/adjustments/{stockAdjustment}/approve', [InventoryController::class, 'approveAdjustment']);
 
     // Calendar — no dedicated edit/delete permission; "create" covers manage
+    // Must be registered before the {calendarEvent} wildcard below, else "assignable-users" is matched as an event id.
+    Route::middleware('permission:calendar.view')->get('/events/assignable-users', [CalendarController::class, 'assignableUsers']);
     Route::apiResource('events', CalendarController::class, ['only' => ['index', 'show']])->middleware('permission:calendar.view');
     Route::apiResource('events', CalendarController::class, ['only' => ['store', 'update', 'destroy']])->middleware('permission:calendar.create');
     Route::middleware('permission:calendar.create')->post('/events/{calendarEvent}/complete', [CalendarController::class, 'complete']);

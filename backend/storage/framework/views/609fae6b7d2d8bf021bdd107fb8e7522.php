@@ -1,9 +1,8 @@
-@extends('layouts.app')
-@section('title', 'Calendar')
-@section('page-title', 'Calendar')
-@section('page-desc', 'Meetings, visits, reminders and upcoming events')
+<?php $__env->startSection('title', 'Calendar'); ?>
+<?php $__env->startSection('page-title', 'Calendar'); ?>
+<?php $__env->startSection('page-desc', 'Meetings, visits, reminders and upcoming events'); ?>
 
-@section('content')
+<?php $__env->startSection('content'); ?>
 <style>
 /* ── Wrapper ── */
 .cal-wrap { display:flex; flex-direction:column; gap:16px; }
@@ -97,7 +96,7 @@
 
 <div x-data="calendarPage()" x-init="init()" class="cal-wrap">
 
-    {{-- ── Stat Strip ── --}}
+    
     <div class="cal-stat-grid">
         <div class="cal-stat-card" style="border-color:#bfdbfe">
             <div class="cal-stat-icon" style="background:#eff6ff">
@@ -141,7 +140,7 @@
         </div>
     </div>
 
-    {{-- ── Calendar Header ── --}}
+    
     <div class="cal-header">
         <button @click="prevMonth()" class="w-8 h-8 rounded-lg border border-gray-200 dark:border-gray-600 flex items-center justify-center hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
             <svg class="w-4 h-4 text-gray-600 dark:text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M15 19l-7-7 7-7"/></svg>
@@ -154,7 +153,7 @@
             Today
         </button>
 
-        {{-- Type filter pills --}}
+        
         <div class="flex gap-1.5 ml-1 flex-wrap">
             <button @click="typeFilter = ''"
                     class="px-2.5 py-1 rounded-full text-xs font-bold transition-all border"
@@ -193,7 +192,7 @@
         </div>
     </div>
 
-    {{-- ── Month Grid ── --}}
+    
     <div class="cal-grid">
         <div class="cal-dow-row">
             <template x-for="d in ['Sun','Mon','Tue','Wed','Thu','Fri','Sat']" :key="d">
@@ -220,7 +219,7 @@
                         </template>
                     </div>
 
-                    {{-- Pills (max 3) --}}
+                    
                     <template x-for="(ev, idx) in cell.events.slice(0, 3)" :key="ev.id + '-' + (ev.occurrence_date ?? idx)">
                         <div class="cal-pill"
                              :class="{ 'is-done': evCompleted(ev), 'is-overdue': evOverdue(ev) }"
@@ -252,7 +251,7 @@
         </div>
     </div>
 
-    {{-- ── Legend ── --}}
+    
     <div class="cal-legend">
         <span class="text-[10px] font-black uppercase tracking-widest text-gray-400 mr-1">Legend</span>
         <template x-for="f in typeFilters" :key="f.v">
@@ -275,13 +274,13 @@
         </div>
     </div>
 
-    {{-- ── Day Panel Backdrop ── --}}
+    
     <div x-show="dayPanel.open" x-transition.opacity
          class="fixed inset-0 z-40"
          style="background:rgba(0,0,0,.28)"
          @click.self="dayPanel.open=false"></div>
 
-    {{-- ── Day Detail Panel ── --}}
+    
     <div x-show="dayPanel.open" x-cloak
          x-transition:enter="transition ease-out duration-200"
          x-transition:enter-start="opacity-0 translate-x-8"
@@ -332,35 +331,35 @@
                      :class="{ 'is-done': evCompleted(ev), 'is-overdue': evOverdue(ev) }"
                      :style="'border-color:'+typeColor(ev.type).border+';background:'+typeColor(ev.type).bg+'28'">
 
-                    {{-- Color bar --}}
+                    
                     <div class="cal-ev-bar" :style="'background:'+(ev.color && ev.color !== '#3B82F6' ? ev.color : typeColor(ev.type).dot)"></div>
 
                     <div class="flex-1 min-w-0">
-                        {{-- Title + actions --}}
+                        
                         <div class="flex items-start justify-between gap-2 mb-1.5">
                             <div class="min-w-0">
                                 <p class="cal-ev-title text-sm font-bold text-gray-900 dark:text-white truncate" x-text="ev.title"></p>
                                 <div class="flex flex-wrap items-center gap-1 mt-1">
-                                    {{-- Type badge --}}
+                                    
                                     <span class="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wide"
                                           :style="'background:'+typeColor(ev.type).bg+';color:'+typeColor(ev.type).text"
                                           x-text="typeLabel(ev.type)"></span>
-                                    {{-- Done --}}
+                                    
                                     <template x-if="evCompleted(ev)">
                                         <span class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-green-100 text-green-700">Done</span>
                                     </template>
-                                    {{-- Overdue --}}
+                                    
                                     <template x-if="evOverdue(ev)">
                                         <span class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-red-100 text-red-700">Overdue</span>
                                     </template>
-                                    {{-- Recurring --}}
+                                    
                                     <template x-if="ev.recurrence && ev.recurrence !== 'none'">
                                         <span class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-gray-100 text-gray-500">↻ Recurring</span>
                                     </template>
                                 </div>
                             </div>
                             <div class="flex items-center gap-1 flex-shrink-0">
-                                {{-- Complete toggle --}}
+                                
                                 <button @click.stop="toggleComplete(ev)"
                                         :title="evCompleted(ev) ? 'Mark incomplete' : 'Mark complete'"
                                         class="w-7 h-7 rounded-lg flex items-center justify-center transition-colors"
@@ -369,12 +368,12 @@
                                             : 'text-gray-300 hover:bg-green-50 hover:text-green-500'">
                                     <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M5 13l4 4L19 7"/></svg>
                                 </button>
-                                {{-- Edit --}}
+                                
                                 <button @click.stop="openEditModal(ev)"
                                         class="w-7 h-7 rounded-lg flex items-center justify-center hover:bg-indigo-50 text-gray-400 hover:text-indigo-600 transition-colors">
                                     <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
                                 </button>
-                                {{-- Delete --}}
+                                
                                 <button @click.stop="deleteEvent(ev)"
                                         class="w-7 h-7 rounded-lg flex items-center justify-center hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors">
                                     <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
@@ -382,7 +381,7 @@
                             </div>
                         </div>
 
-                        {{-- Meta --}}
+                        
                         <div class="space-y-1 text-xs text-gray-500">
                             <template x-if="ev.all_day">
                                 <div class="flex items-center gap-1.5">
@@ -427,7 +426,7 @@
         </div>
     </div>
 
-    {{-- ── Add / Edit Modal ── --}}
+    
     <div x-show="eModal.open" x-cloak x-transition.opacity
          class="fixed inset-0 z-[60] flex items-center justify-center p-4"
          style="background:rgba(0,0,0,.55)"
@@ -442,7 +441,7 @@
 
             <div class="p-5 space-y-4 max-h-[70vh] overflow-y-auto">
 
-                {{-- Type pill selector --}}
+                
                 <div>
                     <label class="label">Type</label>
                     <div class="flex flex-wrap gap-1.5">
@@ -458,13 +457,13 @@
                     </div>
                 </div>
 
-                {{-- Title --}}
+                
                 <div>
                     <label class="label">Title <span class="text-red-500">*</span></label>
                     <input type="text" x-model="eModal.form.title" class="input" placeholder="Event title" />
                 </div>
 
-                {{-- Assignee --}}
+                
                 <div>
                     <label class="label">Assign To</label>
                     <select x-model="eModal.form.assigned_to" class="input">
@@ -475,13 +474,13 @@
                     </select>
                 </div>
 
-                {{-- All day --}}
+                
                 <div class="flex items-center gap-2">
                     <input type="checkbox" x-model="eModal.form.all_day" id="calAllDay" class="rounded" />
                     <label for="calAllDay" class="text-sm font-medium text-gray-700 dark:text-gray-300">All Day</label>
                 </div>
 
-                {{-- Date + Start Time --}}
+                
                 <div class="grid grid-cols-2 gap-3">
                     <div>
                         <label class="label">Date <span class="text-red-500">*</span></label>
@@ -501,7 +500,7 @@
                     </div>
                 </template>
 
-                {{-- Recurrence pill selector --}}
+                
                 <div>
                     <label class="label">Repeat</label>
                     <div class="flex gap-1.5 flex-wrap">
@@ -517,7 +516,7 @@
                     </div>
                 </div>
 
-                {{-- Weekly day picker --}}
+                
                 <template x-if="eModal.form.recurrence === 'weekly'">
                     <div>
                         <label class="label">Repeat On</label>
@@ -535,7 +534,7 @@
                     </div>
                 </template>
 
-                {{-- Recurrence end date --}}
+                
                 <template x-if="eModal.form.recurrence !== 'none'">
                     <div>
                         <label class="label">
@@ -546,19 +545,19 @@
                     </div>
                 </template>
 
-                {{-- Location --}}
+                
                 <div>
                     <label class="label">Location</label>
                     <input type="text" x-model="eModal.form.location" class="input" placeholder="Optional" />
                 </div>
 
-                {{-- Description --}}
+                
                 <div>
                     <label class="label">Description</label>
                     <textarea x-model="eModal.form.description" rows="2" class="input resize-none" placeholder="Optional details…"></textarea>
                 </div>
 
-                {{-- Color picker --}}
+                
                 <div>
                     <label class="label">Color</label>
                     <div class="flex gap-2 flex-wrap">
@@ -573,7 +572,7 @@
                     </div>
                 </div>
 
-                {{-- Company wide --}}
+                
                 <div class="flex items-center gap-2">
                     <input type="checkbox" x-model="eModal.form.is_company_wide" id="calCompany" class="rounded" />
                     <label for="calCompany" class="text-sm font-medium text-gray-700 dark:text-gray-300">Company-wide event</label>
@@ -600,9 +599,9 @@
     </div>
 
 </div>
-@endsection
+<?php $__env->stopSection(); ?>
 
-@push('scripts')
+<?php $__env->startPush('scripts'); ?>
 <script>
 function calendarPage() {
     const TODAY = new Date();
@@ -996,4 +995,6 @@ function calendarPage() {
     };
 }
 </script>
-@endpush
+<?php $__env->stopPush(); ?>
+
+<?php echo $__env->make('layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH E:\xampp8.2\htdocs\FountainOREKS\backend\resources\views/calendar/index.blade.php ENDPATH**/ ?>
