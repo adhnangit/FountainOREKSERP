@@ -29,6 +29,18 @@
             All Invoices
           </a>
           <div class="flex items-center gap-2">
+            <button @click="printPO()"
+                    class="inline-flex items-center gap-1.5 text-xs font-bold px-3.5 py-1.5 rounded-lg transition-all"
+                    style="background:rgba(255,255,255,0.12);color:rgba(255,255,255,0.85);border:1px solid rgba(255,255,255,0.2)">
+              <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
+              Print
+            </button>
+            <button @click="downloadPdf()"
+                    class="inline-flex items-center gap-1.5 text-xs font-bold px-3.5 py-1.5 rounded-lg transition-all"
+                    style="background:rgba(255,255,255,0.12);color:rgba(255,255,255,0.85);border:1px solid rgba(255,255,255,0.2)">
+              <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+              Download PDF
+            </button>
             <template x-if="hasDraftGrn()">
               <button @click="openReceive()"
                       class="inline-flex items-center gap-1.5 text-xs font-bold px-3.5 py-1.5 rounded-lg transition-all"
@@ -836,6 +848,40 @@ function invShowPage() {
 
         hasDraftGrn() {
             return (this.po?.grns ?? []).some(g => g.status === 'draft');
+        },
+
+        async downloadPdf() {
+            try {
+                const r = await apiFetch('/purchase-orders/' + id + '/pdf');
+                if (!r.ok) { toast('Failed to generate PDF', 'error'); return; }
+                const blob = await r.blob();
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'purchase-order-' + (this.po?.po_number || id) + '.pdf';
+                document.body.appendChild(a); a.click(); document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            } catch(e) { toast('PDF download failed', 'error'); }
+        },
+
+        async printPO() {
+            try {
+                const r = await apiFetch('/purchase-orders/' + id + '/pdf');
+                if (!r.ok) { toast('Failed to generate PDF', 'error'); return; }
+                const blob = await r.blob();
+                const url = URL.createObjectURL(blob);
+                const iframe = document.createElement('iframe');
+                iframe.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0';
+                iframe.src = url;
+                document.body.appendChild(iframe);
+                iframe.onload = () => {
+                    setTimeout(() => {
+                        iframe.contentWindow.focus();
+                        iframe.contentWindow.print();
+                    }, 300);
+                };
+                setTimeout(() => { document.body.removeChild(iframe); URL.revokeObjectURL(url); }, 60000);
+            } catch(e) { toast('Print failed', 'error'); }
         },
 
         progressSteps() {

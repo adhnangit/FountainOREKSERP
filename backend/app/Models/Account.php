@@ -34,8 +34,9 @@ class Account extends Model
 
     public function getBalanceAttribute(): float
     {
-        $debits = $this->journalLines()->sum('debit');
-        $credits = $this->journalLines()->sum('credit');
+        $base = fn() => $this->journalLines()->whereHas('journalEntry', fn($q) => $q->where('status', 'posted'));
+        $debits = $base()->sum('debit');
+        $credits = $base()->sum('credit');
         if ($this->normal_balance === 'debit') {
             return (float) ($this->opening_balance + $debits - $credits);
         }

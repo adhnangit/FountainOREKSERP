@@ -12,6 +12,7 @@ use App\Models\SystemSetting;
 use App\Services\AccountingService;
 use App\Services\BranchContextService;
 use App\Services\NumberGeneratorService;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -524,6 +525,37 @@ class AccountingController extends Controller
                                        + $accounts->where('type', 'equity')->sum('balance')
                                        + $retainedEarnings,
         ]);
+    }
+
+    /** Name of the branch currently in scope, or "All Branches" — same as every other PDF export in the app. */
+    private function activeBranchName(): string
+    {
+        $branchId = $this->branchContext->getBranchId();
+        return $branchId ? (\App\Models\Branch::find($branchId)?->name ?? 'All Branches') : 'All Branches';
+    }
+
+    // Each PDF export calls straight into its own JSON endpoint above and reuses
+    // the exact same computed data — the figures on the PDF can never drift
+    // from what's on screen, because they're the same numbers, not a re-query.
+    public function trialBalancePdf(Request $request)
+    {
+        $data = $this->trialBalance($request)->getData(true);
+        $pdf = Pdf::loadView('pdf.trial-balance', ['data' => $data, 'branchName' => $this->activeBranchName()]);
+        return $pdf->download("trial-balance-{$data['as_of']}.pdf");
+    }
+
+    public function profitLossPdf(Request $request)
+    {
+        $data = $this->profitLoss($request)->getData(true);
+        $pdf = Pdf::loadView('pdf.profit-loss', ['data' => $data, 'branchName' => $this->activeBranchName()]);
+        return $pdf->download("profit-loss-{$data['from_date']}-to-{$data['to_date']}.pdf");
+    }
+
+    public function balanceSheetPdf(Request $request)
+    {
+        $data = $this->balanceSheet($request)->getData(true);
+        $pdf = Pdf::loadView('pdf.balance-sheet', ['data' => $data, 'branchName' => $this->activeBranchName()]);
+        return $pdf->download("balance-sheet-{$data['as_of']}.pdf");
     }
 
     public function generalLedger(Request $request): JsonResponse

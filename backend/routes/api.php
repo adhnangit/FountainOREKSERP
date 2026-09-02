@@ -174,6 +174,7 @@ Route::middleware(['auth:sanctum', 'branch.context'])->group(function () {
     // Purchase Orders & GRN
     Route::middleware('permission:purchase_orders.view')->group(function () {
         Route::get('/purchase-orders', [PurchaseController::class, 'indexPO']);
+        Route::get('/purchase-orders/{purchaseOrder}/pdf', [PurchaseController::class, 'pdfPO']);
         Route::get('/purchase-orders/{purchaseOrder}', [PurchaseController::class, 'showPO']);
     });
     Route::middleware('permission:purchase_orders.create')->post('/purchase-orders', [PurchaseController::class, 'storePO']);
@@ -356,8 +357,11 @@ Route::middleware(['auth:sanctum', 'branch.context'])->group(function () {
         // Reports
         Route::middleware('permission:accounting.reports')->group(function () {
             Route::get('/trial-balance', [AccountingController::class, 'trialBalance']);
+            Route::get('/trial-balance/pdf', [AccountingController::class, 'trialBalancePdf']);
             Route::get('/profit-loss', [AccountingController::class, 'profitLoss']);
+            Route::get('/profit-loss/pdf', [AccountingController::class, 'profitLossPdf']);
             Route::get('/balance-sheet', [AccountingController::class, 'balanceSheet']);
+            Route::get('/balance-sheet/pdf', [AccountingController::class, 'balanceSheetPdf']);
             Route::get('/general-ledger', [AccountingController::class, 'generalLedger']);
         });
 

@@ -354,6 +354,15 @@
           </div>
         </template>
 
+        {{-- Add another item — right below the last row, so adding many items doesn't mean scrolling up and down each time --}}
+        <div x-show="items.length > 0" class="px-5 py-3">
+          <button type="button" @click="addRow()"
+                  class="w-full flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-xs font-semibold border border-dashed border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400 hover:border-blue-400 hover:text-blue-600 hover:bg-blue-50/50 dark:hover:bg-blue-900/10 transition-colors">
+            <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M12 4v16m8-8H4"/></svg>
+            Add Item
+          </button>
+        </div>
+
         {{-- Empty --}}
         <div x-show="items.length === 0" class="py-16 text-center">
           <div class="w-14 h-14 rounded-2xl mx-auto mb-3 flex items-center justify-center" style="background:#eef2ff">

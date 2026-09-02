@@ -4,56 +4,103 @@
 @section('page-desc', 'Double-entry bookkeeping ledger')
 
 @section('content')
+<style>
+.jr-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:20px}
+.jr-stat-card{background:#fff;border-radius:14px;padding:18px 20px;border:1px solid #e2e8f0;display:flex;align-items:center;gap:14px;transition:box-shadow .2s,transform .2s}
+.jr-stat-card:hover{box-shadow:0 8px 24px rgba(0,0,0,.08);transform:translateY(-2px)}
+.jr-stat-icon{width:46px;height:46px;border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.jr-stat-icon svg{width:22px;height:22px}
+.jr-stat-val{font-size:22px;font-weight:800;line-height:1.1;letter-spacing:-.5px}
+.jr-stat-lbl{font-size:11.5px;color:#94a3b8;font-weight:500;margin-top:2px}
+.jr-toolbar{background:#fff;border-radius:14px;padding:14px 18px;border:1px solid #e2e8f0;margin-bottom:16px;display:flex;align-items:flex-end;gap:14px;flex-wrap:wrap}
+.jr-field label{display:block;font-size:11px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px}
+.jr-field input,.jr-field select{border:1px solid #e2e8f0;border-radius:9px;padding:7px 10px;font-size:13px;color:#1e293b;background:#f8fafc;outline:none;transition:border-color .15s,box-shadow .15s;height:36px}
+.jr-field input:focus,.jr-field select:focus{border-color:#6366f1;box-shadow:0 0 0 3px rgba(99,102,241,.12);background:#fff}
+.jr-search-wrap{position:relative}
+.jr-search-wrap svg{position:absolute;left:10px;top:50%;transform:translateY(-50%);width:15px;height:15px;color:#94a3b8;pointer-events:none}
+.jr-search-wrap input{padding-left:34px;width:200px}
+.jr-btn-ghost{background:#f1f5f9;color:#475569;border-radius:9px;padding:8px 14px;font-size:13px;font-weight:600;height:36px;border:none;transition:background .15s}
+.jr-btn-ghost:hover{background:#e2e8f0}
+.jr-btn-primary{background:linear-gradient(135deg,#4f46e5,#6366f1);color:#fff;border-radius:9px;padding:8px 16px;font-size:13px;font-weight:600;height:36px;border:none;transition:opacity .15s}
+.jr-btn-primary:hover{opacity:.9}
+.jr-btn-new{background:linear-gradient(135deg,#4f46e5,#6366f1);color:#fff;border-radius:10px;padding:8px 18px;font-size:13px;font-weight:700;display:flex;align-items:center;gap:6px;text-decoration:none;box-shadow:0 4px 12px rgba(99,102,241,.35);transition:opacity .15s;border:none;height:36px}
+.jr-btn-new:hover{opacity:.9}
+.dark .jr-stat-card{background:#1e293b;border-color:#334155}
+.dark .jr-stat-lbl{color:#64748b}
+.dark .jr-toolbar{background:#1e293b;border-color:#334155}
+.dark .jr-field input,.dark .jr-field select{background:#0f172a;border-color:#334155;color:#e2e8f0}
+.dark .jr-field input:focus,.dark .jr-field select:focus{background:#1e293b}
+.dark .jr-btn-ghost{background:#334155;color:#cbd5e1}
+.dark .jr-btn-ghost:hover{background:#475569}
+</style>
 <div x-data="journalPage()" x-init="init()">
 
-  {{-- Toolbar --}}
-  <div class="flex flex-col sm:flex-row sm:items-center gap-3 mb-6">
-    <div class="flex gap-2 flex-wrap items-end">
-      <div>
-        <label class="label text-xs">From</label>
-        <input type="date" x-model="filters.from" class="input text-sm" />
+  {{-- Stats --}}
+  <div class="jr-stats">
+    <div class="jr-stat-card">
+      <div class="jr-stat-icon" style="background:#eef2ff">
+        <svg fill="none" viewBox="0 0 24 24" stroke="#4f46e5" stroke-width="1.8"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
       </div>
       <div>
-        <label class="label text-xs">To</label>
-        <input type="date" x-model="filters.to" class="input text-sm" />
+        <div class="jr-stat-val" style="color:#4f46e5" x-text="entries.length"></div>
+        <div class="jr-stat-lbl">Total Entries</div>
       </div>
-      <div>
-        <label class="label text-xs">Type</label>
-        <select x-model="filters.type" class="input text-sm">
-          <option value="">All types</option>
-          <option value="manual">Manual</option>
-          <option value="sales">Sales</option>
-          <option value="purchase">Purchase</option>
-          <option value="payment_received">Payment Received</option>
-          <option value="payment_made">Payment Made</option>
-          <option value="expense">Expense</option>
-        </select>
-      </div>
-      <button @click="load()" class="btn-primary text-sm h-[38px]">Apply</button>
-      <button @click="resetFilters()" class="btn-secondary text-sm h-[38px]">Reset</button>
     </div>
-    <div class="flex gap-2 sm:ml-auto">
-      <input x-model="search" type="text" placeholder="Search…" class="input text-sm w-52" />
-      <button @click="openCreate()" class="btn-primary inline-flex items-center gap-2 text-sm whitespace-nowrap">
-        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M12 4v16m8-8H4"/></svg>
-        New Entry
-      </button>
+    <div class="jr-stat-card">
+      <div class="jr-stat-icon" style="background:#dcfce7">
+        <svg fill="none" viewBox="0 0 24 24" stroke="#16a34a" stroke-width="1.8"><path d="M12 19V5m0 0l-6 6m6-6l6 6"/></svg>
+      </div>
+      <div>
+        <div class="jr-stat-val" style="color:#16a34a" x-text="fmtMoney(totalDebits)"></div>
+        <div class="jr-stat-lbl">Total Debits</div>
+      </div>
+    </div>
+    <div class="jr-stat-card">
+      <div class="jr-stat-icon" style="background:#fee2e2">
+        <svg fill="none" viewBox="0 0 24 24" stroke="#dc2626" stroke-width="1.8"><path d="M12 5v14m0 0l-6-6m6 6l6-6"/></svg>
+      </div>
+      <div>
+        <div class="jr-stat-val" style="color:#dc2626" x-text="fmtMoney(totalCredits)"></div>
+        <div class="jr-stat-lbl">Total Credits</div>
+      </div>
     </div>
   </div>
 
-  {{-- Totals bar --}}
-  <div x-show="!loading && entries.length > 0" class="grid grid-cols-3 gap-4 mb-5">
-    <div class="card p-4 text-center">
-      <p class="text-xs text-gray-400 mb-1">Total Entries</p>
-      <p class="text-xl font-black text-gray-800 dark:text-gray-100" x-text="entries.length"></p>
+  {{-- Toolbar --}}
+  <div class="jr-toolbar">
+    <div class="jr-field">
+      <label>From</label>
+      <input type="date" x-model="filters.from" />
     </div>
-    <div class="card p-4 text-center">
-      <p class="text-xs text-gray-400 mb-1">Total Debits</p>
-      <p class="text-xl font-black text-green-600 tabular-nums" x-text="fmtMoney(totalDebits)"></p>
+    <div class="jr-field">
+      <label>To</label>
+      <input type="date" x-model="filters.to" />
     </div>
-    <div class="card p-4 text-center">
-      <p class="text-xs text-gray-400 mb-1">Total Credits</p>
-      <p class="text-xl font-black text-red-600 tabular-nums" x-text="fmtMoney(totalCredits)"></p>
+    <div class="jr-field">
+      <label>Type</label>
+      <select x-model="filters.type">
+        <option value="">All types</option>
+        <option value="manual">Manual</option>
+        <option value="sales">Sales</option>
+        <option value="purchase">Purchase</option>
+        <option value="payment_received">Payment Received</option>
+        <option value="payment_made">Payment Made</option>
+        <option value="expense">Expense</option>
+      </select>
+    </div>
+    <button @click="load()" class="jr-btn-primary">Apply</button>
+    <button @click="resetFilters()" class="jr-btn-ghost">Reset</button>
+    <div class="jr-field jr-search-wrap" style="margin-left:auto">
+      <label>&nbsp;</label>
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      <input x-model="search" type="text" placeholder="Search…" />
+    </div>
+    <div class="jr-field">
+      <label>&nbsp;</label>
+      <button @click="openCreate()" class="jr-btn-new">
+        <svg style="width:15px;height:15px" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path d="M12 5v14M5 12h14"/></svg>
+        New Entry
+      </button>
     </div>
   </div>
 

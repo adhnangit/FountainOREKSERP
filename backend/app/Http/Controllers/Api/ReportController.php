@@ -278,7 +278,7 @@ class ReportController extends Controller
         // both, this report disagrees with the Chart of Accounts / Trial
         // Balance for any customer carrying either one.
         $adjustCustomers = Customer::when($branchId, fn($q) => $q->where('branch_id', $branchId))
-            ->with('account:id,opening_balance')
+            ->with('account:id,opening_balance,normal_balance')
             ->get()
             ->filter(fn($c) => (float) $c->credit_balance > 0.001
                 || ($c->account && abs((float) $c->account->opening_balance) > 0.001));
@@ -324,6 +324,11 @@ class ReportController extends Controller
         $invoices = PurchaseOrder::when($branchId, fn($q) => $q->where('branch_id', $branchId))
             ->whereIn('payment_status', ['unpaid', 'partially_paid'])
             ->where('status', '!=', 'cancelled')
+            // A PO isn't a real payable until its GRN is confirmed — that's the
+            // moment the Dr Inventory / Cr AP journal entry actually posts. Before
+            // that, balance_due is just a commitment, not yet on the books, so
+            // counting it here would disagree with the ledger (Supplier::outstanding_balance).
+            ->whereHas('grns', fn($q) => $q->where('status', 'confirmed'))
             ->with('supplier:id,name,phone')
             ->get();
 
@@ -354,20 +359,24 @@ class ReportController extends Controller
         }
 
         // Fold in each supplier's account opening balance (predates all
-        // PO-level tracking, so it belongs in the oldest 90+ days bucket) and
-        // any standing credit_balance (an over-return credit that reduces
-        // what's owed to them, e.g. when a purchase return happened after
-        // its PO was already fully paid — it never touches any PO's
-        // balance_due, only the supplier's credit_balance field). See the
-        // identical fix in customerAging() for why both are needed.
+        // PO-level tracking, so it belongs in the oldest 90+ days bucket),
+        // minus whatever's already been paid against it (Account::openingBalancePaid()
+        // — opening_balance itself is never mutated, it stays a frozen historical
+        // figure), minus any standing credit_balance (an over-return credit that
+        // reduces what's owed to them, e.g. when a purchase return happened after
+        // its PO was already fully paid — it never touches any PO's balance_due,
+        // only the supplier's credit_balance field). See the identical fix in
+        // customerAging() for why all three terms are needed.
         $adjustSuppliers = Supplier::when($branchId, fn($q) => $q->where('branch_id', $branchId))
-            ->with('account:id,opening_balance')
+            ->with('account:id,opening_balance,normal_balance')
             ->get()
             ->filter(fn($s) => (float) $s->credit_balance > 0.001
                 || ($s->account && abs((float) $s->account->opening_balance) > 0.001));
 
         foreach ($adjustSuppliers as $supplier) {
-            $adjustment = (float) ($supplier->account->opening_balance ?? 0) - (float) $supplier->credit_balance;
+            $adjustment = (float) ($supplier->account->opening_balance ?? 0)
+                - ($supplier->account?->openingBalancePaid() ?? 0)
+                - (float) $supplier->credit_balance;
             if (abs($adjustment) < 0.001) continue;
             if (!isset($result[$supplier->id])) {
                 $result[$supplier->id] = [

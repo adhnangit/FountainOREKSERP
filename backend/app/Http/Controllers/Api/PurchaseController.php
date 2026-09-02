@@ -15,6 +15,7 @@ use App\Services\AccountingService;
 use App\Services\BranchContextService;
 use App\Services\NumberGeneratorService;
 use App\Services\StockService;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -253,6 +254,13 @@ class PurchaseController extends Controller
     public function showPO(PurchaseOrder $purchaseOrder): JsonResponse
     {
         return response()->json($purchaseOrder->load(['items.product', 'supplier', 'branch', 'grns.items.product', 'payments.cheque']));
+    }
+
+    public function pdfPO(PurchaseOrder $purchaseOrder)
+    {
+        $po = $purchaseOrder->load(['items', 'supplier', 'branch', 'createdBy']);
+        $pdf = Pdf::loadView('pdf.purchase-order', ['po' => $po]);
+        return $pdf->download("purchase-order-{$po->po_number}.pdf");
     }
 
     /**

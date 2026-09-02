@@ -37,47 +37,25 @@ class SupplierController extends Controller
 
         $suppliers = $q->orderBy('name')->paginate($request->input('per_page', 20));
 
-        // Real outstanding balance per supplier, from the live PurchaseOrder table
-        // (not the legacy SupplierInvoice table), plus the account's opening
-        // balance (predates PO-level tracking) minus whatever's already been
-        // paid against it minus any standing credit_balance (an over-return
-        // credit) — the same calculation the Supplier Aging Report uses, so
-        // this list and that report can't disagree. Aggregate queries
-        // throughout, no N+1.
-        $balances = \App\Models\PurchaseOrder::whereIn('supplier_id', $suppliers->pluck('id'))
-            ->whereIn('payment_status', ['unpaid', 'partially_paid'])
-            ->where('status', '!=', 'cancelled')
-            ->selectRaw('supplier_id, SUM(balance_due) as bal')
-            ->groupBy('supplier_id')
-            ->pluck('bal', 'supplier_id');
-
+        // Balance per supplier = the account's raw ledger balance, full stop —
+        // deliberately the same figure the Chart of Accounts shows for that
+        // account, so the two views can never disagree. See
+        // Supplier::getOutstandingBalanceAttribute() for the full reasoning;
+        // this is the identical calculation as a bulk aggregate query for
+        // list-page performance, not a call into the model accessor itself.
         $suppliers->getCollection()->loadMissing('account:id,opening_balance');
         $accountIds = $suppliers->getCollection()->pluck('account_id')->filter();
-        // Supplier accounts are always credit-normal (AP/liability) — a payment
-        // made is a debit, so debit - credit is the amount paid down. See
-        // Account::openingBalancePaid() for why this is the opposite sign from
-        // the customer/receivable version. Must stay in lockstep with that
-        // method's filter (opening_balance_payment/_reversed, plus a manual
-        // entry with no reference_type) — this is a duplicated aggregate query
-        // for list-page performance, not a call into the model accessor itself.
-        $obPaid = \App\Models\JournalEntryLine::whereIn('account_id', $accountIds)
-            ->whereHas('journalEntry', fn($q) => $q
-                ->where('status', 'posted')
-                ->where(function ($q2) {
-                    $q2->whereIn('type', ['opening_balance_payment', 'opening_balance_payment_reversed'])
-                       ->orWhere(function ($q3) {
-                           $q3->where('type', 'manual')->whereNull('reference_type');
-                       });
-                }))
-            ->selectRaw('account_id, SUM(debit - credit) as net')
+        $sums = \App\Models\JournalEntryLine::whereIn('account_id', $accountIds)
+            ->whereHas('journalEntry', fn($q) => $q->where('status', 'posted'))
+            ->selectRaw('account_id, SUM(debit) as dr, SUM(credit) as cr')
             ->groupBy('account_id')
-            ->pluck('net', 'account_id');
+            ->get()->keyBy('account_id');
 
-        $suppliers->getCollection()->transform(function ($supplier) use ($balances, $obPaid) {
-            $obRemaining = (float) ($supplier->account->opening_balance ?? 0) - (float) ($obPaid[$supplier->account_id] ?? 0);
-            $supplier->balance = (float) ($balances[$supplier->id] ?? 0)
-                + $obRemaining
-                - (float) $supplier->credit_balance;
+        $suppliers->getCollection()->transform(function ($supplier) use ($sums) {
+            $row = $sums[$supplier->account_id] ?? null;
+            $openingBalance = (float) ($supplier->account->opening_balance ?? 0);
+            // Supplier accounts are always credit-normal (AP/liability).
+            $supplier->balance = $openingBalance + (float) ($row->cr ?? 0) - (float) ($row->dr ?? 0);
             return $supplier;
         });
 

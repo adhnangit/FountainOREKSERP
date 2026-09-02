@@ -22,9 +22,10 @@ Route::get('/logout', fn() => redirect('/login'));
 
 Route::get('/', fn() => view('dashboard.index'))->name('dashboard');
 
-Route::get('/invoices',        fn() => view('invoices.index'))->name('invoices.index');
-Route::get('/invoices/create', fn() => view('invoices.create'))->name('invoices.create');
-Route::get('/invoices/{id}',   fn() => view('invoices.show'))->name('invoices.show');
+Route::get('/invoices',           fn() => view('invoices.index'))->name('invoices.index');
+Route::get('/invoices/create',    fn() => view('invoices.create'))->name('invoices.create');
+Route::get('/invoices/{id}/edit', fn() => view('invoices.edit'))->name('invoices.edit');
+Route::get('/invoices/{id}',      fn() => view('invoices.show'))->name('invoices.show');
 
 Route::get('/sales-returns',        fn() => view('returns.index'))->name('sales-returns.index');
 Route::get('/sales-returns/create', fn() => view('returns.create'))->name('sales-returns.create');

@@ -256,7 +256,7 @@ function reportsHub() {
           apiFetch('/reports/sales?from_date=' + first + '&to_date=' + today).then(r => r.json()),
           apiFetch('/reports/customer-aging?as_of_date=' + today).then(r => r.json()),
           apiFetch('/reports/inventory').then(r => r.json()),
-          apiFetch('/reports/cheques?from_date=2000-01-01&to_date=' + today + '&status=pending').then(r => r.json()),
+          apiFetch('/reports/cheques?from_date=2000-01-01&to_date=' + today + '&status=in_hand').then(r => r.json()),
         ]);
 
         const sales  = salesD.status  === 'fulfilled' ? salesD.value  : {};
@@ -265,7 +265,7 @@ function reportsHub() {
         const cheq   = cheqD.status   === 'fulfilled' ? cheqD.value   : {};
 
         this.stats = {
-          month_sales:          sales.summary?.total_revenue ?? 0,
+          month_sales:          sales.summary?.total_sales ?? 0,
           sales_change:         0,
           outstanding_ar:       (ar.totals?.total ?? 0),
           overdue_customers:    (ar.data ?? []).filter(r => (r.days_31_60??0)+(r.days_61_90??0)+(r.days_90_plus??0) > 0).length,

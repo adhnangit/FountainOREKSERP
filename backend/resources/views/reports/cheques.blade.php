@@ -55,7 +55,7 @@
         <label class="label text-xs">Status</label>
         <select x-model="filters.status" class="input text-sm py-1.5">
           <option value="">All Statuses</option>
-          <option value="pending">Pending</option>
+          <option value="in_hand">Pending</option>
           <option value="deposited">Deposited</option>
           <option value="cleared">Cleared</option>
           <option value="bounced">Bounced</option>
@@ -238,7 +238,7 @@
                 <td class="table-td text-right font-semibold text-gray-800" x-text="fmtMoney(c.amount)"></td>
                 <td class="table-td">
                   <span class="text-xs px-2 py-0.5 rounded-full font-semibold capitalize"
-                    :class="{'bg-amber-100 text-amber-700':c.status==='pending','bg-blue-100 text-blue-700':c.status==='deposited','bg-green-100 text-green-700':c.status==='cleared','bg-red-100 text-red-600':c.status==='bounced','bg-gray-100 text-gray-500':c.status==='cancelled'}"
+                    :class="{'bg-amber-100 text-amber-700':c.status==='in_hand','bg-blue-100 text-blue-700':c.status==='deposited','bg-green-100 text-green-700':c.status==='cleared','bg-red-100 text-red-600':c.status==='bounced','bg-gray-100 text-gray-500':c.status==='cancelled'}"
                     x-text="c.status"></span>
                 </td>
               </tr>
@@ -308,7 +308,7 @@
               <tr class="hover:bg-gray-50 transition-colors">
                 <td class="table-td">
                   <span class="text-xs px-2.5 py-1 rounded-full font-semibold capitalize"
-                    :class="{'bg-amber-100 text-amber-700':status==='pending','bg-blue-100 text-blue-700':status==='deposited','bg-green-100 text-green-700':status==='cleared','bg-red-100 text-red-600':status==='bounced','bg-gray-100 text-gray-500':status==='cancelled'}"
+                    :class="{'bg-amber-100 text-amber-700':status==='in_hand','bg-blue-100 text-blue-700':status==='deposited','bg-green-100 text-green-700':status==='cleared','bg-red-100 text-red-600':status==='bounced','bg-gray-100 text-gray-500':status==='cancelled'}"
                     x-text="status"></span>
                 </td>
                 <td class="table-td text-right font-semibold text-gray-700" x-text="data.count"></td>
@@ -317,7 +317,7 @@
                   <div class="flex items-center gap-2">
                     <div class="flex-1 h-1.5 rounded-full bg-gray-100">
                       <div class="h-full rounded-full transition-all"
-                           :class="{'bg-amber-400':status==='pending','bg-blue-400':status==='deposited','bg-green-500':status==='cleared','bg-red-500':status==='bounced','bg-gray-300':status==='cancelled'}"
+                           :class="{'bg-amber-400':status==='in_hand','bg-blue-400':status==='deposited','bg-green-500':status==='cleared','bg-red-500':status==='bounced','bg-gray-300':status==='cancelled'}"
                            :style="'width:' + Math.min(100, Math.round((data.count / (summary.total_count||1)) * 100)) + '%'"></div>
                     </div>
                     <span class="text-xs text-gray-400 tabular-nums"

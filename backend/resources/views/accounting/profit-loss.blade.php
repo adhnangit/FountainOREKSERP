@@ -4,21 +4,50 @@
 @section('page-desc', 'Income and expenses for a selected period')
 
 @section('content')
+<style>
+.pl-toolbar{background:#fff;border-radius:14px;padding:14px 18px;border:1px solid #e2e8f0;margin-bottom:20px;display:flex;align-items:flex-end;gap:14px;flex-wrap:wrap}
+.pl-field label{display:block;font-size:11px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px}
+.pl-field input{border:1px solid #e2e8f0;border-radius:9px;padding:7px 10px;font-size:13px;color:#1e293b;background:#f8fafc;outline:none;transition:border-color .15s,box-shadow .15s;height:36px}
+.pl-field input:focus{border-color:#6366f1;box-shadow:0 0 0 3px rgba(99,102,241,.12);background:#fff}
+.pl-btn-primary{background:linear-gradient(135deg,#4f46e5,#6366f1);color:#fff;border-radius:9px;padding:8px 16px;font-size:13px;font-weight:600;height:36px;border:none;transition:opacity .15s}
+.pl-btn-primary:hover{opacity:.9}
+.pl-btn-ghost{background:#f1f5f9;color:#475569;border-radius:9px;padding:8px 14px;font-size:13px;font-weight:600;height:36px;border:none;transition:background .15s}
+.pl-btn-ghost:hover{background:#e2e8f0}
+.pl-btn-ghost:disabled{opacity:.4;cursor:not-allowed}
+.pl-link{background:#eef2ff;color:#4f46e5;border-radius:9px;padding:8px 14px;font-size:13px;font-weight:600;height:36px;display:flex;align-items:center;text-decoration:none;transition:background .15s}
+.pl-link:hover{background:#e0e7ff}
+.pl-stat-card{border-radius:14px;padding:18px 20px;border:1px solid #e2e8f0;display:flex;align-items:center;gap:14px;transition:box-shadow .2s,transform .2s;background:#fff}
+.pl-stat-card:hover{box-shadow:0 8px 24px rgba(0,0,0,.08);transform:translateY(-2px)}
+.pl-stat-icon{width:46px;height:46px;border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.pl-stat-icon svg{width:22px;height:22px}
+.pl-stat-val{font-size:22px;font-weight:800;line-height:1.1;letter-spacing:-.5px}
+.pl-stat-lbl{font-size:11.5px;color:#94a3b8;font-weight:500;margin-top:2px}
+.dark .pl-toolbar{background:#1e293b;border-color:#334155}
+.dark .pl-field input{background:#0f172a;border-color:#334155;color:#e2e8f0}
+.dark .pl-field input:focus{background:#1e293b}
+.dark .pl-btn-ghost{background:#334155;color:#cbd5e1}
+.dark .pl-btn-ghost:hover{background:#475569}
+.dark .pl-link{background:#312e81;color:#c7d2fe}
+.dark .pl-link:hover{background:#3730a3}
+.dark .pl-stat-card{background:#1e293b;border-color:#334155}
+.dark .pl-stat-lbl{color:#64748b}
+</style>
 <div x-data="plPage()" x-init="init()">
 
-  <div class="flex flex-col sm:flex-row sm:items-end gap-3 mb-6">
-    <div>
-      <label class="label text-xs">From</label>
-      <input type="date" x-model="fromDate" class="input" />
+  <div class="pl-toolbar">
+    <div class="pl-field">
+      <label>From</label>
+      <input type="date" x-model="fromDate" />
     </div>
-    <div>
-      <label class="label text-xs">To</label>
-      <input type="date" x-model="toDate" class="input" />
+    <div class="pl-field">
+      <label>To</label>
+      <input type="date" x-model="toDate" />
     </div>
-    <button @click="load()" class="btn-primary h-[38px]">Generate</button>
-    <div class="sm:ml-auto flex gap-2">
-      <a href="{{ url('/accounting/trial-balance') }}"  class="btn-secondary text-sm">Trial Balance</a>
-      <a href="{{ url('/accounting/balance-sheet') }}"  class="btn-secondary text-sm">Balance Sheet</a>
+    <button @click="load()" class="pl-btn-primary">Generate</button>
+    <button @click="downloadPdf()" :disabled="!data" class="pl-btn-ghost">Download PDF</button>
+    <div style="margin-left:auto" class="flex gap-2">
+      <a href="{{ url('/accounting/trial-balance') }}"  class="pl-link">Trial Balance</a>
+      <a href="{{ url('/accounting/balance-sheet') }}"  class="pl-link">Balance Sheet</a>
     </div>
   </div>
 
@@ -30,18 +59,32 @@
 
     {{-- Summary Cards --}}
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-      <div class="card p-4 border-l-4 border-green-500">
-        <p class="text-xs text-gray-400 mb-1">Total Revenue</p>
-        <p class="text-xl font-bold text-green-600 tabular-nums" x-text="fmtMoney(data?.total_income ?? 0)"></p>
+      <div class="pl-stat-card">
+        <div class="pl-stat-icon" style="background:#dcfce7">
+          <svg fill="none" viewBox="0 0 24 24" stroke="#16a34a" stroke-width="1.8"><path d="M12 19V5m0 0l-6 6m6-6l6 6"/></svg>
+        </div>
+        <div>
+          <div class="pl-stat-val" style="color:#16a34a" x-text="fmtMoney(data?.total_income ?? 0)"></div>
+          <div class="pl-stat-lbl">Total Revenue</div>
+        </div>
       </div>
-      <div class="card p-4 border-l-4 border-red-500">
-        <p class="text-xs text-gray-400 mb-1">Total Expenses</p>
-        <p class="text-xl font-bold text-red-600 tabular-nums" x-text="fmtMoney(data?.total_expenses ?? 0)"></p>
+      <div class="pl-stat-card">
+        <div class="pl-stat-icon" style="background:#fee2e2">
+          <svg fill="none" viewBox="0 0 24 24" stroke="#dc2626" stroke-width="1.8"><path d="M12 5v14m0 0l-6-6m6 6l6-6"/></svg>
+        </div>
+        <div>
+          <div class="pl-stat-val" style="color:#dc2626" x-text="fmtMoney(data?.total_expenses ?? 0)"></div>
+          <div class="pl-stat-lbl">Total Expenses</div>
+        </div>
       </div>
-      <div class="card p-4" :style="(data?.net_profit ?? 0) >= 0 ? 'border-left:4px solid #059669' : 'border-left:4px solid #dc2626'">
-        <p class="text-xs text-gray-400 mb-1">Net Profit / Loss</p>
-        <p class="text-xl font-bold tabular-nums" :class="(data?.net_profit ?? 0) >= 0 ? 'text-green-600' : 'text-red-600'"
-           x-text="fmtMoney(data?.net_profit ?? 0)"></p>
+      <div class="pl-stat-card">
+        <div class="pl-stat-icon" :style="(data?.net_profit ?? 0) >= 0 ? 'background:#dcfce7' : 'background:#fee2e2'">
+          <svg fill="none" viewBox="0 0 24 24" :stroke="(data?.net_profit ?? 0) >= 0 ? '#16a34a' : '#dc2626'" stroke-width="1.8"><path d="M3 17l6-6 4 4 8-8M21 7v6h-6"/></svg>
+        </div>
+        <div>
+          <div class="pl-stat-val" :style="(data?.net_profit ?? 0) >= 0 ? 'color:#16a34a' : 'color:#dc2626'" x-text="fmtMoney(data?.net_profit ?? 0)"></div>
+          <div class="pl-stat-lbl">Net Profit / Loss</div>
+        </div>
       </div>
     </div>
 
@@ -214,6 +257,19 @@ function plPage() {
         const r = await apiFetch(`/accounting/profit-loss?from_date=${this.fromDate}&to_date=${this.toDate}`);
         this.data = await r.json();
       } finally { this.loading = false; }
+    },
+    async downloadPdf() {
+      try {
+        const r = await apiFetch(`/accounting/profit-loss/pdf?from_date=${this.fromDate}&to_date=${this.toDate}`);
+        if (!r.ok) { toast('Failed to generate PDF', 'error'); return; }
+        const blob = await r.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'profit-loss-' + this.fromDate + '-to-' + this.toDate + '.pdf';
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      } catch(e) { toast('PDF download failed', 'error'); }
     },
     async init() { await this.load(); },
   };

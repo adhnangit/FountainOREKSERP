@@ -12,109 +12,176 @@
   .no-spinner::-webkit-outer-spin-button,
   .no-spinner::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
   .no-spinner { -moz-appearance: textfield; }
+
+  .po-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px}
+  .po-stat-card{background:#fff;border-radius:14px;padding:18px 20px;border:1px solid #e2e8f0;display:flex;align-items:center;gap:14px;transition:box-shadow .2s,transform .2s}
+  .po-stat-card:hover{box-shadow:0 8px 24px rgba(0,0,0,.08);transform:translateY(-2px)}
+  .po-stat-icon{width:46px;height:46px;border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+  .po-stat-icon svg{width:22px;height:22px}
+  .po-stat-val{font-size:22px;font-weight:800;line-height:1.1;letter-spacing:-.5px}
+  .po-stat-lbl{font-size:11.5px;color:#94a3b8;font-weight:500;margin-top:2px}
+
+  .po-toolbar{background:#fff;border-radius:14px;padding:14px 18px;border:1px solid #e2e8f0;margin-bottom:16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .po-search-wrap{position:relative;flex:1;min-width:200px;max-width:300px}
+  .po-search-wrap svg{position:absolute;left:10px;top:50%;transform:translateY(-50%);width:15px;height:15px;color:#94a3b8;pointer-events:none}
+  .po-search-wrap input{width:100%;border:1px solid #e2e8f0;border-radius:9px;padding:7px 12px 7px 34px;font-size:13px;color:#1e293b;background:#f8fafc;outline:none;transition:border-color .15s,box-shadow .15s}
+  .po-search-wrap input:focus{border-color:#6366f1;box-shadow:0 0 0 3px rgba(99,102,241,.12);background:#fff}
+  .po-select{border:1px solid #e2e8f0;border-radius:9px;padding:7px 10px;font-size:12.5px;color:#334155;background:#f8fafc;outline:none}
+  .po-select:focus{border-color:#6366f1;box-shadow:0 0 0 3px rgba(99,102,241,.12)}
+
+  .po-table-card{background:#fff;border-radius:14px;border:1px solid #e2e8f0;overflow:hidden}
+  .po-table{width:100%;border-collapse:separate;border-spacing:0}
+  .po-table thead th{padding:10px 16px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#94a3b8;background:#f8fafc;border-bottom:1px solid #e2e8f0;white-space:nowrap}
+  .po-table thead th:first-child{padding-left:20px}
+  .po-table tbody tr{transition:background .1s}
+  .po-table tbody tr:hover{background:#f8faff}
+  .po-table tbody td{padding:13px 16px;border-bottom:1px solid #f1f5f9;vertical-align:middle}
+  .po-table tbody td:first-child{padding-left:20px}
+  .po-table tbody tr:last-child td{border-bottom:none}
+  .po-num{font-size:13px;font-weight:700;color:#4f46e5}
+
+  .po-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:64px 24px;text-align:center}
+  .po-empty svg{width:56px;height:56px;color:#e2e8f0}
+  .po-empty h5{font-size:16px;font-weight:700;color:#475569;margin-top:14px}
+  .po-empty p{font-size:13px;color:#94a3b8;margin-top:4px}
+
+  .dark .po-stat-card{background:#1e293b;border-color:#334155}
+  .dark .po-stat-lbl{color:#64748b}
+  .dark .po-toolbar{background:#1e293b;border-color:#334155}
+  .dark .po-search-wrap input{background:#0f172a;border-color:#334155;color:#e2e8f0}
+  .dark .po-search-wrap input:focus{background:#1e293b}
+  .dark .po-select{background:#0f172a;border-color:#334155;color:#cbd5e1}
+  .dark .po-table-card{background:#1e293b;border-color:#334155}
+  .dark .po-table thead th{background:#0f172a;border-color:#334155}
+  .dark .po-table tbody tr:hover{background:#1e3351}
+  .dark .po-table tbody td{border-color:#1e293b}
+  .dark .po-empty svg{color:#334155}
+  .dark .po-empty h5{color:#94a3b8}
 </style>
 @endpush
 
 @section('content')
 <div x-data="supplierInvListPage()" x-init="init()">
 
-    {{-- Summary Cards --}}
-    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <div class="card p-4">
-            <p class="text-xs text-gray-500 mb-1">Total Invoices</p>
-            <p class="text-2xl font-bold text-gray-800 dark:text-gray-100" x-text="items.length"></p>
+    {{-- Stats Cards --}}
+    <div class="po-stats">
+        <div class="po-stat-card">
+            <div class="po-stat-icon" style="background:#eef2ff">
+                <svg fill="none" viewBox="0 0 24 24" stroke="#4f46e5" stroke-width="1.8"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+            </div>
+            <div>
+                <div class="po-stat-val" style="color:#4f46e5" x-text="items.length"></div>
+                <div class="po-stat-lbl">Total Invoices</div>
+            </div>
         </div>
-        <div class="card p-4">
-            <p class="text-xs text-gray-500 mb-1">Invoice Value</p>
-            <p class="text-2xl font-bold" style="color:#1B3EB6"
-               x-text="fmtMoney(items.reduce((s,i) => s + parseFloat(i.total||0), 0))"></p>
+        <div class="po-stat-card">
+            <div class="po-stat-icon" style="background:#eff6ff">
+                <svg fill="none" viewBox="0 0 24 24" stroke="#2563eb" stroke-width="1.8"><path d="M9 7h6m0 10v-3m-3 3v-3m-3 3v-3m9-8H4a1 1 0 00-1 1v10a1 1 0 001 1h16a1 1 0 001-1V6a1 1 0 00-1-1z"/></svg>
+            </div>
+            <div>
+                <div class="po-stat-val" style="color:#2563eb" x-text="fmtCompact(items.reduce((s,i) => s + parseFloat(i.total||0), 0))"></div>
+                <div class="po-stat-lbl">Invoice Value</div>
+            </div>
         </div>
-        <div class="card p-4">
-            <p class="text-xs text-gray-500 mb-1">Paid</p>
-            <p class="text-2xl font-bold text-green-600"
-               x-text="fmtMoney(items.reduce((s,i) => s + parseFloat(i.paid_amount||0), 0))"></p>
+        <div class="po-stat-card">
+            <div class="po-stat-icon" style="background:#dcfce7">
+                <svg fill="none" viewBox="0 0 24 24" stroke="#16a34a" stroke-width="1.8"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            </div>
+            <div>
+                <div class="po-stat-val" style="color:#16a34a" x-text="fmtCompact(items.reduce((s,i) => s + parseFloat(i.paid_amount||0), 0))"></div>
+                <div class="po-stat-lbl">Paid</div>
+            </div>
         </div>
-        <div class="card p-4">
-            <p class="text-xs text-gray-500 mb-1">Outstanding</p>
-            <p class="text-2xl font-bold text-red-600"
-               x-text="fmtMoney(items.reduce((s,i) => s + parseFloat(i.balance_due||0), 0))"></p>
+        <div class="po-stat-card">
+            <div class="po-stat-icon" style="background:#fee2e2">
+                <svg fill="none" viewBox="0 0 24 24" stroke="#b91c1c" stroke-width="1.8"><path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            </div>
+            <div>
+                <div class="po-stat-val" style="color:#b91c1c" x-text="fmtCompact(items.reduce((s,i) => s + parseFloat(i.balance_due||0), 0))"></div>
+                <div class="po-stat-lbl">Outstanding</div>
+            </div>
         </div>
     </div>
 
     {{-- Toolbar --}}
-    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
-        <div class="flex flex-col sm:flex-row gap-2">
-            <input x-model="search" type="text" placeholder="Search invoice# or supplier…" class="input w-full sm:w-64" />
-            <select x-model="statusFilter" class="input w-44">
-                <option value="">All Statuses</option>
-                <option value="confirmed">Confirmed</option>
-                <option value="partially_received">Partially Received</option>
-                <option value="received">Received</option>
-                <option value="cancelled">Cancelled</option>
-            </select>
-            <select x-model="payFilter" class="input w-40">
-                <option value="">All Payments</option>
-                <option value="unpaid">Unpaid</option>
-                <option value="partially_paid">Partial</option>
-                <option value="paid">Paid</option>
-            </select>
+    <div class="po-toolbar">
+        <div class="po-search-wrap">
+            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+            <input type="text" x-model="search" placeholder="Search invoice# or supplier…">
         </div>
-        <a href="{{ url('/purchase-orders/create') }}" class="btn-primary inline-flex items-center gap-2">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-            New Supplier Invoice
-        </a>
+        <select x-model="statusFilter" class="po-select">
+            <option value="">All Statuses</option>
+            <option value="confirmed">Confirmed</option>
+            <option value="partially_received">Partially Received</option>
+            <option value="received">Received</option>
+            <option value="cancelled">Cancelled</option>
+        </select>
+        <select x-model="payFilter" class="po-select">
+            <option value="">All Payments</option>
+            <option value="unpaid">Unpaid</option>
+            <option value="partially_paid">Partial</option>
+            <option value="paid">Paid</option>
+        </select>
+        <div style="margin-left:auto">
+            <a href="{{ url('/purchase-orders/create') }}"
+               style="background:linear-gradient(135deg,#4f46e5,#6366f1);color:#fff;border-radius:10px;padding:8px 18px;font-size:13px;font-weight:700;display:flex;align-items:center;gap:6px;text-decoration:none;box-shadow:0 4px 12px rgba(99,102,241,.35);transition:opacity .15s"
+               onmouseover="this.style.opacity='.9'" onmouseout="this.style.opacity='1'">
+                <svg style="width:15px;height:15px" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path d="M12 5v14M5 12h14"/></svg>
+                New Supplier Invoice
+            </a>
+        </div>
     </div>
 
-    <div class="card p-0 overflow-hidden">
+    <div class="po-table-card">
         <div x-show="loading" class="flex items-center justify-center py-16">
             <svg class="animate-spin w-8 h-8 text-indigo-500" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/></svg>
         </div>
         <div x-show="!loading" class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                <thead class="bg-gray-50 dark:bg-gray-800/40">
+            <table class="po-table">
+                <thead>
                     <tr>
-                        <th class="table-hd">Invoice #</th>
-                        <th class="table-hd">Supplier</th>
-                        <th class="table-hd">Date</th>
-                        <th class="table-hd">Due Date</th>
-                        <th class="table-hd text-right">Total</th>
-                        <th class="table-hd text-right">Paid</th>
-                        <th class="table-hd text-right">Balance</th>
-                        <th class="table-hd">GRN</th>
-                        <th class="table-hd">Payment</th>
-                        <th class="table-hd">Actions</th>
+                        <th>Invoice #</th>
+                        <th>Supplier</th>
+                        <th>Date</th>
+                        <th>Due Date</th>
+                        <th style="text-align:right">Total</th>
+                        <th style="text-align:right">Paid</th>
+                        <th style="text-align:right">Balance</th>
+                        <th>GRN</th>
+                        <th>Payment</th>
+                        <th>Actions</th>
                     </tr>
                 </thead>
-                <tbody class="bg-white dark:bg-gray-900 divide-y divide-gray-100 dark:divide-gray-700/40">
+                <tbody>
                     <template x-for="po in filtered" :key="po.id">
-                        <tr class="hover:bg-gray-50 dark:hover:bg-gray-800/20">
-                            <td class="table-td font-medium" style="color:#1B3EB6">
-                                <a :href="BASE + '/purchase-orders/' + po.id" class="hover:underline"
+                        <tr>
+                            <td>
+                                <a :href="BASE + '/purchase-orders/' + po.id" class="po-num hover:underline"
                                    x-text="po.po_number ?? ('#INV-' + po.id)"></a>
                             </td>
-                            <td class="table-td font-medium text-gray-800 dark:text-gray-100" x-text="po.supplier?.name ?? '—'"></td>
-                            <td class="table-td text-sm text-gray-500" x-text="fmtDate(po.order_date)"></td>
-                            <td class="table-td text-sm"
+                            <td class="text-sm font-medium text-gray-800 dark:text-gray-100" x-text="po.supplier?.name ?? '—'"></td>
+                            <td class="text-sm text-gray-500" x-text="fmtDate(po.order_date)"></td>
+                            <td class="text-sm"
                                 :class="isOverdue(po) ? 'text-red-600 font-semibold' : 'text-gray-500'"
                                 x-text="po.due_date ? fmtDate(po.due_date) : '—'"></td>
-                            <td class="table-td text-right font-semibold tabular-nums" x-text="fmtMoney(po.total ?? 0)"></td>
-                            <td class="table-td text-right tabular-nums text-green-700" x-text="fmtMoney(po.paid_amount ?? 0)"></td>
-                            <td class="table-td text-right tabular-nums font-semibold"
+                            <td style="text-align:right" class="text-sm font-semibold tabular-nums" x-text="fmtMoney(po.total ?? 0)"></td>
+                            <td style="text-align:right" class="text-sm tabular-nums text-green-700" x-text="fmtMoney(po.paid_amount ?? 0)"></td>
+                            <td style="text-align:right" class="text-sm tabular-nums font-semibold"
                                 :class="parseFloat(po.balance_due ?? 0) > 0 ? 'text-red-600' : 'text-gray-400'"
                                 x-text="fmtMoney(po.balance_due ?? 0)"></td>
-                            <td class="table-td">
+                            <td>
                                 <span :class="grnBadge(po)" x-text="grnLabel(po)"></span>
                             </td>
-                            <td class="table-td">
+                            <td>
                                 <span class="text-xs px-2 py-0.5 rounded-full font-semibold"
                                       :class="payBadge(po.payment_status)"
                                       x-text="payLabel(po.payment_status)"></span>
                             </td>
-                            <td class="table-td">
-                                <div class="flex items-center gap-2 flex-wrap">
+                            <td style="white-space:nowrap">
+                                <div class="flex items-center gap-1.5 flex-nowrap">
                                     <template x-if="po.grns && po.grns.some(g => g.status === 'draft')">
                                         <button @click="openReceive(po)"
-                                                class="text-xs font-semibold px-2.5 py-1 rounded-lg transition-colors whitespace-nowrap"
+                                                class="text-xs font-semibold px-2.5 py-1 rounded-lg transition-colors whitespace-nowrap flex-shrink-0"
                                                 style="background:#dcfce7;color:#15803d;border:1px solid #86efac"
                                                 onmouseover="this.style.background='#bbf7d0'"
                                                 onmouseout="this.style.background='#dcfce7'">
@@ -122,10 +189,12 @@
                                         </button>
                                     </template>
                                     <a :href="BASE + '/purchase-orders/' + po.id"
-                                       class="text-indigo-600 hover:underline text-sm font-medium">View</a>
+                                       class="text-indigo-600 hover:underline text-sm font-medium flex-shrink-0">View</a>
+                                    <button @click="printPO(po)"
+                                            class="text-gray-500 hover:underline text-sm font-medium flex-shrink-0">Print</button>
                                     <template x-if="parseFloat(po.balance_due ?? 0) > 0 && po.status !== 'cancelled'">
                                         <button @click="openPay(po)"
-                                                class="text-sm font-semibold px-2.5 py-1 rounded-lg transition-colors"
+                                                class="text-sm font-semibold px-2.5 py-1 rounded-lg transition-colors flex-shrink-0"
                                                 style="background:#f0fdf4;color:#15803d;border:1px solid #bbf7d0">
                                             Pay
                                         </button>
@@ -134,11 +203,13 @@
                             </td>
                         </tr>
                     </template>
-                    <tr x-show="!loading && filtered.length === 0">
-                        <td colspan="10" class="table-td text-center text-gray-400 py-10">No supplier invoices found.</td>
-                    </tr>
                 </tbody>
             </table>
+            <div x-show="!loading && filtered.length === 0" class="po-empty">
+                <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+                <h5>No supplier invoices found</h5>
+                <p>Try adjusting your search or filters</p>
+            </div>
         </div>
     </div>
 
@@ -466,6 +537,26 @@ function supplierInvListPage() {
             return new Date(po.due_date) < new Date();
         },
 
+        async printPO(po) {
+            try {
+                const r = await apiFetch('/purchase-orders/' + po.id + '/pdf');
+                if (!r.ok) { toast('Failed to generate PDF', 'error'); return; }
+                const blob = await r.blob();
+                const url = URL.createObjectURL(blob);
+                const iframe = document.createElement('iframe');
+                iframe.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0';
+                iframe.src = url;
+                document.body.appendChild(iframe);
+                iframe.onload = () => {
+                    setTimeout(() => {
+                        iframe.contentWindow.focus();
+                        iframe.contentWindow.print();
+                    }, 300);
+                };
+                setTimeout(() => { document.body.removeChild(iframe); URL.revokeObjectURL(url); }, 60000);
+            } catch(e) { toast('Print failed', 'error'); }
+        },
+
         async init() {
             try {
                 const [posR, accR, chqR] = await Promise.all([
@@ -648,6 +739,7 @@ function supplierInvListPage() {
         payBadge(s)  { return { unpaid:'bg-red-100 text-red-700', partially_paid:'bg-yellow-100 text-yellow-700', paid:'bg-green-100 text-green-700' }[s ?? 'unpaid'] ?? 'bg-gray-100 text-gray-500'; },
         fmtMoney(v)  { return 'Rs. ' + (parseFloat(v)||0).toLocaleString('en-LK',{minimumFractionDigits:2,maximumFractionDigits:2}); },
         fmtDate(d)   { if (!d) return '—'; return new Date(d).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}); },
+        fmtCompact(n) { const v = Math.abs(Number(n??0)); if(v>=1e6) return (v/1e6).toFixed(1)+'M'; if(v>=1e3) return (v/1e3).toFixed(1)+'K'; return v.toFixed(0); },
     };
 }
 </script>

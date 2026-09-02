@@ -4,17 +4,38 @@
 @section('page-desc', 'Assets, liabilities, and equity at a point in time')
 
 @section('content')
+<style>
+.bs-toolbar{background:#fff;border-radius:14px;padding:14px 18px;border:1px solid #e2e8f0;margin-bottom:20px;display:flex;align-items:flex-end;gap:14px;flex-wrap:wrap}
+.bs-field label{display:block;font-size:11px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px}
+.bs-field input{border:1px solid #e2e8f0;border-radius:9px;padding:7px 10px;font-size:13px;color:#1e293b;background:#f8fafc;outline:none;transition:border-color .15s,box-shadow .15s;height:36px}
+.bs-field input:focus{border-color:#6366f1;box-shadow:0 0 0 3px rgba(99,102,241,.12);background:#fff}
+.bs-btn-primary{background:linear-gradient(135deg,#4f46e5,#6366f1);color:#fff;border-radius:9px;padding:8px 16px;font-size:13px;font-weight:600;height:36px;border:none;transition:opacity .15s}
+.bs-btn-primary:hover{opacity:.9}
+.bs-btn-ghost{background:#f1f5f9;color:#475569;border-radius:9px;padding:8px 14px;font-size:13px;font-weight:600;height:36px;border:none;transition:background .15s}
+.bs-btn-ghost:hover{background:#e2e8f0}
+.bs-btn-ghost:disabled{opacity:.4;cursor:not-allowed}
+.bs-link{background:#eef2ff;color:#4f46e5;border-radius:9px;padding:8px 14px;font-size:13px;font-weight:600;height:36px;display:flex;align-items:center;text-decoration:none;transition:background .15s}
+.bs-link:hover{background:#e0e7ff}
+.dark .bs-toolbar{background:#1e293b;border-color:#334155}
+.dark .bs-field input{background:#0f172a;border-color:#334155;color:#e2e8f0}
+.dark .bs-field input:focus{background:#1e293b}
+.dark .bs-btn-ghost{background:#334155;color:#cbd5e1}
+.dark .bs-btn-ghost:hover{background:#475569}
+.dark .bs-link{background:#312e81;color:#c7d2fe}
+.dark .bs-link:hover{background:#3730a3}
+</style>
 <div x-data="balanceSheetPage()" x-init="init()">
 
-  <div class="flex flex-col sm:flex-row sm:items-end gap-3 mb-6">
-    <div>
-      <label class="label text-xs">As of Date</label>
-      <input type="date" x-model="asOf" class="input" />
+  <div class="bs-toolbar">
+    <div class="bs-field">
+      <label>As of Date</label>
+      <input type="date" x-model="asOf" />
     </div>
-    <button @click="load()" class="btn-primary h-[38px]">Generate</button>
-    <div class="sm:ml-auto flex gap-2">
-      <a href="{{ url('/accounting/trial-balance') }}" class="btn-secondary text-sm">Trial Balance</a>
-      <a href="{{ url('/accounting/profit-loss') }}"   class="btn-secondary text-sm">P&amp;L</a>
+    <button @click="load()" class="bs-btn-primary">Generate</button>
+    <button @click="downloadPdf()" :disabled="!data" class="bs-btn-ghost">Download PDF</button>
+    <div style="margin-left:auto" class="flex gap-2">
+      <a href="{{ url('/accounting/trial-balance') }}" class="bs-link">Trial Balance</a>
+      <a href="{{ url('/accounting/profit-loss') }}"   class="bs-link">P&amp;L</a>
     </div>
   </div>
 
@@ -254,6 +275,19 @@ function balanceSheetPage() {
         const r = await apiFetch('/accounting/balance-sheet?as_of=' + this.asOf);
         this.data = await r.json();
       } finally { this.loading = false; }
+    },
+    async downloadPdf() {
+      try {
+        const r = await apiFetch('/accounting/balance-sheet/pdf?as_of=' + this.asOf);
+        if (!r.ok) { toast('Failed to generate PDF', 'error'); return; }
+        const blob = await r.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'balance-sheet-' + this.asOf + '.pdf';
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      } catch(e) { toast('PDF download failed', 'error'); }
     },
     async init() { await this.load(); },
   };

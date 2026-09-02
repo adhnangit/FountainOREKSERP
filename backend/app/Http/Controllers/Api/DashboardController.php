@@ -184,6 +184,9 @@ class DashboardController extends Controller
         $supRows = PurchaseOrder::whereIn('payment_status', ['unpaid', 'partially_paid'])
             ->where('balance_due', '>', 0)
             ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
+            // A PO isn't a real payable until its GRN is confirmed — matches
+            // ReportController::supplierAging()'s identical filter.
+            ->whereHas('grns', fn($q) => $q->where('status', 'confirmed'))
             ->selectRaw('balance_due, GREATEST(0, DATEDIFF(?, COALESCE(due_date, ?))) as days_over', [$today, $today])
             ->get();
 
@@ -221,7 +224,7 @@ class DashboardController extends Controller
     private function customerOpeningAdjustment(?int $branchId): float
     {
         return (float) Customer::when($branchId, fn($q) => $q->where('branch_id', $branchId))
-            ->with('account:id,opening_balance')->get()
+            ->with('account:id,opening_balance,normal_balance')->get()
             ->sum(fn($c) => (float) ($c->account->opening_balance ?? 0) - ($c->account?->openingBalancePaid() ?? 0) - (float) $c->credit_balance);
     }
 
@@ -229,8 +232,8 @@ class DashboardController extends Controller
     private function supplierOpeningAdjustment(?int $branchId): float
     {
         return (float) Supplier::when($branchId, fn($q) => $q->where('branch_id', $branchId))
-            ->with('account:id,opening_balance')->get()
-            ->sum(fn($s) => (float) ($s->account->opening_balance ?? 0) - (float) $s->credit_balance);
+            ->with('account:id,opening_balance,normal_balance')->get()
+            ->sum(fn($s) => (float) ($s->account->opening_balance ?? 0) - ($s->account?->openingBalancePaid() ?? 0) - (float) $s->credit_balance);
     }
 
     /** True total outstanding owed by customers: open invoice balances + the opening/credit adjustment. */

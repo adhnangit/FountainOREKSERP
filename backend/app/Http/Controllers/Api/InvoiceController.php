@@ -266,7 +266,7 @@ class InvoiceController extends Controller
     public function show(Invoice $invoice): JsonResponse
     {
         return response()->json(
-            $invoice->load(['items.product', 'customer', 'branch', 'createdBy', 'payments.cheque'])
+            $invoice->load(['items.product', 'customer', 'branch', 'createdBy', 'salesRep', 'payments.cheque'])
         );
     }
 

@@ -4,29 +4,45 @@
 @section('page-desc', 'Account transaction history with running balance')
 
 @section('content')
+<style>
+.lg-toolbar{background:#fff;border-radius:14px;padding:14px 18px;border:1px solid #e2e8f0;margin-bottom:20px;display:flex;align-items:flex-end;gap:14px;flex-wrap:wrap}
+.lg-field label{display:block;font-size:11px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px}
+.lg-field input,.lg-field select{border:1px solid #e2e8f0;border-radius:9px;padding:7px 10px;font-size:13px;color:#1e293b;background:#f8fafc;outline:none;transition:border-color .15s,box-shadow .15s;height:36px}
+.lg-field input:focus,.lg-field select:focus{border-color:#6366f1;box-shadow:0 0 0 3px rgba(99,102,241,.12);background:#fff}
+.lg-btn-primary{background:linear-gradient(135deg,#4f46e5,#6366f1);color:#fff;border-radius:9px;padding:8px 16px;font-size:13px;font-weight:600;height:36px;border:none;transition:opacity .15s}
+.lg-btn-primary:hover{opacity:.9}
+.lg-btn-primary:disabled{opacity:.4;cursor:not-allowed}
+.lg-link{background:#eef2ff;color:#4f46e5;border-radius:9px;padding:8px 14px;font-size:13px;font-weight:600;height:36px;display:flex;align-items:center;text-decoration:none;transition:background .15s}
+.lg-link:hover{background:#e0e7ff}
+.dark .lg-toolbar{background:#1e293b;border-color:#334155}
+.dark .lg-field input,.dark .lg-field select{background:#0f172a;border-color:#334155;color:#e2e8f0}
+.dark .lg-field input:focus,.dark .lg-field select:focus{background:#1e293b}
+.dark .lg-link{background:#312e81;color:#c7d2fe}
+.dark .lg-link:hover{background:#3730a3}
+</style>
 <div x-data="ledgerPage()" x-init="init()">
 
-  <div class="flex flex-col sm:flex-row sm:items-end gap-3 mb-6">
-    <div class="flex-1 min-w-[180px]">
-      <label class="label text-xs">Account</label>
-      <select x-model="accountId" class="input">
+  <div class="lg-toolbar">
+    <div class="lg-field" style="flex:1;min-width:220px">
+      <label>Account</label>
+      <select x-model="accountId" style="width:100%">
         <option value="">— Select Account —</option>
         <template x-for="acc in accounts" :key="acc.id">
           <option :value="acc.id" x-text="acc.code + ' · ' + acc.name"></option>
         </template>
       </select>
     </div>
-    <div>
-      <label class="label text-xs">From</label>
-      <input type="date" x-model="fromDate" class="input" />
+    <div class="lg-field">
+      <label>From</label>
+      <input type="date" x-model="fromDate" />
     </div>
-    <div>
-      <label class="label text-xs">To</label>
-      <input type="date" x-model="toDate" class="input" />
+    <div class="lg-field">
+      <label>To</label>
+      <input type="date" x-model="toDate" />
     </div>
-    <button @click="load()" class="btn-primary h-[38px]" :disabled="!accountId">Generate</button>
-    <div class="sm:ml-auto flex gap-2">
-      <a href="{{ url('/accounting/trial-balance') }}" class="btn-secondary text-sm">Trial Balance</a>
+    <button @click="load()" class="lg-btn-primary" :disabled="!accountId">Generate</button>
+    <div style="margin-left:auto" class="flex gap-2">
+      <a href="{{ url('/accounting/trial-balance') }}" class="lg-link">Trial Balance</a>
     </div>
   </div>
 

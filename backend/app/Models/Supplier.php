@@ -51,20 +51,22 @@ class Supplier extends Model
         return $this->hasMany(PurchaseReturn::class);
     }
 
+    /**
+     * Deliberately the account's raw ledger balance, full stop — matches the
+     * Chart of Accounts figure exactly, by construction, since it's the same
+     * underlying calculation (Account::getBalanceAttribute()). Chosen over the
+     * previous PO-balance-based formula specifically because that one counted
+     * an approved purchase order the moment it was created, before its GRN
+     * was confirmed — which made this figure diverge from the Chart of
+     * Accounts (which only updates at GRN confirmation) for as long as any PO
+     * was pending receipt. User confirmed they want the two numbers to always
+     * agree, even at the cost of this no longer netting off a standing
+     * credit_balance (an over-return credit) — that credit still exists and
+     * is still usable when applying a future payment, it's simply not
+     * subtracted from this headline figure anymore.
+     */
     public function getOutstandingBalanceAttribute(): float
     {
-        $poBalance = (float) $this->purchaseOrders()
-            ->whereIn('payment_status', ['unpaid', 'partially_paid'])
-            ->where('status', '!=', 'cancelled')
-            ->sum('balance_due');
-
-        // Plus the account's opening balance (predates PO-level tracking),
-        // minus whatever's already been paid against it (Account::openingBalancePaid()
-        // — opening_balance itself is never mutated, it stays a frozen historical
-        // figure), minus any standing credit_balance (an over-return credit) —
-        // matches the Supplier Aging Report and list-page calculations, so every
-        // view of a supplier's balance agrees.
-        $obRemaining = (float) ($this->account->opening_balance ?? 0) - ($this->account?->openingBalancePaid() ?? 0);
-        return $poBalance + $obRemaining - (float) $this->credit_balance;
+        return (float) ($this->account->balance ?? 0);
     }
 }
