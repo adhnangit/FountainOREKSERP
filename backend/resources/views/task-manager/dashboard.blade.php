@@ -147,6 +147,12 @@
             </div>
         </div>
 
+        <!-- My Tasks / All Tasks table -->
+        <div>
+            <div class="text-sm font-bold text-gray-800 dark:text-gray-100 mb-3" x-text="myTasksOnly ? 'My Tasks' : 'All Tasks'"></div>
+            @include('task-manager._board-table', ['scopedToMe' => true, 'hideStats' => true])
+        </div>
+
         <!-- Recent activity -->
         <div class="card p-5">
             <div class="text-sm font-bold text-gray-800 dark:text-gray-100 mb-3">Recent Activity</div>
@@ -164,11 +170,6 @@
             <p x-show="!recentFollowups.length" class="text-sm text-gray-400">No activity yet.</p>
         </div>
 
-    </div>
-
-    <div class="mt-6">
-        <div class="text-sm font-bold text-gray-800 dark:text-gray-100 mb-3" x-text="myTasksOnly ? 'My Tasks' : 'All Tasks'"></div>
-        @include('task-manager._board-table', ['scopedToMe' => true])
     </div>
 </div>
 @endsection

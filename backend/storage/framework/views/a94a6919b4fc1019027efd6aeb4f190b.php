@@ -176,6 +176,7 @@
 <div x-data="taskBoardPage(<?php echo e(($scopedToMe ?? false) ? 'true' : 'false'); ?>)" x-init="init()" x-cloak>
 
     
+    <?php if (! ($hideStats ?? false)): ?>
     <div class="tb-stats">
         <div class="tb-stat-card" :class="filters.status.length===0 && !filters.overdue ? 'active' : ''" @click="clearStatus()">
             <div class="tb-stat-icon" style="background:#ede9fe">
@@ -223,6 +224,7 @@
             </div>
         </div>
     </div>
+    <?php endif; ?>
 
     
     <div class="tb-toolbar">

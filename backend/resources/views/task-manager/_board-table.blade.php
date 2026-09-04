@@ -175,7 +175,10 @@
 
 <div x-data="taskBoardPage({{ ($scopedToMe ?? false) ? 'true' : 'false' }})" x-init="init()" x-cloak>
 
-    {{-- Stats --}}
+    {{-- Stats — skipped when embedded somewhere that already shows its own
+         KPI cards (e.g. the Task Manager Dashboard), so the numbers don't
+         appear twice on the same page. --}}
+    @unless($hideStats ?? false)
     <div class="tb-stats">
         <div class="tb-stat-card" :class="filters.status.length===0 && !filters.overdue ? 'active' : ''" @click="clearStatus()">
             <div class="tb-stat-icon" style="background:#ede9fe">
@@ -223,6 +226,7 @@
             </div>
         </div>
     </div>
+    @endunless
 
     {{-- Toolbar --}}
     <div class="tb-toolbar">
