@@ -173,7 +173,7 @@
 .dark .tb-empty h5{color:#94a3b8}
 </style>
 
-<div x-data="taskBoardPage()" x-init="init()" x-cloak>
+<div x-data="taskBoardPage({{ ($scopedToMe ?? false) ? 'true' : 'false' }})" x-init="init()" x-cloak>
 
     {{-- Stats --}}
     <div class="tb-stats">
@@ -697,7 +697,7 @@
 
 @push('scripts')
 <script>
-function taskBoardPage() {
+function taskBoardPage(scopedToMe = false) {
     return {
         tasks: [],
         categories: [],
@@ -707,6 +707,10 @@ function taskBoardPage() {
         meta: { total: 0, from: 1, to: 0, last_page: 1 },
         filters: { category_id: '', status: [], priority: '', assigned_to: '', overdue: false, search: '' },
         stats: {},
+        // Only true when embedded on the Task Manager Dashboard, which passes
+        // scopedToMe=true when including this partial. On the standalone
+        // Task Board page this stays permanently false/inert.
+        myOnly: false,
 
         showModal: false,
         editId: null,

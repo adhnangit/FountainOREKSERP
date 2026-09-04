@@ -168,7 +168,7 @@
 
     <div class="mt-6">
         <div class="text-sm font-bold text-gray-800 dark:text-gray-100 mb-3">All Tasks</div>
-        @include('task-manager._board-table')
+        @include('task-manager._board-table', ['scopedToMe' => true])
     </div>
 </div>
 @endsection
@@ -198,6 +198,10 @@ function taskManagerDashboard() {
             this.myTasksOnly = mine;
             try { localStorage.setItem('tm_dashboard_scope', mine ? 'mine' : 'all'); } catch (e) {}
             this.load();
+            // The task table below is a separate Alpine component (shared with the
+            // Task Board page) — tell it the scope changed so it stays in sync
+            // instead of always showing everyone's tasks regardless of this toggle.
+            window.dispatchEvent(new CustomEvent('tm-scope-changed', { detail: { mine } }));
         },
 
         async load() {
