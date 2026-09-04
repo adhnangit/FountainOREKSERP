@@ -128,7 +128,7 @@ class WorkTaskController extends Controller
             ->when($categoryIds, fn ($q) => $q->whereIn('category_id', $categoryIds))
             ->when($request->status, fn ($q) => $q->whereIn('status', explode(',', $request->status)))
             ->when($request->priority, fn ($q) => $q->where('priority', $request->priority))
-            ->when($request->assigned_to ?: ($request->boolean('my_tasks') ? $request->user()->id : null), function ($q, $userId) {
+            ->when($request->assigned_to ?: ($request->boolean('my_tasks') ? $request->user()->id : null), function ($q, $userId) use ($request) {
                 $q->where(function ($sub) use ($userId) {
                     $sub->where('assigned_to', $userId)
                         ->orWhereHas('subtasks', fn ($s) => $s->where('assigned_to', $userId));
@@ -136,7 +136,15 @@ class WorkTaskController extends Controller
                 // So the UI can show *why* a task matched when it's only via a sub-task,
                 // not the task's own assignee — only the sub-tasks assigned to this
                 // specific filtered user are loaded here (not the full sub-task list).
-                ->with(['subtasks' => fn ($s) => $s->where('assigned_to', $userId)->with('assignee')]);
+                // Also honor the active status filter here, else a "Pending" filter
+                // would still list that person's already-Completed sub-tasks in the
+                // match note, contradicting the filter the user just picked.
+                ->with(['subtasks' => function ($s) use ($userId, $request) {
+                    $s->where('assigned_to', $userId)->with('assignee');
+                    if ($request->status) {
+                        $s->whereIn('status', explode(',', $request->status));
+                    }
+                }]);
             })
             ->when($request->boolean('overdue'), fn ($q) => $q->whereNotNull('due_date')
                 ->whereDate('due_date', '<', Carbon::today())

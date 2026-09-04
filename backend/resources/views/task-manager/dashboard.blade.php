@@ -165,6 +165,11 @@
         </div>
 
     </div>
+
+    <div class="mt-6">
+        <div class="text-sm font-bold text-gray-800 dark:text-gray-100 mb-3">All Tasks</div>
+        @include('task-manager._board-table')
+    </div>
 </div>
 @endsection
 

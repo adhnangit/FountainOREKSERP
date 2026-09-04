@@ -164,6 +164,11 @@
         </div>
 
     </div>
+
+    <div class="mt-6">
+        <div class="text-sm font-bold text-gray-800 dark:text-gray-100 mb-3">All Tasks</div>
+        <?php echo $__env->make('task-manager._board-table', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
+    </div>
 </div>
 <?php $__env->stopSection(); ?>
 
