@@ -1,9 +1,8 @@
-@extends('layouts.app')
-@section('title', 'Task Board')
-@section('page-title', 'Task Manager — Task Board')
-@section('page-desc', 'Assign, filter and track internal work tasks to completion')
+<?php $__env->startSection('title', 'Task Board'); ?>
+<?php $__env->startSection('page-title', 'Task Manager — Task Board'); ?>
+<?php $__env->startSection('page-desc', 'Assign, filter and track internal work tasks to completion'); ?>
 
-@section('content')
+<?php $__env->startSection('content'); ?>
 <style>
 /* ── Stats Cards ── */
 .tb-stats{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:20px}
@@ -178,7 +177,7 @@
 
 <div x-data="taskBoardPage()" x-init="init()" x-cloak>
 
-    {{-- Stats --}}
+    
     <div class="tb-stats">
         <div class="tb-stat-card" :class="filters.status==='' && !filters.overdue ? 'active' : ''" @click="setStatusTab('')">
             <div class="tb-stat-icon" style="background:#ede9fe">
@@ -227,7 +226,7 @@
         </div>
     </div>
 
-    {{-- Toolbar --}}
+    
     <div class="tb-toolbar">
         <div class="tb-toolbar-row">
             <div class="tb-search-wrap">
@@ -273,7 +272,7 @@
         </div>
     </div>
 
-    {{-- Table --}}
+    
     <div class="tb-table-card">
         <div class="overflow-x-auto">
             <table class="tb-table">
@@ -289,7 +288,7 @@
                     </tr>
                 </thead>
 
-                {{-- Loading --}}
+                
                 <tbody x-show="loading">
                     <tr><td colspan="7" style="text-align:center;padding:56px 24px">
                         <div style="display:flex;align-items:center;justify-content:center;gap:8px;color:#94a3b8;font-size:13px">
@@ -461,7 +460,7 @@
             </table>
         </div>
 
-        {{-- Pagination --}}
+        
         <div class="tb-pagination" x-show="meta.total > 0">
             <div class="tb-page-info" x-text="'Showing ' + meta.from + '–' + meta.to + ' of ' + meta.total + ' tasks'"></div>
             <div class="tb-page-btns">
@@ -694,9 +693,9 @@
     </div>
 
 </div>
-@endsection
+<?php $__env->stopSection(); ?>
 
-@push('scripts')
+<?php $__env->startPush('scripts'); ?>
 <script>
 function taskBoardPage() {
     return {
@@ -911,7 +910,7 @@ function taskBoardPage() {
                 date: task.due_date ? task.due_date.slice(0, 10) : null,
             };
             try { sessionStorage.setItem('calendar_task_prefill', JSON.stringify(prefill)); } catch (e) {}
-            window.location.href = '{{ url('/calendar') }}';
+            window.location.href = '<?php echo e(url('/calendar')); ?>';
         },
 
         scheduleSubtaskOnCalendar(task, subtask) {
@@ -924,7 +923,7 @@ function taskBoardPage() {
                 date: subtask.due_date ? subtask.due_date.slice(0, 10) : null,
             };
             try { sessionStorage.setItem('calendar_task_prefill', JSON.stringify(prefill)); } catch (e) {}
-            window.location.href = '{{ url('/calendar') }}';
+            window.location.href = '<?php echo e(url('/calendar')); ?>';
         },
 
         async addFollowup() {
@@ -1154,4 +1153,6 @@ function taskBoardPage() {
     };
 }
 </script>
-@endpush
+<?php $__env->stopPush(); ?>
+
+<?php echo $__env->make('layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH E:\xampp8.2\htdocs\FountainOREKS\backend\resources\views/task-manager/board.blade.php ENDPATH**/ ?>

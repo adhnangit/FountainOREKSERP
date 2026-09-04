@@ -27,12 +27,21 @@ class WorkTaskController extends Controller
         );
     }
 
-    public function dashboard(): JsonResponse
+    public function dashboard(Request $request): JsonResponse
     {
         $today = Carbon::today();
 
         $q = WorkTask::with('category');
         $this->branchContext->applyScope($q);
+
+        if ($request->boolean('my_tasks')) {
+            $userId = $request->user()->id;
+            $q->where(function ($sub) use ($userId) {
+                $sub->where('assigned_to', $userId)
+                    ->orWhereHas('subtasks', fn ($s) => $s->where('assigned_to', $userId));
+            });
+        }
+
         $allTasks = $q->get();
         $activeTasks = $allTasks->whereNotIn('status', ['Cancelled']);
 
@@ -90,7 +99,9 @@ class WorkTaskController extends Controller
         $overdueTasks->load('assignee');
         $dueSoonTasks->load('assignee');
 
-        $recentFollowups = WorkTaskFollowup::with(['task', 'user'])->latest()->take(8)->get();
+        $recentFollowups = WorkTaskFollowup::with(['task', 'user'])
+            ->when($request->boolean('my_tasks'), fn ($q) => $q->whereIn('task_id', $allTasks->pluck('id')))
+            ->latest()->take(8)->get();
 
         return response()->json([
             'stats' => $stats,
@@ -117,10 +128,17 @@ class WorkTaskController extends Controller
             ->when($categoryIds, fn ($q) => $q->whereIn('category_id', $categoryIds))
             ->when($request->status, fn ($q) => $q->where('status', $request->status))
             ->when($request->priority, fn ($q) => $q->where('priority', $request->priority))
-            ->when($request->assigned_to, fn ($q) => $q->where(function ($sub) use ($request) {
-                $sub->where('assigned_to', $request->assigned_to)
-                    ->orWhereHas('subtasks', fn ($s) => $s->where('assigned_to', $request->assigned_to));
-            }))
+            ->when($request->assigned_to, function ($q) use ($request) {
+                $userId = $request->assigned_to;
+                $q->where(function ($sub) use ($userId) {
+                    $sub->where('assigned_to', $userId)
+                        ->orWhereHas('subtasks', fn ($s) => $s->where('assigned_to', $userId));
+                })
+                // So the UI can show *why* a task matched when it's only via a sub-task,
+                // not the task's own assignee — only the sub-tasks assigned to this
+                // specific filtered user are loaded here (not the full sub-task list).
+                ->with(['subtasks' => fn ($s) => $s->where('assigned_to', $userId)->with('assignee')]);
+            })
             ->when($request->boolean('overdue'), fn ($q) => $q->whereNotNull('due_date')
                 ->whereDate('due_date', '<', Carbon::today())
                 ->whereNotIn('status', ['Completed', 'Cancelled']))
