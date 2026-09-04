@@ -126,10 +126,9 @@ class WorkTaskController extends Controller
         $q = WorkTask::with(['category', 'assignee'])
             ->withCount(['followups', 'subtasks', 'subtasks as subtasks_completed_count' => fn ($q) => $q->where('completed', true)])
             ->when($categoryIds, fn ($q) => $q->whereIn('category_id', $categoryIds))
-            ->when($request->status, fn ($q) => $q->where('status', $request->status))
+            ->when($request->status, fn ($q) => $q->whereIn('status', explode(',', $request->status)))
             ->when($request->priority, fn ($q) => $q->where('priority', $request->priority))
-            ->when($request->assigned_to, function ($q) use ($request) {
-                $userId = $request->assigned_to;
+            ->when($request->assigned_to ?: ($request->boolean('my_tasks') ? $request->user()->id : null), function ($q, $userId) {
                 $q->where(function ($sub) use ($userId) {
                     $sub->where('assigned_to', $userId)
                         ->orWhereHas('subtasks', fn ($s) => $s->where('assigned_to', $userId));

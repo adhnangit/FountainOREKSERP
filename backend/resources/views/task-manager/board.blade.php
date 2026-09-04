@@ -60,6 +60,7 @@
 .tb-match-note svg{flex-shrink:0}
 .dark .tb-match-note{background:rgba(99,102,241,.12);border-color:rgba(99,102,241,.3)}
 .dark .tb-match-note div{color:#a5b4fc}
+.tb-match-status{font-size:10px;font-weight:800;padding:1px 7px;border-radius:10px;white-space:nowrap;flex-shrink:0}
 .tb-meta-btn{font-size:11px;color:#94a3b8;display:inline-flex;align-items:center;gap:4px;background:none;border:none;cursor:pointer;padding:0;margin-top:4px;margin-right:12px}
 .tb-meta-btn:hover{color:#4f46e5}
 .tb-meta-btn svg{width:11px;height:11px;transition:transform .15s}
@@ -100,7 +101,8 @@
 /* ── Days-running progress bar ── */
 .tb-progress-track{width:80px;height:5px;border-radius:3px;background:#e2e8f0;overflow:hidden;margin-top:5px}
 .tb-progress-fill{height:100%;border-radius:3px;transition:width .3s}
-.tb-progress-lbl{font-size:10px;color:#94a3b8;margin-top:2px}
+.tb-progress-lbl{font-size:12px;font-weight:700;color:#475569;margin-top:3px}
+.dark .tb-progress-lbl{color:#cbd5e1}
 .dark .tb-progress-track{background:#334155}
 
 /* ── Action Buttons ── */
@@ -115,7 +117,8 @@
 .tb-subtask{background:#fff;border:1px solid #eef0f7;border-radius:10px;padding:9px 14px;margin-bottom:6px}
 .tb-subtask-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .tb-subtask-title{flex:1 1 220px;min-width:160px;font-size:13.5px}
-.tb-subtask-days{font-size:10.5px;color:#94a3b8;white-space:nowrap;flex-shrink:0}
+.tb-subtask-days{font-size:12px;font-weight:700;color:#475569;white-space:nowrap;flex-shrink:0}
+.dark .tb-subtask-days{color:#cbd5e1}
 .tb-subtask-days.overdue{color:#ef4444;font-weight:700}
 .tb-notes-link{font-size:12.5px;font-weight:600;color:#6366f1;background:#eef2ff;border:none;border-radius:7px;padding:5px 10px;cursor:pointer;white-space:nowrap;flex-shrink:0}
 .tb-notes-link:hover{background:#e0e7ff}
@@ -180,7 +183,7 @@
 
     {{-- Stats --}}
     <div class="tb-stats">
-        <div class="tb-stat-card" :class="filters.status==='' && !filters.overdue ? 'active' : ''" @click="setStatusTab('')">
+        <div class="tb-stat-card" :class="filters.status.length===0 && !filters.overdue ? 'active' : ''" @click="clearStatus()">
             <div class="tb-stat-icon" style="background:#ede9fe">
                 <svg fill="none" viewBox="0 0 24 24" stroke="#7c3aed" stroke-width="1.8"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
             </div>
@@ -189,7 +192,7 @@
                 <div class="tb-stat-lbl">Total</div>
             </div>
         </div>
-        <div class="tb-stat-card" :class="filters.status==='Pending' ? 'active' : ''" @click="setStatusTab('Pending')">
+        <div class="tb-stat-card" :class="filters.status.includes('Pending') ? 'active' : ''" @click="toggleStatus('Pending')">
             <div class="tb-stat-icon" style="background:#fef9c3">
                 <svg fill="none" viewBox="0 0 24 24" stroke="#b45309" stroke-width="1.8"><path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
             </div>
@@ -198,7 +201,7 @@
                 <div class="tb-stat-lbl">Pending</div>
             </div>
         </div>
-        <div class="tb-stat-card" :class="filters.status==='In Progress' ? 'active' : ''" @click="setStatusTab('In Progress')">
+        <div class="tb-stat-card" :class="filters.status.includes('In Progress') ? 'active' : ''" @click="toggleStatus('In Progress')">
             <div class="tb-stat-icon" style="background:#dbeafe">
                 <svg fill="none" viewBox="0 0 24 24" stroke="#1d4ed8" stroke-width="1.8"><path d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
             </div>
@@ -207,7 +210,7 @@
                 <div class="tb-stat-lbl">In Progress</div>
             </div>
         </div>
-        <div class="tb-stat-card" :class="filters.status==='Completed' ? 'active' : ''" @click="setStatusTab('Completed')">
+        <div class="tb-stat-card" :class="filters.status.includes('Completed') ? 'active' : ''" @click="toggleStatus('Completed')">
             <div class="tb-stat-icon" style="background:#dcfce7">
                 <svg fill="none" viewBox="0 0 24 24" stroke="#16a34a" stroke-width="1.8"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
             </div>
@@ -260,11 +263,12 @@
         </div>
         <div class="tb-toolbar-row">
             <div class="tb-tabs">
-                <button class="tb-tab" :class="filters.status==='' ? 'active' : ''" @click="setStatusTab('')">All</button>
-                <button class="tb-tab" :class="filters.status==='Pending' ? 'active' : ''" @click="setStatusTab('Pending')">Pending</button>
-                <button class="tb-tab" :class="filters.status==='In Progress' ? 'active' : ''" @click="setStatusTab('In Progress')">In Progress</button>
-                <button class="tb-tab" :class="filters.status==='Completed' ? 'active' : ''" @click="setStatusTab('Completed')">Completed</button>
-                <button class="tb-tab" :class="filters.status==='Cancelled' ? 'active' : ''" @click="setStatusTab('Cancelled')">Cancelled</button>
+                <button class="tb-tab" :class="filters.status.length===0 ? 'active' : ''" @click="clearStatus()">All</button>
+                <button class="tb-tab" :class="filters.status.includes('Pending') ? 'active' : ''" @click="toggleStatus('Pending')">Pending</button>
+                <button class="tb-tab" :class="filters.status.includes('In Progress') ? 'active' : ''" @click="toggleStatus('In Progress')">In Progress</button>
+                <button class="tb-tab" :class="filters.status.includes('Completed') ? 'active' : ''" @click="toggleStatus('Completed')">Completed</button>
+                <button class="tb-tab" :class="filters.status.includes('Cancelled') ? 'active' : ''" @click="toggleStatus('Cancelled')">Cancelled</button>
+                <span class="text-[10px] text-gray-400 self-center ml-1" x-show="filters.status.length > 1">(any of these)</span>
             </div>
             <button @click="openCreate()" class="tb-btn-primary" style="margin-left:auto">
                 <svg style="width:15px;height:15px" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path d="M12 5v14M5 12h14"/></svg>
@@ -310,7 +314,9 @@
                                         <template x-for="ms in task.subtasks" :key="ms.id">
                                             <div>
                                                 <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
-                                                Matched via sub-task <strong x-text="ms.title"></strong> — assigned to <strong x-text="ms.assignee?.name ?? '—'"></strong>
+                                                <strong x-text="ms.title"></strong>
+                                                <span class="tb-match-status" :class="'tb-status-' + ms.status.toLowerCase().replace(' ', '-')" x-text="ms.status"></span>
+                                                — assigned to <strong x-text="ms.assignee?.name ?? '—'"></strong>
                                             </div>
                                         </template>
                                     </div>
@@ -706,7 +712,7 @@ function taskBoardPage() {
         loading: true,
         page: 1,
         meta: { total: 0, from: 1, to: 0, last_page: 1 },
-        filters: { category_id: '', status: '', priority: '', assigned_to: '', overdue: false, search: '' },
+        filters: { category_id: '', status: [], priority: '', assigned_to: '', overdue: false, search: '' },
         stats: {},
 
         showModal: false,
@@ -779,7 +785,7 @@ function taskBoardPage() {
             try {
                 const params = new URLSearchParams({ page: this.page, per_page: 15 });
                 if (this.filters.category_id) params.set('category_id', this.filters.category_id);
-                if (this.filters.status) params.set('status', this.filters.status);
+                if (this.filters.status.length) params.set('status', this.filters.status.join(','));
                 if (this.filters.priority) params.set('priority', this.filters.priority);
                 if (this.filters.assigned_to) params.set('assigned_to', this.filters.assigned_to);
                 if (this.filters.overdue) params.set('overdue', '1');
@@ -794,8 +800,17 @@ function taskBoardPage() {
             }
         },
 
-        setStatusTab(status) {
-            this.filters.status = status;
+        toggleStatus(status) {
+            const idx = this.filters.status.indexOf(status);
+            if (idx >= 0) this.filters.status.splice(idx, 1);
+            else this.filters.status.push(status);
+            this.filters.overdue = false;
+            this.page = 1;
+            this.load();
+        },
+
+        clearStatus() {
+            this.filters.status = [];
             this.filters.overdue = false;
             this.page = 1;
             this.load();
@@ -808,7 +823,7 @@ function taskBoardPage() {
         },
 
         resetFilters() {
-            this.filters = { category_id: '', status: '', priority: '', assigned_to: '', overdue: false, search: '' };
+            this.filters = { category_id: '', status: [], priority: '', assigned_to: '', overdue: false, search: '' };
             this.page = 1;
             this.load();
         },
