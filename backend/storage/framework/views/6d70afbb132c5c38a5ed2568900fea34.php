@@ -1,9 +1,8 @@
-@extends('layouts.app')
-@section('title', 'Task Manager')
-@section('page-title', 'Task Manager Dashboard')
-@section('page-desc', 'Overview of internal work-task performance across all categories')
+<?php $__env->startSection('title', 'Task Manager'); ?>
+<?php $__env->startSection('page-title', 'Task Manager Dashboard'); ?>
+<?php $__env->startSection('page-desc', 'Overview of internal work-task performance across all categories'); ?>
 
-@section('content')
+<?php $__env->startSection('content'); ?>
 <div x-data="taskManagerDashboard()" x-init="init()" x-cloak>
 
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
@@ -18,8 +17,8 @@
             </button>
         </div>
         <div class="flex gap-2">
-            <a href="{{ url('/task-manager/categories') }}" class="btn-secondary text-sm">Categories</a>
-            <a href="{{ url('/task-manager/board') }}" class="btn-primary text-sm">Task Board</a>
+            <a href="<?php echo e(url('/task-manager/categories')); ?>" class="btn-secondary text-sm">Categories</a>
+            <a href="<?php echo e(url('/task-manager/board')); ?>" class="btn-primary text-sm">Task Board</a>
         </div>
     </div>
 
@@ -168,12 +167,12 @@
 
     <div class="mt-6">
         <div class="text-sm font-bold text-gray-800 dark:text-gray-100 mb-3" x-text="myTasksOnly ? 'My Tasks' : 'All Tasks'"></div>
-        @include('task-manager._board-table', ['scopedToMe' => true])
+        <?php echo $__env->make('task-manager._board-table', ['scopedToMe' => true], array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
     </div>
 </div>
-@endsection
+<?php $__env->stopSection(); ?>
 
-@push('scripts')
+<?php $__env->startPush('scripts'); ?>
 <script>
 function taskManagerDashboard() {
     return {
@@ -239,4 +238,6 @@ function taskManagerDashboard() {
     };
 }
 </script>
-@endpush
+<?php $__env->stopPush(); ?>
+
+<?php echo $__env->make('layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH E:\xampp8.2\htdocs\FountainOREKS\backend\resources\views/task-manager/dashboard.blade.php ENDPATH**/ ?>

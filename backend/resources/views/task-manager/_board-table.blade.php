@@ -752,6 +752,21 @@ function taskBoardPage(scopedToMe = false) {
         },
 
         async init() {
+            if (scopedToMe) {
+                try {
+                    const stored = localStorage.getItem('tm_dashboard_scope');
+                    this.myOnly = stored ? stored === 'mine' : true;
+                } catch (e) { this.myOnly = true; }
+                // Dashboard's My Tasks / All Tasks toggle lives in a separate Alpine
+                // component — this keeps the embedded table in sync with it live,
+                // instead of only matching whatever scope was active on page load.
+                window.addEventListener('tm-scope-changed', (e) => {
+                    this.myOnly = e.detail.mine;
+                    this.page = 1;
+                    this.load();
+                    this.loadStats();
+                });
+            }
             await Promise.all([this.loadCategories(), this.loadUsers(), this.loadStats()]);
             await this.load();
             const openId = new URLSearchParams(window.location.search).get('open');
@@ -772,7 +787,8 @@ function taskBoardPage(scopedToMe = false) {
 
         async loadStats() {
             try {
-                const data = await apiFetch('/work-tasks/dashboard').then(r => r.json());
+                const qs = this.myOnly ? '?my_tasks=1' : '';
+                const data = await apiFetch('/work-tasks/dashboard' + qs).then(r => r.json());
                 this.stats = data.stats ?? {};
             } catch (e) { /* stat cards just stay at 0 */ }
         },
@@ -781,6 +797,7 @@ function taskBoardPage(scopedToMe = false) {
             this.loading = true;
             try {
                 const params = new URLSearchParams({ page: this.page, per_page: 15 });
+                if (this.myOnly) params.set('my_tasks', '1');
                 if (this.filters.category_id) params.set('category_id', this.filters.category_id);
                 if (this.filters.status.length) params.set('status', this.filters.status.join(','));
                 if (this.filters.priority) params.set('priority', this.filters.priority);
