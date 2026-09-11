@@ -50,6 +50,9 @@ use App\Http\Controllers\Api\SettingsController;
 use App\Http\Controllers\Api\SupplierController;
 use App\Http\Controllers\Api\TargetController;
 use App\Http\Controllers\Api\WorkTaskController;
+use App\Http\Controllers\Api\InquiryController;
+use App\Http\Controllers\Api\InquirySubjectController;
+use App\Http\Controllers\Api\InquiryStatusController;
 use App\Http\Controllers\Api\WorkTaskCategoryController;
 use App\Http\Controllers\Api\DashboardWidgetSettingsController;
 use App\Http\Controllers\Api\UserController;
@@ -304,6 +307,19 @@ Route::middleware(['auth:sanctum', 'branch.context'])->group(function () {
     });
     Route::apiResource('work-task-categories', WorkTaskCategoryController::class, ['only' => ['index']])->middleware('permission:task_manager.view');
     Route::apiResource('work-task-categories', WorkTaskCategoryController::class, ['only' => ['store', 'update', 'destroy']])->middleware('permission:task_manager.categories.manage');
+
+    // Inquiries & Leads — CRM lead-tracking module
+    Route::middleware('permission:inquiries.view')->get('/inquiries/assignable-users', [InquiryController::class, 'assignableUsers']);
+    Route::apiResource('inquiries', InquiryController::class, ['only' => ['index', 'show']])->middleware('permission:inquiries.view');
+    Route::apiResource('inquiries', InquiryController::class, ['only' => ['store', 'update', 'destroy']])->middleware('permission:inquiries.manage');
+    Route::middleware('permission:inquiries.manage')->group(function () {
+        Route::post('/inquiries/{inquiry}/followups', [InquiryController::class, 'addFollowup']);
+        Route::delete('/inquiries/{inquiry}/followups/{followup}', [InquiryController::class, 'deleteFollowup']);
+    });
+    Route::apiResource('inquiry-subjects', InquirySubjectController::class, ['only' => ['index']])->middleware('permission:inquiries.view');
+    Route::apiResource('inquiry-subjects', InquirySubjectController::class, ['only' => ['store', 'update', 'destroy']])->middleware('permission:inquiries.settings.manage');
+    Route::apiResource('inquiry-statuses', InquiryStatusController::class, ['only' => ['index']])->middleware('permission:inquiries.view');
+    Route::apiResource('inquiry-statuses', InquiryStatusController::class, ['only' => ['store', 'update', 'destroy']])->middleware('permission:inquiries.settings.manage');
 
     // Directory — no dedicated edit/delete permission; "create" covers manage
     Route::apiResource('directory', DirectoryController::class, ['only' => ['index', 'show']])->middleware('permission:directory.view');

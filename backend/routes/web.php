@@ -138,6 +138,10 @@ Route::get('/task-manager',            fn() => view('task-manager.dashboard'))->
 Route::get('/task-manager/board',      fn() => view('task-manager.board'))->name('task-manager.board');
 Route::get('/task-manager/categories', fn() => view('task-manager.categories'))->name('task-manager.categories');
 
+Route::get('/inquiries',            fn() => view('inquiries.index'))->name('inquiries.page');
+Route::get('/inquiries/subjects',   fn() => view('inquiries.subjects'))->name('inquiries.subjects.page');
+Route::get('/inquiries/statuses',   fn() => view('inquiries.statuses'))->name('inquiries.statuses.page');
+
 Route::get('/access-control/users',           fn() => view('access-control.users'))->name('users');
 Route::get('/access-control/users/{id}/edit', fn() => view('access-control.users'))->name('users.edit');
 Route::get('/access-control/roles',           fn() => view('access-control.roles'))->name('roles');

@@ -112,6 +112,11 @@ class PermissionsSeeder extends Seeder
             'task_manager.manage',
             'task_manager.categories.manage',
 
+            // Inquiries & Leads (CRM)
+            'inquiries.view',
+            'inquiries.manage',
+            'inquiries.settings.manage',
+
             // Office Directory
             'directory.view',
             'directory.create',

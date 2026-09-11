@@ -200,6 +200,7 @@ elseif (request()->is('accounting*'))                                           
 elseif (request()->is('reports*'))                                                                         $sec = 'reports';
 elseif (request()->is('hr*'))                                                                              $sec = 'hr';
 elseif (request()->is('task-manager*'))                                                                    $sec = 'task_manager';
+elseif (request()->is('inquiries*'))                                                                       $sec = 'inquiries';
 elseif (request()->is('access-control*') || request()->is('settings/branches*') || request()->is('settings/banks*') || request()->is('settings/districts-cities*') || request()->is('settings/dashboard-widgets*')) $sec = 'admin';
 @endphp
 
@@ -450,6 +451,26 @@ elseif (request()->is('access-control*') || request()->is('settings/branches*') 
           <a href="{{ url('/task-manager') }}"            class="n-sub {{ request()->is('task-manager') ? 'active' : '' }}">Dashboard</a>
           <a href="{{ url('/task-manager/board') }}"       class="n-sub {{ request()->is('task-manager/board*') ? 'active' : '' }}">Task Board</a>
           <a href="{{ url('/task-manager/categories') }}"  class="n-sub {{ request()->is('task-manager/categories*') ? 'active' : '' }}">Categories</a>
+        </div>
+      </div>
+
+      {{-- INQUIRIES & LEADS --}}
+      <div x-show="hasPerm('inquiries.view')">
+        <button @click="sidebarOpen ? toggle('inquiries') : null"
+                class="n-group {{ $sec === 'inquiries' ? 'sec-active' : '' }}"
+                :class="sidebarOpen ? '' : 'collapsed-btn'">
+          <div class="n-icon">
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/>
+            </svg>
+          </div>
+          <span x-show="sidebarOpen" class="flex-1 text-[13px]">Inquiries &amp; Leads</span>
+          <svg x-show="sidebarOpen" class="n-chevron w-3.5 h-3.5" :class="{'open': open.inquiries}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg>
+        </button>
+        <div x-show="open.inquiries && sidebarOpen" class="n-sub-list">
+          <a href="{{ url('/inquiries') }}"           class="n-sub {{ request()->is('inquiries') ? 'active' : '' }}">All Inquiries</a>
+          <a href="{{ url('/inquiries/subjects') }}"  class="n-sub {{ request()->is('inquiries/subjects*') ? 'active' : '' }}">Subjects</a>
+          <a href="{{ url('/inquiries/statuses') }}"  class="n-sub {{ request()->is('inquiries/statuses*') ? 'active' : '' }}">Statuses</a>
         </div>
       </div>
 
@@ -952,6 +973,7 @@ function layout() {
       reports:     '{{ $sec }}' === 'reports',
       hr:          '{{ $sec }}' === 'hr',
       task_manager: '{{ $sec }}' === 'task_manager',
+      inquiries:   '{{ $sec }}' === 'inquiries',
       admin:       '{{ $sec }}' === 'admin',
     },
     hasPerm(p) {
