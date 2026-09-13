@@ -851,6 +851,7 @@ function invShowPage() {
         },
 
         async downloadPdf() {
+            showGlobalLoading('Generating PDF…');
             try {
                 const r = await apiFetch('/purchase-orders/' + id + '/pdf');
                 if (!r.ok) { toast('Failed to generate PDF', 'error'); return; }
@@ -862,12 +863,14 @@ function invShowPage() {
                 document.body.appendChild(a); a.click(); document.body.removeChild(a);
                 URL.revokeObjectURL(url);
             } catch(e) { toast('PDF download failed', 'error'); }
+            finally { hideGlobalLoading(); }
         },
 
         async printPO() {
+            showGlobalLoading('Preparing purchase order…');
             try {
                 const r = await apiFetch('/purchase-orders/' + id + '/pdf');
-                if (!r.ok) { toast('Failed to generate PDF', 'error'); return; }
+                if (!r.ok) { toast('Failed to generate PDF', 'error'); hideGlobalLoading(); return; }
                 const blob = await r.blob();
                 const url = URL.createObjectURL(blob);
                 const iframe = document.createElement('iframe');
@@ -875,13 +878,14 @@ function invShowPage() {
                 iframe.src = url;
                 document.body.appendChild(iframe);
                 iframe.onload = () => {
+                    hideGlobalLoading();
                     setTimeout(() => {
                         iframe.contentWindow.focus();
                         iframe.contentWindow.print();
                     }, 300);
                 };
                 setTimeout(() => { document.body.removeChild(iframe); URL.revokeObjectURL(url); }, 60000);
-            } catch(e) { toast('Print failed', 'error'); }
+            } catch(e) { toast('Print failed', 'error'); hideGlobalLoading(); }
         },
 
         progressSteps() {

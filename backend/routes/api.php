@@ -92,6 +92,7 @@ Route::middleware(['auth:sanctum', 'branch.context'])->group(function () {
     Route::middleware('permission:customers.view')->group(function () {
         Route::get('/customers/{customer}/ledger', [CustomerController::class, 'ledger']);
         Route::get('/customers-aging', [CustomerController::class, 'aging']);
+        Route::get('/customers-stats', [CustomerController::class, 'stats']);
     });
     Route::apiResource('customers', CustomerController::class, ['only' => ['store']])->middleware('permission:customers.create');
     Route::apiResource('customers', CustomerController::class, ['only' => ['update']])->middleware('permission:customers.edit');
@@ -103,6 +104,7 @@ Route::middleware(['auth:sanctum', 'branch.context'])->group(function () {
     // Suppliers
     Route::apiResource('suppliers', SupplierController::class, ['only' => ['index', 'show']])->middleware('permission:suppliers.view');
     Route::middleware('permission:suppliers.view')->get('/suppliers/{supplier}/ledger', [SupplierController::class, 'ledger']);
+    Route::middleware('permission:suppliers.view')->get('/suppliers-stats', [SupplierController::class, 'stats']);
     Route::apiResource('suppliers', SupplierController::class, ['only' => ['store']])->middleware('permission:suppliers.create');
     Route::apiResource('suppliers', SupplierController::class, ['only' => ['update']])->middleware('permission:suppliers.edit');
     Route::apiResource('suppliers', SupplierController::class, ['only' => ['destroy']])->middleware('permission:suppliers.delete');
@@ -112,6 +114,7 @@ Route::middleware(['auth:sanctum', 'branch.context'])->group(function () {
 
     // Products & Inventory
     Route::middleware('permission:products.view')->group(function () {
+        Route::get('/products-stats', [ProductController::class, 'stats']);
         Route::get('/products/low-stock', [ProductController::class, 'lowStock']);
         Route::get('/products/categories', [ProductController::class, 'categories']);
         Route::get('/products/{product}/stock', [ProductController::class, 'stock']);

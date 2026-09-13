@@ -271,8 +271,8 @@
 @push('scripts')
 <script>
 function expenseReport() {
-  const today = new Date().toISOString().slice(0,10);
-  const first = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().slice(0,10);
+  const today = toLocalISO(new Date());
+  const first = toLocalISO(new Date(new Date().getFullYear(), new Date().getMonth(), 1));
   return {
     loading: true, categories: [],
     filters: { from_date: first, to_date: today, category_id: '', status: 'approved' },
@@ -302,7 +302,7 @@ function expenseReport() {
       finally { this.loading = false; }
     },
     resetFilters() {
-      this.filters = { from_date: new Date(new Date().getFullYear(),new Date().getMonth(),1).toISOString().slice(0,10), to_date: new Date().toISOString().slice(0,10), category_id: '', status: 'approved' };
+      this.filters = { from_date: toLocalISO(new Date(new Date().getFullYear(),new Date().getMonth(),1)), to_date: toLocalISO(new Date()), category_id: '', status: 'approved' };
       this.load();
     },
     doExport() {

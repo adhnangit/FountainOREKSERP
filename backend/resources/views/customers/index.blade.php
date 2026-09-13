@@ -50,6 +50,14 @@
 .cst-empty h5{font-size:16px;font-weight:700;color:#475569;margin-top:14px}
 .cst-empty p{font-size:13px;color:#94a3b8;margin-top:4px}
 
+.cst-pagination{display:flex;align-items:center;justify-content:space-between;padding:12px 20px;border-top:1px solid #f1f5f9;flex-wrap:wrap;gap:10px}
+.cst-page-info{font-size:12.5px;color:#94a3b8}
+.cst-page-btns{display:flex;gap:4px}
+.cst-page-btn{min-width:30px;height:30px;padding:0 6px;border-radius:7px;border:1px solid #e2e8f0;background:#fff;font-size:12px;font-weight:600;color:#475569;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s}
+.cst-page-btn:hover:not(:disabled):not(.active){background:#f8fafc}
+.cst-page-btn.active{background:#6366f1;color:#fff;border-color:#6366f1}
+.cst-page-btn:disabled{opacity:.35;cursor:default}
+
 /* ── Dark Mode ── */
 .dark .cst-stat-card{background:#1e293b;border-color:#334155}
 .dark .cst-stat-lbl{color:#64748b}
@@ -66,6 +74,8 @@
 .dark .cst-action-btn:hover{background:#253347;border-color:#6366f1}
 .dark .cst-empty svg{color:#334155}
 .dark .cst-empty h5{color:#94a3b8}
+.dark .cst-pagination{border-color:#1e293b}
+.dark .cst-page-btn{background:#1e293b;border-color:#334155;color:#94a3b8}
 </style>
 
 <div x-data="customersPage()" x-init="init()">
@@ -77,7 +87,7 @@
         <svg fill="none" viewBox="0 0 24 24" stroke="#4f46e5" stroke-width="1.8"><path d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
       </div>
       <div>
-        <div class="cst-stat-val" style="color:#4f46e5" x-text="items.length"></div>
+        <div class="cst-stat-val" style="color:#4f46e5" x-text="stats.total_customers ?? 0"></div>
         <div class="cst-stat-lbl">Total Customers</div>
       </div>
     </div>
@@ -86,9 +96,9 @@
         <svg fill="none" viewBox="0 0 24 24" stroke="#16a34a" stroke-width="1.8"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
       </div>
       <div>
-        <div class="cst-stat-val" style="color:#16a34a" x-text="activeCount"></div>
+        <div class="cst-stat-val" style="color:#16a34a" x-text="stats.active_count ?? 0"></div>
         <div class="cst-stat-lbl">Active</div>
-        <div class="cst-stat-sub" style="background:#dcfce7;color:#16a34a" x-text="walkInCount + ' walk-in'"></div>
+        <div class="cst-stat-sub" style="background:#dcfce7;color:#16a34a" x-text="(stats.walk_in_count ?? 0) + ' walk-in'"></div>
       </div>
     </div>
     <div class="cst-stat-card">
@@ -96,7 +106,7 @@
         <svg fill="none" viewBox="0 0 24 24" stroke="#2563eb" stroke-width="1.8"><path d="M9 7h6m0 10v-3m-3 3v-3m-3 3v-3m9-8H4a1 1 0 00-1 1v10a1 1 0 001 1h16a1 1 0 001-1V6a1 1 0 00-1-1z"/></svg>
       </div>
       <div>
-        <div class="cst-stat-val" style="color:#2563eb" x-text="fmtCompact(totalCreditLimit)"></div>
+        <div class="cst-stat-val" style="color:#2563eb" x-text="fmtCompact(stats.total_credit_limit ?? 0)"></div>
         <div class="cst-stat-lbl">Total Credit Limit</div>
       </div>
     </div>
@@ -105,7 +115,7 @@
         <svg fill="none" viewBox="0 0 24 24" stroke="#b91c1c" stroke-width="1.8"><path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
       </div>
       <div>
-        <div class="cst-stat-val" style="color:#b91c1c" x-text="fmtCompact(totalOutstanding)"></div>
+        <div class="cst-stat-val" style="color:#b91c1c" x-text="fmtCompact(stats.total_outstanding ?? 0)"></div>
         <div class="cst-stat-lbl">Total Outstanding</div>
       </div>
     </div>
@@ -115,9 +125,9 @@
   <div class="cst-toolbar">
     <div class="cst-search-wrap">
       <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-      <input type="text" x-model="search" placeholder="Search name, phone, city, district…">
+      <input type="text" x-model="search" @input.debounce.400ms="page=1; load(); loadStats()" placeholder="Search name, phone, city, district…">
     </div>
-    <select x-model="filterDistrict" class="cst-select">
+    <select x-model="filterDistrict" @change="page=1; load(); loadStats()" class="cst-select">
       <option value="">All Districts</option>
       <template x-for="d in districts" :key="d"><option :value="d" x-text="d"></option></template>
     </select>
@@ -151,7 +161,7 @@
           </tr>
         </thead>
         <tbody>
-          <template x-for="c in filtered" :key="c.id">
+          <template x-for="c in items" :key="c.id">
             <tr>
               <td>
                 <div class="flex items-center gap-3">
@@ -184,10 +194,34 @@
           </template>
         </tbody>
       </table>
-      <div x-show="!loading && filtered.length === 0" class="cst-empty">
+      <div x-show="!loading && items.length === 0" class="cst-empty">
         <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
         <h5>No customers found</h5>
         <p>Try adjusting your search or filters</p>
+      </div>
+
+      {{-- Pagination --}}
+      <div class="cst-pagination" x-show="meta.total > 0">
+        <div class="cst-page-info"
+             x-text="'Showing '+meta.from+'–'+meta.to+' of '+meta.total+' customers'"></div>
+        <div class="cst-page-btns">
+          <button class="cst-page-btn" @click="page=1;load()" :disabled="page<=1">
+            <svg style="width:12px;height:12px" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M11 19l-7-7 7-7M18 19l-7-7 7-7"/></svg>
+          </button>
+          <button class="cst-page-btn" @click="page--;load()" :disabled="page<=1">
+            <svg style="width:12px;height:12px" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M15 19l-7-7 7-7"/></svg>
+          </button>
+          <template x-for="p in pageNumbers" :key="p">
+            <button class="cst-page-btn" :class="p===page?'active':''"
+                    @click="page=p;load()" x-text="p"></button>
+          </template>
+          <button class="cst-page-btn" @click="page++;load()" :disabled="page>=meta.last_page">
+            <svg style="width:12px;height:12px" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M9 5l7 7-7 7"/></svg>
+          </button>
+          <button class="cst-page-btn" @click="page=meta.last_page;load()" :disabled="page>=meta.last_page">
+            <svg style="width:12px;height:12px" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M13 5l7 7-7 7M6 5l7 7-7 7"/></svg>
+          </button>
+        </div>
       </div>
     </div>
   </div>
@@ -200,37 +234,51 @@ function customersPage() {
     const COLORS = ['#6366f1','#8b5cf6','#0ea5e9','#10b981','#f59e0b','#ef4444','#ec4899','#14b8a6'];
     return {
         items: [],
+        stats: {},
         loading: true,
         search: '',
         filterDistrict: '',
+        page: 1,
+        meta: { total: 0, from: 0, to: 0, last_page: 1 },
         isAllBranches: localStorage.getItem('medri_branch') === 'all' || !localStorage.getItem('medri_branch'),
         districts: ['Ampara','Anuradhapura','Badulla','Batticaloa','Colombo','Galle','Gampaha','Hambantota','Jaffna','Kalutara','Kandy','Kegalle','Kilinochchi','Kurunegala','Mannar','Matale','Matara','Monaragala','Mullaitivu','Nuwara Eliya','Polonnaruwa','Puttalam','Ratnapura','Trincomalee','Vavuniya'],
-        get filtered() {
-            const q = this.search.toLowerCase();
-            return this.items.filter(c => {
-                const matchSearch = !q ||
-                    (c.name ?? '').toLowerCase().includes(q) ||
-                    (c.phone ?? '').toLowerCase().includes(q) ||
-                    (c.email ?? '').toLowerCase().includes(q) ||
-                    (c.city ?? '').toLowerCase().includes(q) ||
-                    (c.district ?? '').toLowerCase().includes(q);
-                const matchDistrict = !this.filterDistrict || c.district === this.filterDistrict;
-                return matchSearch && matchDistrict;
-            });
+        get pageNumbers() {
+            const total = this.meta.last_page;
+            const cur = this.page;
+            if (total <= 7) return Array.from({length: total}, (_, i) => i + 1);
+            const pages = new Set([1, total, cur, cur-1, cur+1].filter(p => p >= 1 && p <= total));
+            return [...pages].sort((a,b) => a-b);
         },
-        get activeCount() { return this.items.filter(c => c.is_active !== false).length; },
-        get walkInCount() { return this.items.filter(c => c.is_walk_in).length; },
-        get totalCreditLimit() { return this.items.reduce((s, c) => s + (parseFloat(c.credit_limit) || 0), 0); },
-        get totalOutstanding() { return this.items.reduce((s, c) => s + Math.max(0, parseFloat(c.balance) || 0), 0); },
-        async init() {
+        buildParams() {
+            const params = new URLSearchParams({ page: this.page, per_page: 25 });
+            if (this.search) params.set('search', this.search);
+            if (this.filterDistrict) params.set('district', this.filterDistrict);
+            return params;
+        },
+        async load() {
+            this.loading = true;
             try {
-                const data = await apiFetch('/customers?per_page=500').then(r => r.json());
-                this.items = data.data ?? data ?? [];
+                const r = await apiFetch('/customers?' + this.buildParams());
+                const d = await r.json();
+                this.items = d.data ?? d ?? [];
+                if (d.meta) this.meta = d.meta;
+                else this.meta = { total: d.total ?? this.items.length, from: d.from ?? 1, to: d.to ?? this.items.length, last_page: d.last_page ?? 1 };
             } catch (e) {
                 toast('Failed to load customers', 'error');
             } finally {
                 this.loading = false;
             }
+        },
+        async loadStats() {
+            try {
+                const params = this.buildParams();
+                params.delete('page'); params.delete('per_page');
+                const r = await apiFetch('/customers-stats?' + params);
+                this.stats = await r.json();
+            } catch (e) {}
+        },
+        async init() {
+            await Promise.all([this.load(), this.loadStats()]);
         },
         initials(name) {
             if (!name) return '?';

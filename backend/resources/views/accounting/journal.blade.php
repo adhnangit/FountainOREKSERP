@@ -321,11 +321,11 @@ function journalPage() {
   return {
     entries: [], accounts: [], branches: [], loading: true, saving: false, search: '',
     filters: {
-      from: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().slice(0,10),
-      to:   new Date().toISOString().slice(0,10),
+      from: toLocalISO(new Date(new Date().getFullYear(), new Date().getMonth(), 1)),
+      to:   toLocalISO(new Date()),
       type: '',
     },
-    modal: { open:false, entry_date: new Date().toISOString().slice(0,10), branch_id:'', description:'', lines:[] },
+    modal: { open:false, entry_date: toLocalISO(new Date()), branch_id:'', description:'', lines:[] },
 
     get filtered() {
       const q = this.search.toLowerCase();
@@ -356,7 +356,7 @@ function journalPage() {
 
       this.modal = {
         open: true,
-        entry_date: new Date().toISOString().slice(0,10),
+        entry_date: toLocalISO(new Date()),
         branch_id: defaultBranchId,
         description: '',
         lines: [
@@ -407,7 +407,7 @@ function journalPage() {
     },
 
     resetFilters() {
-      this.filters = { from: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().slice(0,10), to: new Date().toISOString().slice(0,10), type: '' };
+      this.filters = { from: toLocalISO(new Date(new Date().getFullYear(), new Date().getMonth(), 1)), to: toLocalISO(new Date()), type: '' };
       this.load();
     },
 

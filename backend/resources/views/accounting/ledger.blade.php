@@ -151,13 +151,13 @@
 <script>
 function ledgerPage() {
   const today = new Date();
-  const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().slice(0,10);
+  const startOfMonth = toLocalISO(new Date(today.getFullYear(), today.getMonth(), 1));
   const params = new URLSearchParams(window.location.search);
   return {
     accounts: [],
     accountId: params.get('account_id') ?? '',
     fromDate: startOfMonth,
-    toDate: today.toISOString().slice(0,10),
+    toDate: toLocalISO(today),
     data: null, loading: false,
     typeClass(type) {
       const map = {

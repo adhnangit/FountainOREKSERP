@@ -183,6 +183,16 @@
     ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 4px; }
     .main-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; }
     .dark .main-scroll::-webkit-scrollbar-thumb { background: #334155; }
+
+    /* ─────────────── GLOBAL LOADING OVERLAY (PDF gen, etc — anything with a few seconds' latency and no other visible feedback) ─────────────── */
+    .global-loading-overlay{position:fixed;inset:0;z-index:9999;background:rgba(15,23,42,0.35);backdrop-filter:blur(1.5px);display:flex;align-items:center;justify-content:center}
+    .global-loading-box{display:flex;flex-direction:column;align-items:center;gap:14px;background:#fff;padding:26px 34px;border-radius:14px;box-shadow:0 12px 40px rgba(0,0,0,0.25)}
+    .dark .global-loading-box{background:#1e2533}
+    .global-loading-spinner{width:34px;height:34px;border-radius:50%;border:3.5px solid #e2e8f0;border-top-color:#1B3EB6;animation:global-loading-spin .7s linear infinite}
+    .dark .global-loading-spinner{border-color:#334155;border-top-color:#5b7cf0}
+    @keyframes global-loading-spin{to{transform:rotate(360deg)}}
+    .global-loading-msg{font-size:13.5px;font-weight:600;color:#334155}
+    .dark .global-loading-msg{color:#cbd5e1}
   </style>
   @stack('head')
 </head>
@@ -863,6 +873,13 @@ elseif (request()->is('access-control*') || request()->is('settings/branches*') 
 
 <div class="fixed top-4 right-4 z-50 flex flex-col gap-2 pointer-events-none" id="toasts"></div>
 
+<div id="global-loading-overlay" class="global-loading-overlay" style="display:none">
+  <div class="global-loading-box">
+    <div class="global-loading-spinner"></div>
+    <div class="global-loading-msg" id="global-loading-msg">Loading…</div>
+  </div>
+</div>
+
 <script>
 const API = '{{ url('/api') }}';
 const BASE = '{{ url('') }}';
@@ -906,6 +923,16 @@ function toast(msg, type = 'success') {
   document.getElementById('toasts').appendChild(el);
   setTimeout(() => { el.style.opacity='0'; el.style.transform='translateX(8px)'; el.style.transition='all 0.3s'; setTimeout(()=>el.remove(),300); }, 3700);
 }
+let _globalLoadingCount = 0;
+function showGlobalLoading(msg = 'Loading…') {
+  _globalLoadingCount++;
+  document.getElementById('global-loading-msg').textContent = msg;
+  document.getElementById('global-loading-overlay').style.display = 'flex';
+}
+function hideGlobalLoading() {
+  _globalLoadingCount = Math.max(0, _globalLoadingCount - 1);
+  if (_globalLoadingCount === 0) document.getElementById('global-loading-overlay').style.display = 'none';
+}
 function fmtMoney(v) {
   if (v == null) return '—';
   return 'Rs. ' + parseFloat(v).toLocaleString('en-LK', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -913,6 +940,14 @@ function fmtMoney(v) {
 function fmtDate(d) {
   if (!d) return '—';
   return new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+}
+// Converts a Date to a YYYY-MM-DD string using ITS OWN local Y/M/D fields —
+// never d.toISOString(), which converts to UTC first and silently rolls a
+// local midnight back to the previous day in any timezone ahead of UTC
+// (e.g. Asia/Colombo, UTC+5:30). Use this wherever a date-range boundary
+// (start of month/quarter/year, etc.) is built from local Date components.
+function toLocalISO(d) {
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
 }
 function exportCSV(filename, headers, rows) {
   const esc = v => '"' + String(v ?? '').replace(/"/g, '""') + '"';

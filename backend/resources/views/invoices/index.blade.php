@@ -396,6 +396,7 @@ function invoiceList() {
       } catch(e) { toast('Error deleting invoice', 'error'); }
     },
     async downloadPdf(inv) {
+      showGlobalLoading('Generating PDF…');
       try {
         const r = await apiFetch('/invoices/' + inv.id + '/pdf');
         const blob = await r.blob();
@@ -406,11 +407,13 @@ function invoiceList() {
         document.body.appendChild(a); a.click(); document.body.removeChild(a);
         URL.revokeObjectURL(url);
       } catch(e) { toast(e.message ?? 'PDF download failed', 'error'); }
+      finally { hideGlobalLoading(); }
     },
     async printInvoice(inv) {
+      showGlobalLoading('Preparing invoice…');
       try {
         const r = await apiFetch('/invoices/' + inv.id + '/pdf');
-        if (!r.ok) { toast('Failed to generate PDF', 'error'); return; }
+        if (!r.ok) { toast('Failed to generate PDF', 'error'); hideGlobalLoading(); return; }
         const blob = await r.blob();
         const url = URL.createObjectURL(blob);
         const iframe = document.createElement('iframe');
@@ -418,13 +421,14 @@ function invoiceList() {
         iframe.src = url;
         document.body.appendChild(iframe);
         iframe.onload = () => {
+          hideGlobalLoading();
           setTimeout(() => {
             iframe.contentWindow.focus();
             iframe.contentWindow.print();
           }, 300);
         };
         setTimeout(() => { document.body.removeChild(iframe); URL.revokeObjectURL(url); }, 60000);
-      } catch(e) { toast('Print failed', 'error'); }
+      } catch(e) { toast('Print failed', 'error'); hideGlobalLoading(); }
     },
     isOverdue(inv) {
       if (!inv.due_date || inv.status === 'paid' || inv.status === 'cancelled') return false;

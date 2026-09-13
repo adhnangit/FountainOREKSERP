@@ -271,8 +271,8 @@
 @push('scripts')
 <script>
 function stockMovementReport() {
-  const today = new Date().toISOString().slice(0,10);
-  const first = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().slice(0,10);
+  const today = toLocalISO(new Date());
+  const first = toLocalISO(new Date(new Date().getFullYear(), new Date().getMonth(), 1));
   return {
     loading: true, page: 1,
     filters: { from_date: first, to_date: today, type: '' },
@@ -303,8 +303,8 @@ function stockMovementReport() {
     resetFilters() {
       const now = new Date();
       this.filters = {
-        from_date: new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0,10),
-        to_date: now.toISOString().slice(0,10),
+        from_date: toLocalISO(new Date(now.getFullYear(), now.getMonth(), 1)),
+        to_date: toLocalISO(now),
         type: ''
       };
       this.search = '';

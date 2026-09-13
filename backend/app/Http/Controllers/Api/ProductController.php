@@ -20,9 +20,24 @@ class ProductController extends Controller
         private BranchContextService $branchContext
     ) {}
 
-    public function index(Request $request): JsonResponse
+    /**
+     * A correlated subquery (not a join) for this product's stock quantity —
+     * summed across all branches for "All Branches" view, or scoped to one
+     * branch — so it can be selected as a column and filtered/sorted via
+     * HAVING alongside normal pagination, without collapsing multi-branch
+     * stock rows the way a JOIN would.
+     */
+    private function stockQtySubquery(?int $branchId): \Illuminate\Database\Query\Builder
     {
-        $q = Product::query();
+        $sub = DB::table('product_branch_stock')
+            ->selectRaw('COALESCE(SUM(quantity),0)')
+            ->whereColumn('product_id', 'products.id');
+        if ($branchId) $sub->where('branch_id', $branchId);
+        return $sub;
+    }
+
+    private function applyProductFilters($q, Request $request): void
+    {
         $this->branchContext->applyScope($q);
         if ($request->search) {
             $q->where(fn($q) => $q
@@ -35,12 +50,60 @@ class ProductController extends Controller
         if ($request->category_id) $q->where('category_id', $request->category_id);
         if ($request->is_active !== null) $q->where('is_active', $request->boolean('is_active'));
 
+        // reorder_level is referenced here via the "reorder_lvl" alias, not the bare
+        // column — MySQL's strict mode (error 1463) rejects a plain products.* column
+        // in a HAVING clause on a query with no GROUP BY, but accepts an explicitly
+        // selected alias (which is why the computed "stock_qty" alias already worked).
+        if ($request->stock_status === 'out') {
+            $q->havingRaw('stock_qty <= 0');
+        } elseif ($request->stock_status === 'low') {
+            $q->havingRaw('stock_qty > 0 AND stock_qty <= reorder_lvl AND reorder_lvl > 0');
+        } elseif ($request->stock_status === 'in_stock') {
+            $q->havingRaw('stock_qty > reorder_lvl OR (reorder_lvl = 0 AND stock_qty > 0)');
+        }
+    }
+
+    public function index(Request $request): JsonResponse
+    {
         $branchId = $this->branchContext->getBranchId();
+        $stockSub = $this->stockQtySubquery($branchId);
+
+        $q = Product::query()->selectRaw(
+            'products.*, (' . $stockSub->toSql() . ') as stock_qty, COALESCE(products.reorder_level, 0) as reorder_lvl',
+            $stockSub->getBindings()
+        );
+        $this->applyProductFilters($q, $request);
+
         $products = $q->with(['category', 'branchStocks' => fn($q) => ($branchId ? $q->where('branch_id', $branchId) : $q)->with('branch')])
             ->orderBy('name')
-            ->paginate($request->input('per_page', 200));
+            ->paginate($request->input('per_page', 25));
 
         return response()->json($products);
+    }
+
+    public function stats(Request $request): JsonResponse
+    {
+        $branchId = $this->branchContext->getBranchId();
+        $stockSub = $this->stockQtySubquery($branchId);
+        $valueSub = DB::table('product_branch_stock')
+            ->selectRaw('COALESCE(SUM(quantity*avg_cost),0)')
+            ->whereColumn('product_id', 'products.id');
+        if ($branchId) $valueSub->where('branch_id', $branchId);
+
+        $q = Product::query()->selectRaw(
+            'products.*, (' . $stockSub->toSql() . ') as stock_qty, (' . $valueSub->toSql() . ') as stock_value, COALESCE(products.reorder_level, 0) as reorder_lvl',
+            array_merge($stockSub->getBindings(), $valueSub->getBindings())
+        );
+        $this->applyProductFilters($q, $request);
+        $rows = $q->get();
+
+        return response()->json([
+            'total_products'    => $rows->count(),
+            'active_count'      => $rows->where('is_active', true)->count(),
+            'low_stock_count'   => $rows->filter(fn($p) => $p->stock_qty > 0 && $p->stock_qty <= ($p->reorder_level ?? 0) && ($p->reorder_level ?? 0) > 0)->count(),
+            'out_of_stock_count'=> $rows->filter(fn($p) => $p->stock_qty <= 0)->count(),
+            'total_stock_value' => round((float) $rows->sum('stock_value'), 2),
+        ]);
     }
 
     public function store(Request $request): JsonResponse

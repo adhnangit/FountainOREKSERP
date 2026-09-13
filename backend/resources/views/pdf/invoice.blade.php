@@ -380,6 +380,30 @@
     </table>
 
     <!-- ITEMS TABLE -->
+    @php
+        // dompdf tables don't reliably stretch to fill remaining page height
+        // (no dependable flex/min-height support), so a short invoice leaves a
+        // large blank gap before the totals/footer. The standard fix: pad the
+        // table with blank filler rows up to a target count so the table body
+        // itself extends most of the way down the page, the way a pre-printed
+        // paper invoice form would. Only pads up — an invoice that already has
+        // more items than the target is left alone (it already fills the page,
+        // or legitimately spans multiple pages).
+        // Notes/Terms/a fuller footer eat into the same page, so the target
+        // shrinks when they're present — otherwise a maxed-out table plus a
+        // long note+terms combination spills onto an almost-empty 2nd page,
+        // recreating the exact waste this fix exists to remove.
+        // Same idea for the totals block: a discount or a part-payment each
+        // add 2 extra rows there (Subtotal+Discount, Amount Paid+Balance Due).
+        // Reduced by slightly more than those rows' own height (a safety
+        // margin) since a maxed-out items table left no slack for them.
+        $itemTargetRows = 24;
+        if ($invoice->notes) $itemTargetRows -= 5;
+        if ($invoice->terms) $itemTargetRows -= 5;
+        if ($invoice->discount_amount > 0) $itemTargetRows -= 3;
+        if ($invoice->paid_amount > 0) $itemTargetRows -= 3;
+        $fillerRows = max(0, $itemTargetRows - $invoice->items->count());
+    @endphp
     <table class="items-table">
         <thead>
             <tr>
@@ -407,6 +431,15 @@
                 <td class="tr">{{ number_format($item->total, 2) }}</td>
             </tr>
             @endforeach
+            @for($i = 0; $i < $fillerRows; $i++)
+            <tr class="filler-row">
+                <td>&nbsp;</td>
+                <td>&nbsp;</td>
+                <td>&nbsp;</td>
+                <td>&nbsp;</td>
+                <td>&nbsp;</td>
+            </tr>
+            @endfor
         </tbody>
     </table>
 

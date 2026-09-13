@@ -187,7 +187,7 @@ function adjustmentCreate() {
       batch_id: '',
       adjustment_type: 'add',
       quantity: '',
-      adjustment_date: new Date().toISOString().split('T')[0],
+      adjustment_date: (d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`)(new Date()),
       reason: '',
       notes: '',
     },

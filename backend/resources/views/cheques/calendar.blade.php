@@ -766,7 +766,7 @@
 function chequeCalendar() {
     const TODAY = new Date();
     TODAY.setHours(0,0,0,0);
-    const todayStr = TODAY.toISOString().slice(0,10);
+    const todayStr = toLocalISO(TODAY);
 
     return {
         items:     [],
@@ -880,7 +880,7 @@ function chequeCalendar() {
         },
         get dueWeek() {
             const end = new Date(TODAY); end.setDate(end.getDate()+7);
-            const endStr = end.toISOString().slice(0,10);
+            const endStr = toLocalISO(end);
             const list = this.items.filter(c => c.status === 'in_hand' && (c.cheque_date??'') >= todayStr && (c.cheque_date??'') <= endStr);
             return { count: list.length, amount: list.reduce((s,c)=>s+parseFloat(c.amount||0),0) };
         },

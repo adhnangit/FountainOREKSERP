@@ -225,10 +225,10 @@
 <script>
 function plPage() {
   const today = new Date();
-  const startOfYear = new Date(today.getFullYear(), 0, 1).toISOString().slice(0,10);
+  const startOfYear = toLocalISO(new Date(today.getFullYear(), 0, 1));
   return {
     fromDate: startOfYear,
-    toDate: today.toISOString().slice(0,10),
+    toDate: toLocalISO(today),
     data: null, loading: false,
     expandedGroups: {},
     // Contra accounts (e.g. Sales Returns, Cancelled Sales: type=income but normal_balance=debit)

@@ -101,8 +101,8 @@ function activityLogPage() {
     return {
         items: [],
         loading: true,
-        dateFrom: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().slice(0, 10),
-        dateTo:   new Date().toISOString().slice(0, 10),
+        dateFrom: toLocalISO(new Date(new Date().getFullYear(), new Date().getMonth(), 1)),
+        dateTo:   toLocalISO(new Date()),
         userSearch: '',
         actionFilter: '',
         page: 1,
@@ -134,8 +134,8 @@ function activityLogPage() {
             }
         },
         resetFilters() {
-            this.dateFrom    = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().slice(0, 10);
-            this.dateTo      = new Date().toISOString().slice(0, 10);
+            this.dateFrom    = toLocalISO(new Date(new Date().getFullYear(), new Date().getMonth(), 1));
+            this.dateTo      = toLocalISO(new Date());
             this.userSearch  = '';
             this.actionFilter = '';
             this.page        = 1;

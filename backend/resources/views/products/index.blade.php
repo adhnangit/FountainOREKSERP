@@ -44,6 +44,14 @@
 .prd-empty h5{font-size:16px;font-weight:700;color:#475569;margin-top:14px}
 .prd-empty p{font-size:13px;color:#94a3b8;margin-top:4px}
 
+.prd-pagination{display:flex;align-items:center;justify-content:space-between;padding:12px 20px;border-top:1px solid #f1f5f9;flex-wrap:wrap;gap:10px}
+.prd-page-info{font-size:12.5px;color:#94a3b8}
+.prd-page-btns{display:flex;gap:4px}
+.prd-page-btn{min-width:30px;height:30px;padding:0 6px;border-radius:7px;border:1px solid #e2e8f0;background:#fff;font-size:12px;font-weight:600;color:#475569;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s}
+.prd-page-btn:hover:not(:disabled):not(.active){background:#f8fafc}
+.prd-page-btn.active{background:#6366f1;color:#fff;border-color:#6366f1}
+.prd-page-btn:disabled{opacity:.35;cursor:default}
+
 .dark .prd-stat-card{background:#1e293b;border-color:#334155}
 .dark .prd-stat-lbl{color:#64748b}
 .dark .prd-toolbar{background:#1e293b;border-color:#334155}
@@ -60,6 +68,8 @@
 .dark .prd-action-btn:hover{background:#253347;border-color:#6366f1}
 .dark .prd-empty svg{color:#334155}
 .dark .prd-empty h5{color:#94a3b8}
+.dark .prd-pagination{border-color:#1e293b}
+.dark .prd-page-btn{background:#1e293b;border-color:#334155;color:#94a3b8}
 </style>
 
 <div x-data="productsPage()" x-init="init()">
@@ -71,7 +81,7 @@
         <svg fill="none" viewBox="0 0 24 24" stroke="#4f46e5" stroke-width="1.8"><path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
       </div>
       <div>
-        <div class="prd-stat-val" style="color:#4f46e5" x-text="items.length"></div>
+        <div class="prd-stat-val" style="color:#4f46e5" x-text="stats.total_products ?? 0"></div>
         <div class="prd-stat-lbl">Total Products</div>
       </div>
     </div>
@@ -80,7 +90,7 @@
         <svg fill="none" viewBox="0 0 24 24" stroke="#16a34a" stroke-width="1.8"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
       </div>
       <div>
-        <div class="prd-stat-val" style="color:#16a34a" x-text="activeCount"></div>
+        <div class="prd-stat-val" style="color:#16a34a" x-text="stats.active_count ?? 0"></div>
         <div class="prd-stat-lbl">Active</div>
       </div>
     </div>
@@ -89,7 +99,7 @@
         <svg fill="none" viewBox="0 0 24 24" stroke="#b45309" stroke-width="1.8"><path d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
       </div>
       <div>
-        <div class="prd-stat-val" style="color:#b45309" x-text="lowStockCount"></div>
+        <div class="prd-stat-val" style="color:#b45309" x-text="stats.low_stock_count ?? 0"></div>
         <div class="prd-stat-lbl">Low Stock</div>
       </div>
     </div>
@@ -98,7 +108,7 @@
         <svg fill="none" viewBox="0 0 24 24" stroke="#2563eb" stroke-width="1.8"><path d="M9 7h6m0 10v-3m-3 3v-3m-3 3v-3m9-8H4a1 1 0 00-1 1v10a1 1 0 001 1h16a1 1 0 001-1V6a1 1 0 00-1-1z"/></svg>
       </div>
       <div>
-        <div class="prd-stat-val" style="color:#2563eb" x-text="fmtCompact(totalStockValue)"></div>
+        <div class="prd-stat-val" style="color:#2563eb" x-text="fmtCompact(stats.total_stock_value ?? 0)"></div>
         <div class="prd-stat-lbl">Total Stock Value</div>
       </div>
     </div>
@@ -108,13 +118,19 @@
   <div class="prd-toolbar">
     <div class="prd-search-wrap">
       <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-      <input type="text" x-model="search" placeholder="Search name, SKU…">
+      <input type="text" x-model="search" @input.debounce.400ms="page=1; load(); loadStats()" placeholder="Search name, SKU…">
     </div>
-    <select x-model="categoryFilter" class="prd-select">
+    <select x-model="categoryFilter" @change="page=1; load(); loadStats()" class="prd-select">
       <option value="">All Categories</option>
       <template x-for="cat in categories" :key="cat.id">
         <option :value="cat.id" x-text="cat.name"></option>
       </template>
+    </select>
+    <select x-model="stockStatusFilter" @change="page=1; load(); loadStats()" class="prd-select">
+      <option value="">All Stock Levels</option>
+      <option value="in_stock">In Stock</option>
+      <option value="low">Low Stock</option>
+      <option value="out">Out of Stock</option>
     </select>
     <div style="margin-left:auto">
       <a href="{{ url('/products/create') }}"
@@ -147,7 +163,7 @@
           </tr>
         </thead>
         <tbody>
-          <template x-for="p in filtered" :key="p.id">
+          <template x-for="p in items" :key="p.id">
             <tr>
               <td>
                 <div class="flex items-center gap-3">
@@ -202,10 +218,34 @@
           </template>
         </tbody>
       </table>
-      <div x-show="!loading && filtered.length === 0" class="prd-empty">
+      <div x-show="!loading && items.length === 0" class="prd-empty">
         <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
         <h5>No products found</h5>
         <p>Try adjusting your search or filters</p>
+      </div>
+
+      {{-- Pagination --}}
+      <div class="prd-pagination" x-show="meta.total > 0">
+        <div class="prd-page-info"
+             x-text="'Showing '+meta.from+'–'+meta.to+' of '+meta.total+' products'"></div>
+        <div class="prd-page-btns">
+          <button class="prd-page-btn" @click="page=1;load()" :disabled="page<=1">
+            <svg style="width:12px;height:12px" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M11 19l-7-7 7-7M18 19l-7-7 7-7"/></svg>
+          </button>
+          <button class="prd-page-btn" @click="page--;load()" :disabled="page<=1">
+            <svg style="width:12px;height:12px" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M15 19l-7-7 7-7"/></svg>
+          </button>
+          <template x-for="p in pageNumbers" :key="p">
+            <button class="prd-page-btn" :class="p===page?'active':''"
+                    @click="page=p;load()" x-text="p"></button>
+          </template>
+          <button class="prd-page-btn" @click="page++;load()" :disabled="page>=meta.last_page">
+            <svg style="width:12px;height:12px" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M9 5l7 7-7 7"/></svg>
+          </button>
+          <button class="prd-page-btn" @click="page=meta.last_page;load()" :disabled="page>=meta.last_page">
+            <svg style="width:12px;height:12px" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M13 5l7 7-7 7M6 5l7 7-7 7"/></svg>
+          </button>
+        </div>
       </div>
     </div>
   </div>
@@ -218,23 +258,22 @@ function productsPage() {
     return {
         items: [],
         categories: [],
+        stats: {},
         loading: true,
         search: '',
         categoryFilter: '',
+        stockStatusFilter: '',
+        page: 1,
+        meta: { total: 0, from: 0, to: 0, last_page: 1 },
         isAllBranches: localStorage.getItem('medri_branch') === 'all' || !localStorage.getItem('medri_branch'),
-        get filtered() {
-            let list = this.items;
-            if (this.categoryFilter) list = list.filter(p => p.category_id == this.categoryFilter);
-            const q = this.search.toLowerCase();
-            if (!q) return list;
-            return list.filter(p =>
-                (p.name ?? '').toLowerCase().includes(q) ||
-                (p.sku ?? '').toLowerCase().includes(q)
-            );
+
+        get pageNumbers() {
+            const total = this.meta.last_page;
+            const cur = this.page;
+            if (total <= 7) return Array.from({length: total}, (_, i) => i + 1);
+            const pages = new Set([1, total, cur, cur-1, cur+1].filter(p => p >= 1 && p <= total));
+            return [...pages].sort((a,b) => a-b);
         },
-        get activeCount() { return this.items.filter(p => (p.is_active ?? true)).length; },
-        get lowStockCount() { return this.items.filter(p => stockQtyOf(p) <= (p.reorder_level ?? 0)).length; },
-        get totalStockValue() { return this.items.reduce((s, p) => s + stockValueOf(p), 0); },
         stockQty(p) {
             if (p.stock_qty != null) return p.stock_qty;
             const stocks = p.branch_stocks ?? p.branchStocks ?? [];
@@ -246,22 +285,41 @@ function productsPage() {
             if (!stocks.length) return 0;
             return stocks.reduce((s, b) => s + parseFloat(b.quantity ?? 0) * parseFloat(b.avg_cost ?? 0), 0);
         },
-        get activeCount() { return this.items.filter(p => (p.is_active ?? true)).length; },
-        get lowStockCount() { return this.items.filter(p => this.stockQty(p) <= (p.reorder_level ?? 0)).length; },
-        get totalStockValue() { return this.items.reduce((s, p) => s + this.stockValue(p), 0); },
-        async init() {
+        buildParams() {
+            const params = new URLSearchParams({ page: this.page, per_page: 25 });
+            if (this.search) params.set('search', this.search);
+            if (this.categoryFilter) params.set('category_id', this.categoryFilter);
+            if (this.stockStatusFilter) params.set('stock_status', this.stockStatusFilter);
+            return params;
+        },
+        async load() {
+            this.loading = true;
             try {
-                const [pr, cr] = await Promise.all([
-                    apiFetch('/products?per_page=200').then(r => r.json()),
-                    apiFetch('/products/categories').then(r => r.json()),
-                ]);
-                this.items = pr.data ?? pr ?? [];
-                this.categories = cr.data ?? cr ?? [];
+                const r = await apiFetch('/products?' + this.buildParams());
+                const d = await r.json();
+                this.items = d.data ?? d ?? [];
+                if (d.meta) this.meta = d.meta;
+                else this.meta = { total: d.total ?? this.items.length, from: d.from ?? 1, to: d.to ?? this.items.length, last_page: d.last_page ?? 1 };
             } catch (e) {
                 toast('Failed to load products', 'error');
             } finally {
                 this.loading = false;
             }
+        },
+        async loadStats() {
+            try {
+                const params = this.buildParams();
+                params.delete('page'); params.delete('per_page');
+                const r = await apiFetch('/products-stats?' + params);
+                this.stats = await r.json();
+            } catch (e) {}
+        },
+        async init() {
+            try {
+                const cr = await apiFetch('/products/categories').then(r => r.json());
+                this.categories = cr.data ?? cr ?? [];
+            } catch (e) {}
+            await Promise.all([this.load(), this.loadStats()]);
         },
         fmtMoney(n) { return Number(n??0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}); },
         fmtCompact(n) { const v = Math.abs(Number(n??0)); if(v>=1e6) return (v/1e6).toFixed(1)+'M'; if(v>=1e3) return (v/1e3).toFixed(1)+'K'; return v.toFixed(0); },

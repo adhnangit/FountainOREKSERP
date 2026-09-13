@@ -383,8 +383,44 @@
                 <span class="font-medium tabular-nums" x-text="fmtMoney(subtotal)"></span>
               </div>
               <div class="flex justify-between text-sm" x-show="discountTotal > 0">
-                <span class="text-gray-500 dark:text-gray-400">Discount</span>
+                <span class="text-gray-500 dark:text-gray-400">Item Discounts</span>
                 <span class="font-medium tabular-nums text-red-500" x-text="'– ' + fmtMoney(discountTotal)"></span>
+              </div>
+              <div class="rounded-xl border border-gray-100 dark:border-gray-700 bg-gray-50/60 dark:bg-gray-800/30 px-3 py-2.5">
+                <div class="flex items-center justify-between mb-2">
+                  <span class="text-sm font-semibold text-gray-600 dark:text-gray-300">Bill Discount</span>
+                  <div class="inline-flex rounded-lg overflow-hidden border border-gray-200 dark:border-gray-600">
+                    <button type="button" @click="billDiscountMode = 'percent'; billDiscountAmount = 0; calcTotals()"
+                            :class="billDiscountMode === 'percent' ? 'text-white' : 'text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800'"
+                            :style="billDiscountMode === 'percent' ? 'background:linear-gradient(135deg,#4f46e5,#6366f1)' : ''"
+                            class="px-2.5 py-1 text-xs font-bold transition-colors">%</button>
+                    <button type="button" @click="billDiscountMode = 'flat'; billDiscountPercent = 0; calcTotals()"
+                            :class="billDiscountMode === 'flat' ? 'text-white' : 'text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800'"
+                            :style="billDiscountMode === 'flat' ? 'background:linear-gradient(135deg,#4f46e5,#6366f1)' : ''"
+                            class="px-2.5 py-1 text-xs font-bold transition-colors border-l border-gray-200 dark:border-gray-600">Rs.</button>
+                  </div>
+                </div>
+                <div class="flex items-center gap-3">
+                  <div class="relative flex-1">
+                    <template x-if="billDiscountMode === 'percent'">
+                      <div class="relative">
+                        <input type="number" x-model.number="billDiscountPercent" @input="calcTotals()"
+                               min="0" max="100" step="0.5" placeholder="0"
+                               class="w-full text-sm border border-gray-200 dark:border-gray-600 rounded-lg pl-3 pr-8 py-1.5 bg-white dark:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-400/25 focus:border-indigo-400 tabular-nums" />
+                        <span class="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400 pointer-events-none">%</span>
+                      </div>
+                    </template>
+                    <template x-if="billDiscountMode === 'flat'">
+                      <div class="relative">
+                        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-gray-400 pointer-events-none">Rs.</span>
+                        <input type="number" x-model.number="billDiscountAmount" @input="calcTotals()"
+                               min="0" step="0.01" placeholder="0.00"
+                               class="w-full text-sm border border-gray-200 dark:border-gray-600 rounded-lg pl-9 pr-3 py-1.5 bg-white dark:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-400/25 focus:border-indigo-400 tabular-nums" />
+                      </div>
+                    </template>
+                  </div>
+                  <span class="text-sm font-semibold tabular-nums text-red-500 whitespace-nowrap" x-show="billDiscountValue > 0" x-text="'– ' + fmtMoney(billDiscountValue)"></span>
+                </div>
               </div>
               <div class="flex justify-between text-sm text-gray-500 dark:text-gray-400">
                 <span class="flex items-center gap-1.5">
@@ -496,8 +532,12 @@
             <span class="font-medium tabular-nums" x-text="fmtMoney(subtotal)"></span>
           </div>
           <div class="flex justify-between text-sm text-red-500" x-show="discountTotal > 0">
-            <span>Discount</span>
+            <span>Item Discounts</span>
             <span class="font-medium tabular-nums" x-text="'– ' + fmtMoney(discountTotal)"></span>
+          </div>
+          <div class="flex justify-between text-sm text-red-500" x-show="billDiscountValue > 0">
+            <span>Bill Discount</span>
+            <span class="font-medium tabular-nums" x-text="'– ' + fmtMoney(billDiscountValue)"></span>
           </div>
           <div class="flex justify-between text-sm text-gray-500 dark:text-gray-400" x-show="taxAmount > 0">
             <span>Tax (<span x-text="taxRate"></span>%)</span>
@@ -557,6 +597,10 @@ function invoiceEdit() {
     taxRate:      0,
     subtotal:     0,
     discountTotal:0,
+    billDiscountMode:    'percent',
+    billDiscountPercent: 0,
+    billDiscountAmount:  0,
+    billDiscountValue:   0,
     taxAmount:    0,
     grandTotal:   0,
     form: {
@@ -594,6 +638,11 @@ function invoiceEdit() {
       this.form.due_date     = (this.inv.due_date || '').slice(0, 10);
       this.form.notes        = this.inv.notes || '';
       this.taxRate           = parseFloat(this.inv.tax_percent || 0);
+      const invDiscPct       = parseFloat(this.inv.discount_percent || 0);
+      const invDiscAmt       = parseFloat(this.inv.discount_amount || 0);
+      this.billDiscountMode    = invDiscAmt > 0 ? 'flat' : 'percent';
+      this.billDiscountPercent = invDiscAmt > 0 ? 0 : invDiscPct;
+      this.billDiscountAmount  = invDiscAmt > 0 ? invDiscAmt : 0;
 
       this.items = (this.inv.items || []).map(item => {
         const isService = !!item.service_id;
@@ -691,8 +740,15 @@ function invoiceEdit() {
     calcTotals() {
       this.subtotal      = this.items.reduce((s, r) => s + ((r.quantity||0)*(r.unit_price||0)), 0);
       this.discountTotal = this.items.reduce((s, r) => s + ((r.quantity||0)*(r.unit_price||0)*((r.discount||0)/100)), 0);
-      this.taxAmount     = (this.subtotal - this.discountTotal) * ((this.taxRate||0) / 100);
-      this.grandTotal    = this.subtotal - this.discountTotal + this.taxAmount;
+      // Matches InvoiceController::calculateTotals() exactly: bill-level
+      // discount is applied on top of line-item discounts, before tax.
+      const netSubtotal = this.subtotal - this.discountTotal;
+      this.billDiscountValue = (parseFloat(this.billDiscountAmount) || 0) > 0
+        ? parseFloat(this.billDiscountAmount)
+        : netSubtotal * ((parseFloat(this.billDiscountPercent) || 0) / 100);
+      const taxable = netSubtotal - this.billDiscountValue;
+      this.taxAmount  = taxable * ((this.taxRate||0) / 100);
+      this.grandTotal = taxable + this.taxAmount;
     },
 
     async save(thenConfirm) {
@@ -708,6 +764,8 @@ function invoiceEdit() {
           due_date:     this.form.due_date || null,
           notes:        this.form.notes || null,
           tax_percent:  this.taxRate,
+          discount_percent: this.billDiscountAmount > 0 ? 0 : (this.billDiscountPercent || 0),
+          discount_amount:  this.billDiscountAmount || 0,
           items: this.items.flatMap(r => {
             if (r.type === 'service') {
               return [{ service_id: r.service_id, quantity: r.quantity, unit_price: r.unit_price, discount_percent: r.discount || 0, notes: r.description || null }];

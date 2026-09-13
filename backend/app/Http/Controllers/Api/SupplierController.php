@@ -21,9 +21,8 @@ class SupplierController extends Controller
         private BranchContextService $branchContext
     ) {}
 
-    public function index(Request $request): JsonResponse
+    private function applySupplierFilters($q, Request $request): void
     {
-        $q = Supplier::query();
         $this->branchContext->applyScope($q);
         if ($request->search) {
             $q->where(fn($q) => $q
@@ -34,32 +33,62 @@ class SupplierController extends Controller
             );
         }
         if ($request->is_active !== null) $q->where('is_active', $request->boolean('is_active'));
+    }
 
-        $suppliers = $q->orderBy('name')->paginate($request->input('per_page', 20));
-
-        // Balance per supplier = the account's raw ledger balance, full stop —
-        // deliberately the same figure the Chart of Accounts shows for that
-        // account, so the two views can never disagree. See
-        // Supplier::getOutstandingBalanceAttribute() for the full reasoning;
-        // this is the identical calculation as a bulk aggregate query for
-        // list-page performance, not a call into the model accessor itself.
-        $suppliers->getCollection()->loadMissing('account:id,opening_balance');
-        $accountIds = $suppliers->getCollection()->pluck('account_id')->filter();
+    /**
+     * Balance per supplier = the account's raw ledger balance, full stop —
+     * deliberately the same figure the Chart of Accounts shows for that
+     * account, so the two views can never disagree. See
+     * Supplier::getOutstandingBalanceAttribute() for the full reasoning;
+     * this is the identical calculation as a bulk aggregate query for
+     * list-page performance, not a call into the model accessor itself.
+     * Mutates and returns the given collection (used by both the paginated
+     * list and stats()).
+     */
+    private function attachSupplierBalances($suppliers)
+    {
+        $suppliers->loadMissing('account:id,opening_balance');
+        $accountIds = $suppliers->pluck('account_id')->filter();
         $sums = \App\Models\JournalEntryLine::whereIn('account_id', $accountIds)
             ->whereHas('journalEntry', fn($q) => $q->where('status', 'posted'))
             ->selectRaw('account_id, SUM(debit) as dr, SUM(credit) as cr')
             ->groupBy('account_id')
             ->get()->keyBy('account_id');
 
-        $suppliers->getCollection()->transform(function ($supplier) use ($sums) {
+        return $suppliers->each(function ($supplier) use ($sums) {
             $row = $sums[$supplier->account_id] ?? null;
             $openingBalance = (float) ($supplier->account->opening_balance ?? 0);
             // Supplier accounts are always credit-normal (AP/liability).
             $supplier->balance = $openingBalance + (float) ($row->cr ?? 0) - (float) ($row->dr ?? 0);
-            return $supplier;
         });
+    }
+
+    public function index(Request $request): JsonResponse
+    {
+        $q = Supplier::query();
+        $this->applySupplierFilters($q, $request);
+
+        $suppliers = $q->orderBy('name')->paginate($request->input('per_page', 20));
+        $this->attachSupplierBalances($suppliers->getCollection());
 
         return response()->json($suppliers);
+    }
+
+    public function stats(Request $request): JsonResponse
+    {
+        $q = Supplier::query();
+        $this->applySupplierFilters($q, $request);
+        $suppliers = $q->get();
+        $this->attachSupplierBalances($suppliers);
+
+        return response()->json([
+            'total_suppliers'         => $suppliers->count(),
+            'active_count'            => $suppliers->where('is_active', true)->count(),
+            // Matches the page's established convention: a supplier in credit
+            // (negative balance) contributes 0, not a negative amount.
+            'total_outstanding'       => round((float) $suppliers->sum(fn($s) => max(0, (float) $s->balance)), 2),
+            'with_outstanding_count'  => $suppliers->filter(fn($s) => $s->balance > 0)->count(),
+        ]);
     }
 
     public function store(Request $request): JsonResponse

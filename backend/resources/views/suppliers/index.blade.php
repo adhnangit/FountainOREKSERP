@@ -44,6 +44,14 @@
 .sup-empty h5{font-size:16px;font-weight:700;color:#475569;margin-top:14px}
 .sup-empty p{font-size:13px;color:#94a3b8;margin-top:4px}
 
+.sup-pagination{display:flex;align-items:center;justify-content:space-between;padding:12px 20px;border-top:1px solid #f1f5f9;flex-wrap:wrap;gap:10px}
+.sup-page-info{font-size:12.5px;color:#94a3b8}
+.sup-page-btns{display:flex;gap:4px}
+.sup-page-btn{min-width:30px;height:30px;padding:0 6px;border-radius:7px;border:1px solid #e2e8f0;background:#fff;font-size:12px;font-weight:600;color:#475569;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s}
+.sup-page-btn:hover:not(:disabled):not(.active){background:#f8fafc}
+.sup-page-btn.active{background:#6366f1;color:#fff;border-color:#6366f1}
+.sup-page-btn:disabled{opacity:.35;cursor:default}
+
 .dark .sup-stat-card{background:#1e293b;border-color:#334155}
 .dark .sup-stat-lbl{color:#64748b}
 .dark .sup-toolbar{background:#1e293b;border-color:#334155}
@@ -58,6 +66,8 @@
 .dark .sup-action-btn:hover{background:#253347;border-color:#6366f1}
 .dark .sup-empty svg{color:#334155}
 .dark .sup-empty h5{color:#94a3b8}
+.dark .sup-pagination{border-color:#1e293b}
+.dark .sup-page-btn{background:#1e293b;border-color:#334155;color:#94a3b8}
 </style>
 
 <div x-data="suppliersPage()" x-init="init()">
@@ -69,7 +79,7 @@
         <svg fill="none" viewBox="0 0 24 24" stroke="#4f46e5" stroke-width="1.8"><path d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
       </div>
       <div>
-        <div class="sup-stat-val" style="color:#4f46e5" x-text="items.length"></div>
+        <div class="sup-stat-val" style="color:#4f46e5" x-text="stats.total_suppliers ?? 0"></div>
         <div class="sup-stat-lbl">Total Suppliers</div>
       </div>
     </div>
@@ -78,7 +88,7 @@
         <svg fill="none" viewBox="0 0 24 24" stroke="#16a34a" stroke-width="1.8"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
       </div>
       <div>
-        <div class="sup-stat-val" style="color:#16a34a" x-text="activeCount"></div>
+        <div class="sup-stat-val" style="color:#16a34a" x-text="stats.active_count ?? 0"></div>
         <div class="sup-stat-lbl">Active</div>
       </div>
     </div>
@@ -87,7 +97,7 @@
         <svg fill="none" viewBox="0 0 24 24" stroke="#b91c1c" stroke-width="1.8"><path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
       </div>
       <div>
-        <div class="sup-stat-val" style="color:#b91c1c" x-text="fmtCompact(totalOutstanding)"></div>
+        <div class="sup-stat-val" style="color:#b91c1c" x-text="fmtCompact(stats.total_outstanding ?? 0)"></div>
         <div class="sup-stat-lbl">Total Outstanding</div>
       </div>
     </div>
@@ -96,7 +106,7 @@
         <svg fill="none" viewBox="0 0 24 24" stroke="#2563eb" stroke-width="1.8"><path d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2z"/></svg>
       </div>
       <div>
-        <div class="sup-stat-val" style="color:#2563eb" x-text="withBalanceCount"></div>
+        <div class="sup-stat-val" style="color:#2563eb" x-text="stats.with_outstanding_count ?? 0"></div>
         <div class="sup-stat-lbl">With Outstanding Balance</div>
       </div>
     </div>
@@ -106,7 +116,7 @@
   <div class="sup-toolbar">
     <div class="sup-search-wrap">
       <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-      <input type="text" x-model="search" placeholder="Search name, phone, email…">
+      <input type="text" x-model="search" @input.debounce.400ms="page=1; load(); loadStats()" placeholder="Search name, phone, email…">
     </div>
     <div style="margin-left:auto">
       <a href="{{ url('/suppliers/create') }}"
@@ -137,7 +147,7 @@
           </tr>
         </thead>
         <tbody>
-          <template x-for="s in filtered" :key="s.id">
+          <template x-for="s in items" :key="s.id">
             <tr>
               <td>
                 <div class="flex items-center gap-3">
@@ -164,10 +174,34 @@
           </template>
         </tbody>
       </table>
-      <div x-show="!loading && filtered.length === 0" class="sup-empty">
+      <div x-show="!loading && items.length === 0" class="sup-empty">
         <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
         <h5>No suppliers found</h5>
         <p>Try adjusting your search</p>
+      </div>
+
+      {{-- Pagination --}}
+      <div class="sup-pagination" x-show="meta.total > 0">
+        <div class="sup-page-info"
+             x-text="'Showing '+meta.from+'–'+meta.to+' of '+meta.total+' suppliers'"></div>
+        <div class="sup-page-btns">
+          <button class="sup-page-btn" @click="page=1;load()" :disabled="page<=1">
+            <svg style="width:12px;height:12px" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M11 19l-7-7 7-7M18 19l-7-7 7-7"/></svg>
+          </button>
+          <button class="sup-page-btn" @click="page--;load()" :disabled="page<=1">
+            <svg style="width:12px;height:12px" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M15 19l-7-7 7-7"/></svg>
+          </button>
+          <template x-for="p in pageNumbers" :key="p">
+            <button class="sup-page-btn" :class="p===page?'active':''"
+                    @click="page=p;load()" x-text="p"></button>
+          </template>
+          <button class="sup-page-btn" @click="page++;load()" :disabled="page>=meta.last_page">
+            <svg style="width:12px;height:12px" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M9 5l7 7-7 7"/></svg>
+          </button>
+          <button class="sup-page-btn" @click="page=meta.last_page;load()" :disabled="page>=meta.last_page">
+            <svg style="width:12px;height:12px" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M13 5l7 7-7 7M6 5l7 7-7 7"/></svg>
+          </button>
+        </div>
       </div>
     </div>
   </div>
@@ -180,29 +214,47 @@ function suppliersPage() {
     const COLORS = ['#6366f1','#8b5cf6','#0ea5e9','#10b981','#f59e0b','#ef4444','#ec4899','#14b8a6'];
     return {
         items: [],
+        stats: {},
         loading: true,
         search: '',
-        get filtered() {
-            const q = this.search.toLowerCase();
-            if (!q) return this.items;
-            return this.items.filter(s =>
-                (s.name ?? '').toLowerCase().includes(q) ||
-                (s.phone ?? '').toLowerCase().includes(q) ||
-                (s.email ?? '').toLowerCase().includes(q)
-            );
+        page: 1,
+        meta: { total: 0, from: 0, to: 0, last_page: 1 },
+        get pageNumbers() {
+            const total = this.meta.last_page;
+            const cur = this.page;
+            if (total <= 7) return Array.from({length: total}, (_, i) => i + 1);
+            const pages = new Set([1, total, cur, cur-1, cur+1].filter(p => p >= 1 && p <= total));
+            return [...pages].sort((a,b) => a-b);
         },
-        get activeCount() { return this.items.filter(s => s.is_active !== false).length; },
-        get totalOutstanding() { return this.items.reduce((s, r) => s + Math.max(0, parseFloat(r.balance) || 0), 0); },
-        get withBalanceCount() { return this.items.filter(s => (parseFloat(s.balance) || 0) > 0).length; },
-        async init() {
+        buildParams() {
+            const params = new URLSearchParams({ page: this.page, per_page: 25 });
+            if (this.search) params.set('search', this.search);
+            return params;
+        },
+        async load() {
+            this.loading = true;
             try {
-                const data = await apiFetch('/suppliers?per_page=500').then(r => r.json());
-                this.items = data.data ?? data ?? [];
+                const r = await apiFetch('/suppliers?' + this.buildParams());
+                const d = await r.json();
+                this.items = d.data ?? d ?? [];
+                if (d.meta) this.meta = d.meta;
+                else this.meta = { total: d.total ?? this.items.length, from: d.from ?? 1, to: d.to ?? this.items.length, last_page: d.last_page ?? 1 };
             } catch (e) {
                 toast('Failed to load suppliers', 'error');
             } finally {
                 this.loading = false;
             }
+        },
+        async loadStats() {
+            try {
+                const params = this.buildParams();
+                params.delete('page'); params.delete('per_page');
+                const r = await apiFetch('/suppliers-stats?' + params);
+                this.stats = await r.json();
+            } catch (e) {}
+        },
+        async init() {
+            await Promise.all([this.load(), this.loadStats()]);
         },
         initials(name) {
             if (!name) return '?';

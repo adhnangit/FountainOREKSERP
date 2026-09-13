@@ -453,7 +453,7 @@
 @push('scripts')
 <script>
 function chartOfAccounts() {
-  const today = new Date().toISOString().slice(0,10);
+  const today = toLocalISO(new Date());
   const params = new URLSearchParams(window.location.search);
   return {
     accounts:[], groups:[], filteredGroups:[], obCheck:null, branches:[], defaultBranchId:'',
@@ -461,7 +461,7 @@ function chartOfAccounts() {
     listLoading:true, ledgerLoading:false,
     search:'', filterGroup:'',
     duration:'all',
-    fromDate:new Date(new Date().getFullYear(),new Date().getMonth(),1).toISOString().slice(0,10),
+    fromDate:toLocalISO(new Date(new Date().getFullYear(),new Date().getMonth(),1)),
     toDate:today,
     _cur:new Date(), collapsed:{},
     durations:[
@@ -532,11 +532,11 @@ function chartOfAccounts() {
       finally{ this.ledgerLoading=false; }
     },
     getDateRange(){
-      const t=new Date().toISOString().slice(0,10),d=this._cur;
+      const t=toLocalISO(new Date()),d=this._cur;
       if(this.duration==='all')return['2000-01-01',t];
-      if(this.duration==='monthly')return[new Date(d.getFullYear(),d.getMonth(),1).toISOString().slice(0,10),new Date(d.getFullYear(),d.getMonth()+1,0).toISOString().slice(0,10)];
-      if(this.duration==='quarterly'){const q=Math.floor(d.getMonth()/3);return[new Date(d.getFullYear(),q*3,1).toISOString().slice(0,10),new Date(d.getFullYear(),q*3+3,0).toISOString().slice(0,10)];}
-      if(this.duration==='yearly')return[new Date(d.getFullYear(),0,1).toISOString().slice(0,10),new Date(d.getFullYear(),11,31).toISOString().slice(0,10)];
+      if(this.duration==='monthly')return[toLocalISO(new Date(d.getFullYear(),d.getMonth(),1)),toLocalISO(new Date(d.getFullYear(),d.getMonth()+1,0))];
+      if(this.duration==='quarterly'){const q=Math.floor(d.getMonth()/3);return[toLocalISO(new Date(d.getFullYear(),q*3,1)),toLocalISO(new Date(d.getFullYear(),q*3+3,0))];}
+      if(this.duration==='yearly')return[toLocalISO(new Date(d.getFullYear(),0,1)),toLocalISO(new Date(d.getFullYear(),11,31))];
       return[this.fromDate,this.toDate];
     },
     setDuration(d){ this.duration=d; this._cur=new Date(); if(d!=='custom')this.loadLedger(); },

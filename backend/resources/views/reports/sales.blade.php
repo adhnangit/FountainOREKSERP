@@ -394,8 +394,8 @@
 @push('scripts')
 <script>
 function salesReport() {
-  const today = new Date().toISOString().slice(0,10);
-  const firstOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().slice(0,10);
+  const today = toLocalISO(new Date());
+  const firstOfMonth = toLocalISO(new Date(new Date().getFullYear(), new Date().getMonth(), 1));
   return {
     loading: true,
     customers: [],
@@ -434,7 +434,7 @@ function salesReport() {
       finally { this.loading = false; }
     },
     resetFilters() {
-      this.filters = { from_date: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().slice(0,10), to_date: new Date().toISOString().slice(0,10), customer_id: '', status: '' };
+      this.filters = { from_date: toLocalISO(new Date(new Date().getFullYear(), new Date().getMonth(), 1)), to_date: toLocalISO(new Date()), customer_id: '', status: '' };
       this.load();
     },
     doExport() {

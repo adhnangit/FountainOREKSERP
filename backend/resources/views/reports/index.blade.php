@@ -249,8 +249,8 @@ function reportsHub() {
     now: new Date().toLocaleString('en-GB', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' }),
     async init() {
       try {
-        const today = new Date().toISOString().slice(0,10);
-        const first = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().slice(0,10);
+        const today = toLocalISO(new Date());
+        const first = toLocalISO(new Date(new Date().getFullYear(), new Date().getMonth(), 1));
 
         const [salesD, arD, invD, cheqD] = await Promise.allSettled([
           apiFetch('/reports/sales?from_date=' + first + '&to_date=' + today).then(r => r.json()),

@@ -22,9 +22,8 @@ class CustomerController extends Controller
         private AccountingService $accounting
     ) {}
 
-    public function index(Request $request): JsonResponse
+    private function applyCustomerFilters($q, Request $request): void
     {
-        $q = Customer::query();
         $this->branchContext->applyScope($q);
 
         if ($request->search) {
@@ -42,19 +41,21 @@ class CustomerController extends Controller
         if ($request->district) $q->where('district', $request->district);
         if ($request->city) $q->where('city', 'like', "%{$request->city}%");
         if ($request->is_active !== null) $q->where('is_active', $request->boolean('is_active'));
+    }
 
-        $customers = $q->with(['assignedUser', 'branch'])
-            ->orderBy('name')
-            ->paginate($request->input('per_page', 20));
-
-        // Real outstanding balance per customer: open invoices (excluding
-        // credit notes, which share this table but always carry balance_due=0)
-        // plus the account's opening balance (predates invoice-level tracking)
-        // minus whatever's already been paid against it minus any standing
-        // credit_balance (an over-return credit) — the same calculation the
-        // Customer Aging Report uses, so this list and that report can't
-        // disagree. Aggregate queries throughout, no N+1.
-        $ids = $customers->getCollection()->pluck('id');
+    /**
+     * Real outstanding balance per customer: open invoices (excluding
+     * credit notes, which share this table but always carry balance_due=0)
+     * plus the account's opening balance (predates invoice-level tracking)
+     * minus whatever's already been paid against it minus any standing
+     * credit_balance (an over-return credit) — the same calculation the
+     * Customer Aging Report uses, so this list and that report can't
+     * disagree. Aggregate queries throughout, no N+1. Mutates and returns
+     * the given collection (used by both the paginated list and stats()).
+     */
+    private function attachCustomerBalances($customers)
+    {
+        $ids = $customers->pluck('id');
         $invoiceBalances = Invoice::whereIn('customer_id', $ids)
             ->where('type', 'invoice')
             ->whereIn('status', ['confirmed', 'partially_paid'])
@@ -62,8 +63,8 @@ class CustomerController extends Controller
             ->groupBy('customer_id')
             ->pluck('bal', 'customer_id');
 
-        $customers->getCollection()->loadMissing('account:id,opening_balance');
-        $accountIds = $customers->getCollection()->pluck('account_id')->filter();
+        $customers->loadMissing('account:id,opening_balance');
+        $accountIds = $customers->pluck('account_id')->filter();
         // Must stay in lockstep with Account::openingBalancePaid()'s filter
         // (opening_balance_payment/_reversed, plus a manual entry with no
         // reference_type) — this is a duplicated aggregate query for list-page
@@ -81,15 +82,46 @@ class CustomerController extends Controller
             ->groupBy('account_id')
             ->pluck('net', 'account_id');
 
-        $customers->getCollection()->transform(function ($customer) use ($invoiceBalances, $obPaid) {
+        return $customers->each(function ($customer) use ($invoiceBalances, $obPaid) {
             $obRemaining = (float) ($customer->account->opening_balance ?? 0) - (float) ($obPaid[$customer->account_id] ?? 0);
             $customer->balance = (float) ($invoiceBalances[$customer->id] ?? 0)
                 + $obRemaining
                 - (float) $customer->credit_balance;
-            return $customer;
         });
+    }
+
+    public function index(Request $request): JsonResponse
+    {
+        $q = Customer::query();
+        $this->applyCustomerFilters($q, $request);
+
+        $customers = $q->with(['assignedUser', 'branch'])
+            ->orderBy('name')
+            ->paginate($request->input('per_page', 20));
+
+        $this->attachCustomerBalances($customers->getCollection());
 
         return response()->json($customers);
+    }
+
+    public function stats(Request $request): JsonResponse
+    {
+        $q = Customer::query();
+        $this->applyCustomerFilters($q, $request);
+        $customers = $q->get();
+        $this->attachCustomerBalances($customers);
+
+        return response()->json([
+            'total_customers'    => $customers->count(),
+            'active_count'       => $customers->where('is_active', true)->count(),
+            'walk_in_count'      => $customers->where('is_walk_in', true)->count(),
+            'total_credit_limit' => round((float) $customers->sum('credit_limit'), 2),
+            // Matches the page's established convention: a customer in credit
+            // (negative balance) contributes 0, not a negative amount, to
+            // "how much is outstanding" — a receivables metric, not a raw
+            // ledger sum (unlike e.g. product stock value).
+            'total_outstanding'  => round((float) $customers->sum(fn($c) => max(0, (float) $c->balance)), 2),
+        ]);
     }
 
     public function store(Request $request): JsonResponse

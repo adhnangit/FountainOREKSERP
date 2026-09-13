@@ -1630,7 +1630,7 @@
 @push('scripts')
 <script>
 function chequeWidget() {
-  const _d   = n => { const x = new Date(); x.setDate(x.getDate() + n); return x.toISOString().split('T')[0]; };
+  const _d   = n => { const x = new Date(); x.setDate(x.getDate() + n); const y=x.getFullYear(), m=String(x.getMonth()+1).padStart(2,'0'), day=String(x.getDate()).padStart(2,'0'); return `${y}-${m}-${day}`; };
   const dateMap = { today: _d(0), tomorrow: _d(1), dayafter: _d(2) };
   return {
     cDay: 'today',
@@ -1828,7 +1828,16 @@ function dashboard() {
       return { from, to };
     },
 
-    toISO(d) { return d.toISOString().split('T')[0]; },
+    toISO(d) {
+      // NOT d.toISOString() — that converts to UTC first, which silently
+      // rolls a local midnight back to the previous day for any timezone
+      // ahead of UTC (e.g. Colombo, UTC+5:30), sending the backend a range
+      // shifted a day early (dropping the period's last day, pulling in a
+      // day from before it started). Build the ISO date from the Date
+      // object's own local fields instead.
+      const y = d.getFullYear(), m = String(d.getMonth() + 1).padStart(2, '0'), day = String(d.getDate()).padStart(2, '0');
+      return `${y}-${m}-${day}`;
+    },
 
     setPeriod(key) {
       this.period = key;

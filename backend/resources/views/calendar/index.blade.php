@@ -607,7 +607,7 @@
 function calendarPage() {
     const TODAY = new Date();
     TODAY.setHours(0, 0, 0, 0);
-    const todayStr = TODAY.toISOString().slice(0, 10);
+    const todayStr = toLocalISO(TODAY);
 
     return {
         items:      [],
@@ -700,7 +700,7 @@ function calendarPage() {
             const end = new Date(TODAY); end.setDate(end.getDate() + 7);
             let count = 0, d = new Date(TODAY);
             while (d <= end) {
-                count += this._getEventsForDate(d.toISOString().slice(0, 10), this.items).length;
+                count += this._getEventsForDate(toLocalISO(d), this.items).length;
                 d.setDate(d.getDate() + 1);
             }
             return count;
@@ -708,7 +708,7 @@ function calendarPage() {
         get statMonth() {
             const y = this.viewYear, m = this.viewMonth;
             const monthStart = `${y}-${String(m+1).padStart(2,'0')}-01`;
-            const monthEnd   = new Date(y, m + 1, 0).toISOString().slice(0, 10);
+            const monthEnd   = toLocalISO(new Date(y, m + 1, 0));
             let count = 0;
             const daysInMonth = new Date(y, m + 1, 0).getDate();
             for (let i = 1; i <= daysInMonth; i++) {

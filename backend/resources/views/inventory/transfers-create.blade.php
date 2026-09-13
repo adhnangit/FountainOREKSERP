@@ -140,7 +140,7 @@ function transferCreate() {
     form: {
       from_branch_id: '',
       to_branch_id: '',
-      transfer_date: new Date().toISOString().split('T')[0],
+      transfer_date: (d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`)(new Date()),
       notes: '',
     },
     items: [],
