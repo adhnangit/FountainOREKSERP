@@ -908,7 +908,7 @@ function invShowPage() {
 
             let productsMap = {};
             try {
-                const r  = await apiFetch('/products?per_page=999' + (branchId ? '&branch_id=' + branchId : '')).then(r => r.json());
+                const r  = await apiFetch('/products?per_page=5000' + (branchId ? '&branch_id=' + branchId : '')).then(r => r.json());
                 const ps = r.data ?? r ?? [];
                 ps.forEach(p => { productsMap[p.id] = p; });
             } catch {}

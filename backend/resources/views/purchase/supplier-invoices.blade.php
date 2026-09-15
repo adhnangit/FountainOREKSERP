@@ -152,14 +152,14 @@
           <div class="grid grid-cols-2 gap-3">
             <div class="col-span-2">
               <label class="label">Supplier <span class="text-red-500">*</span></label>
-              <div class="search-dd" x-data="{ open: false, q: '' }" @click.away="open = false" @keydown.escape="open = false">
-                <button type="button" @click="open = !open; if(open) $nextTick(() => $refs.sInv?.focus())"
+              <div class="search-dd" x-data="{ open: false, q: '', ddStyle: '' }" @click.away="open = false" @keydown.escape="open = false">
+                <button type="button" @click="open = !open; if(open){ const r=$el.getBoundingClientRect(); ddStyle='top:'+(r.bottom+4)+'px;left:'+r.left+'px;width:'+r.width+'px;'; $nextTick(() => $refs.sInv?.focus()) }"
                         class="input w-full text-left flex items-center justify-between gap-2">
                   <span class="truncate" :class="cf.supplier_id ? 'text-gray-800 dark:text-gray-100' : 'text-gray-400'"
                         x-text="cf.supplier_id ? (suppliers.find(s => s.id == cf.supplier_id)?.name || '—') : '— Select supplier —'"></span>
                   <svg class="w-3.5 h-3.5 text-gray-400 flex-shrink-0 transition-transform" :class="open ? 'rotate-180' : ''" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M19 9l-7 7-7-7"/></svg>
                 </button>
-                <div x-show="open" x-transition:enter="transition ease-out duration-100" x-transition:enter-start="opacity-0 -translate-y-1" x-transition:enter-end="opacity-100 translate-y-0" class="search-dd-menu">
+                <div x-show="open" x-transition:enter="transition ease-out duration-100" x-transition:enter-start="opacity-0 -translate-y-1" x-transition:enter-end="opacity-100 translate-y-0" class="search-dd-menu" :style="ddStyle">
                   <div class="p-2 border-b border-gray-100 dark:border-gray-700">
                     <input x-ref="sInv" x-model="q" type="text" placeholder="Search supplier…" class="input text-sm w-full py-1.5" @keydown.stop />
                   </div>
@@ -215,14 +215,14 @@
                   <template x-for="(row, idx) in cf.items" :key="idx">
                     <tr class="border-t border-gray-100 dark:border-gray-700">
                       <td class="px-2 py-1.5">
-                        <div class="search-dd" x-data="{ open: false, q: '' }" @click.away="open = false" @keydown.escape="open = false">
-                          <button type="button" @click="open = !open; if(open) $nextTick(() => $refs.pRow?.focus())"
+                        <div class="search-dd" x-data="{ open: false, q: '', ddStyle: '' }" @click.away="open = false" @keydown.escape="open = false">
+                          <button type="button" @click="open = !open; if(open){ const r=$el.getBoundingClientRect(); ddStyle='top:'+(r.bottom+4)+'px;left:'+r.left+'px;width:'+r.width+'px;'; $nextTick(() => $refs.pRow?.focus()) }"
                                   class="input text-xs py-1 w-full text-left flex items-center justify-between gap-1">
                             <span class="truncate" :class="row.product_id ? 'text-gray-800 dark:text-gray-100' : 'text-gray-400'"
                                   x-text="row.product_id ? (products.find(p => p.id == row.product_id)?.name || '—') : '— Product —'"></span>
                             <svg class="w-3 h-3 text-gray-400 flex-shrink-0 transition-transform" :class="open ? 'rotate-180' : ''" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M19 9l-7 7-7-7"/></svg>
                           </button>
-                          <div x-show="open" x-transition:enter="transition ease-out duration-100" x-transition:enter-start="opacity-0 -translate-y-1" x-transition:enter-end="opacity-100 translate-y-0" class="search-dd-menu">
+                          <div x-show="open" x-transition:enter="transition ease-out duration-100" x-transition:enter-start="opacity-0 -translate-y-1" x-transition:enter-end="opacity-100 translate-y-0" class="search-dd-menu" :style="ddStyle">
                             <div class="p-2 border-b border-gray-100 dark:border-gray-700">
                               <input x-ref="pRow" x-model="q" type="text" placeholder="Search product…" class="input text-xs w-full py-1.5" @keydown.stop />
                             </div>
@@ -646,7 +646,7 @@ function supplierInvoicesPage() {
         const [invR, suppR, prodR, accR, chqR] = await Promise.all([
           apiFetch('/supplier-invoices').then(r => r.json()),
           apiFetch('/suppliers?per_page=999').then(r => r.json()),
-          apiFetch('/products?per_page=500').then(r => r.json()),
+          apiFetch('/products?per_page=5000').then(r => r.json()),
           apiFetch('/accounting/accounts').then(r => r.json()),
           apiFetch('/cheques?direction=received&status=in_hand&per_page=100').then(r => r.json()),
         ]);

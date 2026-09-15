@@ -370,7 +370,7 @@ function proformaShow() {
     async init() {
       try {
         const [pr, proformaR] = await Promise.all([
-          apiFetch('/products?per_page=999').then(r => r.json()),
+          apiFetch('/products?per_page=5000').then(r => r.json()),
           apiFetch('/proforma-invoices/' + id),
         ]);
         this.products = pr.data || pr || [];

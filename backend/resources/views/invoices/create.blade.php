@@ -69,11 +69,11 @@
                 {{-- Searchable product dropdown --}}
                 <div class="flex items-center gap-2 mb-2.5" x-show="row.type !== 'service'">
                   <div class="search-dd flex-1 min-w-0"
-                       x-data="{ open: false, q: '' }"
+                       x-data="{ open: false, q: '', ddStyle: '' }"
                        @click.away="open = false"
                        @keydown.escape="open = false">
                     <button type="button"
-                            @click="open = !open; if(open) $nextTick(() => $refs.ps?.focus())"
+                            @click="open = !open; if(open){ const r=$el.getBoundingClientRect(); ddStyle='top:'+(r.bottom+4)+'px;left:'+r.left+'px;width:'+r.width+'px;'; $nextTick(() => $refs.ps?.focus()) }"
                             class="input text-sm w-full text-left flex items-center justify-between gap-2"
                             :class="!row.product_id ? 'border-blue-200 dark:border-blue-700/60' : ''">
                       <span class="truncate"
@@ -81,7 +81,7 @@
                             x-text="row.product_id ? (products.find(p => p.id == row.product_id)?.name || '—') : '— Select product —'"></span>
                       <svg class="w-3.5 h-3.5 text-gray-400 flex-shrink-0 transition-transform" :class="open ? 'rotate-180' : ''" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M19 9l-7 7-7-7"/></svg>
                     </button>
-                    <div x-show="open" x-transition:enter="transition ease-out duration-100" x-transition:enter-start="opacity-0 -translate-y-1" x-transition:enter-end="opacity-100 translate-y-0" class="search-dd-menu">
+                    <div x-show="open" x-transition:enter="transition ease-out duration-100" x-transition:enter-start="opacity-0 -translate-y-1" x-transition:enter-end="opacity-100 translate-y-0" class="search-dd-menu" :style="ddStyle">
                       <div class="p-2 border-b border-gray-100 dark:border-gray-700">
                         <input x-ref="ps" x-model="q" type="text"
                                placeholder="Search by name or SKU…"
@@ -128,11 +128,11 @@
                 {{-- Searchable service dropdown --}}
                 <div class="flex items-center gap-2 mb-2.5" x-show="row.type === 'service'">
                   <div class="search-dd flex-1 min-w-0"
-                       x-data="{ open: false, q: '' }"
+                       x-data="{ open: false, q: '', ddStyle: '' }"
                        @click.away="open = false"
                        @keydown.escape="open = false">
                     <button type="button"
-                            @click="open = !open; if(open) $nextTick(() => $refs.sv?.focus())"
+                            @click="open = !open; if(open){ const r=$el.getBoundingClientRect(); ddStyle='top:'+(r.bottom+4)+'px;left:'+r.left+'px;width:'+r.width+'px;'; $nextTick(() => $refs.sv?.focus()) }"
                             class="input text-sm w-full text-left flex items-center justify-between gap-2"
                             :class="!row.service_id ? 'border-blue-200 dark:border-blue-700/60' : ''">
                       <span class="truncate"
@@ -140,7 +140,7 @@
                             x-text="row.service_id ? (services.find(s => s.id == row.service_id)?.name || '—') : '— Select service —'"></span>
                       <svg class="w-3.5 h-3.5 text-gray-400 flex-shrink-0 transition-transform" :class="open ? 'rotate-180' : ''" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M19 9l-7 7-7-7"/></svg>
                     </button>
-                    <div x-show="open" x-transition:enter="transition ease-out duration-100" x-transition:enter-start="opacity-0 -translate-y-1" x-transition:enter-end="opacity-100 translate-y-0" class="search-dd-menu">
+                    <div x-show="open" x-transition:enter="transition ease-out duration-100" x-transition:enter-start="opacity-0 -translate-y-1" x-transition:enter-end="opacity-100 translate-y-0" class="search-dd-menu" :style="ddStyle">
                       <div class="p-2 border-b border-gray-100 dark:border-gray-700">
                         <input x-ref="sv" x-model="q" type="text"
                                placeholder="Search by name or code…"
@@ -501,11 +501,11 @@
         <div>
           <label class="label">Customer <span class="text-red-500">*</span></label>
           <div class="search-dd"
-               x-data="{ open: false, q: '' }"
+               x-data="{ open: false, q: '', ddStyle: '' }"
                @click.away="open = false"
                @keydown.escape="open = false">
             <button type="button"
-                    @click="open = !open; if(open) $nextTick(() => $refs.cs?.focus())"
+                    @click="open = !open; if(open){ const r=$el.getBoundingClientRect(); ddStyle='top:'+(r.bottom+4)+'px;left:'+r.left+'px;width:'+r.width+'px;'; $nextTick(() => $refs.cs?.focus()) }"
                     class="input text-sm w-full text-left flex items-center justify-between gap-2"
                     :class="!form.customer_id ? 'border-blue-200' : ''">
               <span class="truncate"
@@ -513,7 +513,7 @@
                     x-text="form.customer_id ? (customers.find(c => c.id == form.customer_id)?.name || '—') : '— Select customer —'"></span>
               <svg class="w-3.5 h-3.5 text-gray-400 flex-shrink-0 transition-transform" :class="open ? 'rotate-180' : ''" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M19 9l-7 7-7-7"/></svg>
             </button>
-            <div x-show="open" x-transition:enter="transition ease-out duration-100" x-transition:enter-start="opacity-0 -translate-y-1" x-transition:enter-end="opacity-100 translate-y-0" class="search-dd-menu">
+            <div x-show="open" x-transition:enter="transition ease-out duration-100" x-transition:enter-start="opacity-0 -translate-y-1" x-transition:enter-end="opacity-100 translate-y-0" class="search-dd-menu" :style="ddStyle">
               <div class="p-2 border-b border-gray-100 dark:border-gray-700">
                 <input x-ref="cs" x-model="q" type="text"
                        placeholder="Search customer name or phone…"
@@ -615,14 +615,14 @@
         {{-- Sales Rep --}}
         <div>
           <label class="label">Sales Rep <span class="text-red-500">*</span></label>
-          <div class="search-dd" x-data="{ open: false, q: '' }" @click.away="open = false" @keydown.escape="open = false">
-            <button type="button" @click="open = !open; if(open) $nextTick(() => $refs.repSel?.focus())"
+          <div class="search-dd" x-data="{ open: false, q: '', ddStyle: '' }" @click.away="open = false" @keydown.escape="open = false">
+            <button type="button" @click="open = !open; if(open){ const r=$el.getBoundingClientRect(); ddStyle='top:'+(r.bottom+4)+'px;left:'+r.left+'px;width:'+r.width+'px;'; $nextTick(() => $refs.repSel?.focus()) }"
                     class="input text-sm w-full text-left flex items-center justify-between gap-2">
               <span class="truncate" :class="form.sales_rep_id ? 'text-gray-800 dark:text-gray-100' : 'text-gray-400'"
                     x-text="form.sales_rep_id ? (branchUsers.find(u => u.id == form.sales_rep_id)?.name || '—') : '— Select sales rep —'"></span>
               <svg class="w-3.5 h-3.5 text-gray-400 flex-shrink-0 transition-transform" :class="open ? 'rotate-180' : ''" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M19 9l-7 7-7-7"/></svg>
             </button>
-            <div x-show="open" x-transition:enter="transition ease-out duration-100" x-transition:enter-start="opacity-0 -translate-y-1" x-transition:enter-end="opacity-100 translate-y-0" class="search-dd-menu">
+            <div x-show="open" x-transition:enter="transition ease-out duration-100" x-transition:enter-start="opacity-0 -translate-y-1" x-transition:enter-end="opacity-100 translate-y-0" class="search-dd-menu" :style="ddStyle">
               <div class="p-2 border-b border-gray-100 dark:border-gray-700">
                 <input x-ref="repSel" x-model="q" type="text" placeholder="Search sales rep…" class="input text-sm w-full py-1.5" @keydown.stop />
               </div>
@@ -983,7 +983,7 @@ function invoiceCreate() {
     async init() {
       const [cd, pd, svd, bd, ad] = await Promise.all([
         apiFetch('/customers?per_page=999').then(r => r.json()),
-        apiFetch('/products?per_page=999').then(r => r.json()),
+        apiFetch('/products?per_page=5000').then(r => r.json()),
         apiFetch('/services?per_page=999&is_active=1').then(r => r.json()),
         apiFetch('/branches').then(r => r.json()),
         apiFetch('/accounting/accounts').then(r => r.json()),

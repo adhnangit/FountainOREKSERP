@@ -33,14 +33,14 @@
       <!-- Product -->
       <div>
         <label class="block text-xs font-semibold text-gray-500 mb-1">Product <span class="text-red-500">*</span></label>
-        <div class="search-dd" x-data="{ open: false, q: '' }" @click.away="open = false" @keydown.escape="open = false">
-          <button type="button" @click="if(!form.branch_id) return; open = !open; if(open) $nextTick(() => $refs.pAdj?.focus())"
+        <div class="search-dd" x-data="{ open: false, q: '', ddStyle: '' }" @click.away="open = false" @keydown.escape="open = false">
+          <button type="button" @click="if(!form.branch_id) return; open = !open; if(open){ const r=$el.getBoundingClientRect(); ddStyle='top:'+(r.bottom+4)+'px;left:'+r.left+'px;width:'+r.width+'px;'; $nextTick(() => $refs.pAdj?.focus()) }"
                   class="input w-full text-left flex items-center justify-between gap-2" :disabled="!form.branch_id">
             <span class="truncate" :class="form.product_id ? 'text-gray-800 dark:text-gray-100' : 'text-gray-400'"
                   x-text="form.product_id ? (products.find(p => p.id == form.product_id)?.name || '—') : 'Select product'"></span>
             <svg class="w-3.5 h-3.5 text-gray-400 flex-shrink-0 transition-transform" :class="open ? 'rotate-180' : ''" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M19 9l-7 7-7-7"/></svg>
           </button>
-          <div x-show="open" x-transition:enter="transition ease-out duration-100" x-transition:enter-start="opacity-0 -translate-y-1" x-transition:enter-end="opacity-100 translate-y-0" class="search-dd-menu">
+          <div x-show="open" x-transition:enter="transition ease-out duration-100" x-transition:enter-start="opacity-0 -translate-y-1" x-transition:enter-end="opacity-100 translate-y-0" class="search-dd-menu" :style="ddStyle">
             <div class="p-2 border-b border-gray-100 dark:border-gray-700">
               <input x-ref="pAdj" x-model="q" type="text" placeholder="Search product…" class="input text-sm w-full py-1.5" @keydown.stop />
             </div>
@@ -262,7 +262,7 @@ function adjustmentCreate() {
       this.form.product_id = '';
       this.form.batch_id = '';
       if (!this.form.branch_id) return;
-      const r = await apiFetch('/products?per_page=500');
+      const r = await apiFetch('/products?per_page=5000');
       if (!r) return;
       const d = await r.json();
       const list = d.data ?? d ?? [];

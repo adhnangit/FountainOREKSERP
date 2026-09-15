@@ -155,7 +155,7 @@
     /* ─────────────── SEARCHABLE DROPDOWN ─────────────── */
     .search-dd { position:relative; }
     .search-dd-menu {
-      position:absolute; left:0; right:0; top:calc(100% + 4px);
+      position:fixed;
       background:#fff; border:1px solid #e2e8f0; border-radius:12px;
       box-shadow:0 8px 30px rgba(0,0,0,0.12); z-index:70; overflow:hidden;
     }

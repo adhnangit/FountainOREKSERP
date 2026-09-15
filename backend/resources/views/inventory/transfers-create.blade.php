@@ -67,14 +67,14 @@
             <div class="flex items-center gap-3 p-3 rounded-lg border border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/30">
               <div class="flex-1">
                 <label class="block text-xs text-gray-400 mb-1">Product</label>
-                <div class="search-dd" x-data="{ open: false, q: '' }" @click.away="open = false" @keydown.escape="open = false">
-                  <button type="button" @click="open = !open; if(open) $nextTick(() => $refs.pTr?.focus())"
+                <div class="search-dd" x-data="{ open: false, q: '', ddStyle: '' }" @click.away="open = false" @keydown.escape="open = false">
+                  <button type="button" @click="open = !open; if(open){ const r=$el.getBoundingClientRect(); ddStyle='top:'+(r.bottom+4)+'px;left:'+r.left+'px;width:'+r.width+'px;'; $nextTick(() => $refs.pTr?.focus()) }"
                           class="input w-full text-sm text-left flex items-center justify-between gap-2">
                     <span class="truncate" :class="item.product_id ? 'text-gray-800 dark:text-gray-100' : 'text-gray-400'"
                           x-text="item.product_id ? (products.find(p => p.id == item.product_id)?.name || '—') : 'Select product'"></span>
                     <svg class="w-3.5 h-3.5 text-gray-400 flex-shrink-0 transition-transform" :class="open ? 'rotate-180' : ''" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M19 9l-7 7-7-7"/></svg>
                   </button>
-                  <div x-show="open" x-transition:enter="transition ease-out duration-100" x-transition:enter-start="opacity-0 -translate-y-1" x-transition:enter-end="opacity-100 translate-y-0" class="search-dd-menu">
+                  <div x-show="open" x-transition:enter="transition ease-out duration-100" x-transition:enter-start="opacity-0 -translate-y-1" x-transition:enter-end="opacity-100 translate-y-0" class="search-dd-menu" :style="ddStyle">
                     <div class="p-2 border-b border-gray-100 dark:border-gray-700">
                       <input x-ref="pTr" x-model="q" type="text" placeholder="Search product…" class="input text-sm w-full py-1.5" @keydown.stop />
                     </div>
@@ -158,7 +158,7 @@ function transferCreate() {
 
     async loadStock() {
       if (!this.form.from_branch_id) { this.products = []; return; }
-      const r = await apiFetch('/products?per_page=500&branch_id=' + this.form.from_branch_id);
+      const r = await apiFetch('/products?per_page=5000&branch_id=' + this.form.from_branch_id);
       if (!r) return;
       const d = await r.json();
       const list = d.data ?? d ?? [];

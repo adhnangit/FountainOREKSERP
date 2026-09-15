@@ -40,14 +40,14 @@
       </div>
       <div style="min-width:160px">
         <label class="label text-xs">Customer</label>
-        <div class="search-dd" x-data="{ open: false, q: '' }" @click.away="open = false" @keydown.escape="open = false">
-          <button type="button" @click="open = !open; if(open) $nextTick(() => $refs.cFilt?.focus())"
+        <div class="search-dd" x-data="{ open: false, q: '', ddStyle: '' }" @click.away="open = false" @keydown.escape="open = false">
+          <button type="button" @click="open = !open; if(open){ const r=$el.getBoundingClientRect(); ddStyle='top:'+(r.bottom+4)+'px;left:'+r.left+'px;width:'+r.width+'px;'; $nextTick(() => $refs.cFilt?.focus()) }"
                   class="input text-sm py-1.5 w-full text-left flex items-center justify-between gap-2">
             <span class="truncate" :class="filters.customer_id ? 'text-gray-800 dark:text-gray-100' : 'text-gray-400'"
                   x-text="filters.customer_id ? (customers.find(c => c.id == filters.customer_id)?.name || '—') : 'All Customers'"></span>
             <svg class="w-3.5 h-3.5 text-gray-400 flex-shrink-0 transition-transform" :class="open ? 'rotate-180' : ''" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M19 9l-7 7-7-7"/></svg>
           </button>
-          <div x-show="open" x-transition:enter="transition ease-out duration-100" x-transition:enter-start="opacity-0 -translate-y-1" x-transition:enter-end="opacity-100 translate-y-0" class="search-dd-menu">
+          <div x-show="open" x-transition:enter="transition ease-out duration-100" x-transition:enter-start="opacity-0 -translate-y-1" x-transition:enter-end="opacity-100 translate-y-0" class="search-dd-menu" :style="ddStyle">
             <div class="p-2 border-b border-gray-100 dark:border-gray-700">
               <input x-ref="cFilt" x-model="q" type="text" placeholder="Search customer…" class="input text-sm w-full py-1.5" @keydown.stop />
             </div>

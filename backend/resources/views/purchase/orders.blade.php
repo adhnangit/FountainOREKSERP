@@ -651,7 +651,7 @@ function supplierInvListPage() {
                 }
 
                 const branchId = parseInt(localStorage.getItem('medri_branch')) || null;
-                const prodR = await apiFetch('/products?per_page=999' + (branchId ? '&branch_id=' + branchId : '')).then(r => r.json());
+                const prodR = await apiFetch('/products?per_page=5000' + (branchId ? '&branch_id=' + branchId : '')).then(r => r.json());
                 const prodList = prodR.data ?? prodR ?? [];
                 const prodMap = {};
                 prodList.forEach(p => {

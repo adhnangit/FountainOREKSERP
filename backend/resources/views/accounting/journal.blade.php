@@ -229,14 +229,14 @@
                 <template x-for="(line, idx) in modal.lines" :key="idx">
                   <tr>
                     <td class="px-3 py-2">
-                      <div class="search-dd" x-data="{ open: false, q: '' }" @click.away="open = false" @keydown.escape="open = false">
-                        <button type="button" @click="open = !open; if(open) $nextTick(() => $refs.acctLine?.focus())"
+                      <div class="search-dd" x-data="{ open: false, q: '', ddStyle: '' }" @click.away="open = false" @keydown.escape="open = false">
+                        <button type="button" @click="open = !open; if(open){ const r=$el.getBoundingClientRect(); ddStyle='top:'+(r.bottom+4)+'px;left:'+r.left+'px;min-width:22rem;max-width:28rem;'; $nextTick(() => $refs.acctLine?.focus()) }"
                                 class="input text-xs py-1.5 w-full text-left flex items-center justify-between gap-1">
                           <span class="truncate" :class="line.account_id ? 'text-gray-800 dark:text-gray-100' : 'text-gray-400'"
                                 x-text="line.account_id ? (accounts.find(a => a.id == line.account_id) ? accounts.find(a => a.id == line.account_id).code + ' – ' + accounts.find(a => a.id == line.account_id).name : '—') : 'Select account…'"></span>
                           <svg class="w-3 h-3 text-gray-400 flex-shrink-0 transition-transform" :class="open ? 'rotate-180' : ''" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M19 9l-7 7-7-7"/></svg>
                         </button>
-                        <div x-show="open" x-transition:enter="transition ease-out duration-100" x-transition:enter-start="opacity-0 -translate-y-1" x-transition:enter-end="opacity-100 translate-y-0" class="search-dd-menu" style="right:auto;min-width:22rem;max-width:28rem">
+                        <div x-show="open" x-transition:enter="transition ease-out duration-100" x-transition:enter-start="opacity-0 -translate-y-1" x-transition:enter-end="opacity-100 translate-y-0" class="search-dd-menu" :style="ddStyle">
                           <div class="p-2 border-b border-gray-100 dark:border-gray-700">
                             <input x-ref="acctLine" x-model="q" type="text" placeholder="Search code or name…" class="input text-xs w-full py-1.5" @keydown.stop />
                           </div>
