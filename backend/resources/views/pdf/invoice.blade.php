@@ -5,12 +5,26 @@
     <title>Invoice {{ $invoice->invoice_number }}</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
+        /* A body margin only shapes the page where body's own box starts/ends
+           (page 1's top, the last page's bottom) — continuation pages in
+           between get no margin from it at all. dompdf actually derives every
+           page's margin from the <html> element's own resolved margin, re-read
+           fresh for each page it lays out — but the `*` reset above matches
+           html too, so without this explicit rule to win back the margin for
+           html specifically, every page (including the first) ends up with
+           zero margin on all sides. (A bare `@page { margin: ... }` rule looks
+           like the "correct" CSS fix, but dompdf's own pagination code only
+           applies it when more than one page-style variant is declared, e.g.
+           alongside `@page :first`, so it silently no-ops here.) */
+        html {
+            margin: 24pt 42pt 34pt 42pt;
+        }
         body {
             font-family: 'DejaVu Sans', sans-serif;
             font-size: 9.5px;
             color: #1a1a1a;
             background: #fff;
-            margin: 0 42pt 34pt 42pt;
+            margin: 0;
         }
         .serif { font-family: 'DejaVu Serif', serif; }
 
@@ -18,7 +32,7 @@
         .accent-bar {
             height: 5px;
             background: #1B3EB6;
-            margin: 0 -42pt 14px -42pt;
+            margin: 0 0 14px 0;
         }
 
         /* ── HEADER ─────────────────────────────────────────── */
