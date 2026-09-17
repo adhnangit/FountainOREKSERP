@@ -20,7 +20,7 @@
             <a href="{{ url('/services/categories') }}" class="btn-secondary inline-flex items-center gap-2">
                 Categories
             </a>
-            <a href="{{ url('/services/create') }}" class="btn-primary inline-flex items-center gap-2">
+            <a href="{{ url('/services/create') }}" x-show="hasPerm('services.create')" class="btn-primary inline-flex items-center gap-2">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
                 New Service
             </a>
@@ -57,7 +57,7 @@
                                     x-text="(s.is_active ?? true) ? 'Active' : 'Inactive'"></span>
                             </td>
                             <td class="table-td">
-                                <a href="#" @click.prevent="openEdit(s)" class="text-indigo-600 hover:underline text-sm font-medium">Edit</a>
+                                <a href="#" @click.prevent="openEdit(s)" x-show="hasPerm('services.edit')" class="text-indigo-600 hover:underline text-sm font-medium">Edit</a>
                             </td>
                         </tr>
                     </template>

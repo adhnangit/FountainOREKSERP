@@ -9,7 +9,7 @@
 
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
         <div class="text-sm text-gray-500" x-text="holidays.length + ' holiday(s)'"></div>
-        <button @click="openCreate()" class="btn-primary inline-flex items-center gap-2">
+        <button x-show="hasPerm('hr.holidays.create')" @click="openCreate()" class="btn-primary inline-flex items-center gap-2">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
             New Holiday
         </button>
@@ -39,8 +39,8 @@
                         <td class="table-td text-gray-500" x-text="h.is_recurring_yearly ? 'Yearly' : '—'"></td>
                         <td class="table-td">
                             <div class="flex items-center gap-3">
-                                <button @click="openEdit(h)" class="text-sm font-medium text-indigo-600 hover:text-indigo-800">Edit</button>
-                                <button @click="deleteHoliday(h)" class="text-sm font-medium text-red-500 hover:text-red-700">Delete</button>
+                                <button x-show="hasPerm('hr.holidays.edit')" @click="openEdit(h)" class="text-sm font-medium text-indigo-600 hover:text-indigo-800">Edit</button>
+                                <button x-show="hasPerm('hr.holidays.delete')" @click="deleteHoliday(h)" class="text-sm font-medium text-red-500 hover:text-red-700">Delete</button>
                             </div>
                         </td>
                     </tr>
@@ -122,11 +122,13 @@ function holidaysPage() {
         async init() {
             await this.load();
             try {
-                const bd = await apiFetch('/branches').then(r => r.json());
+                // Users without branches.view fall back to their assigned branches
+                const bd = await apiFetch('/branches').then(r => r.json())
+                    .catch(() => JSON.parse(localStorage.getItem('medri_user') || '{}').branches ?? []);
                 this.branches = bd.data ?? bd ?? [];
                 const u = JSON.parse(localStorage.getItem('medri_user') || '{}');
                 const stored = localStorage.getItem('medri_branch');
-                this.defaultBranchId = (stored && stored !== 'all') ? stored : (u.default_branch_id ?? '');
+                this.defaultBranchId = (stored && stored !== 'all') ? stored : (u.default_branch_id || this.branches[0]?.id || '');
             } catch (_) {}
         },
 

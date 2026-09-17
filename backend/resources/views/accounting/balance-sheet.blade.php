@@ -32,7 +32,7 @@
       <input type="date" x-model="asOf" />
     </div>
     <button @click="load()" class="bs-btn-primary">Generate</button>
-    <button @click="downloadPdf()" :disabled="!data" class="bs-btn-ghost">Download PDF</button>
+    <button @click="downloadPdf()" x-show="hasPerm('accounting.reports')" :disabled="!data" class="bs-btn-ghost">Download PDF</button>
     <div style="margin-left:auto" class="flex gap-2">
       <a href="{{ url('/accounting/trial-balance') }}" class="bs-link">Trial Balance</a>
       <a href="{{ url('/accounting/profit-loss') }}"   class="bs-link">P&amp;L</a>

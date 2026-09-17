@@ -16,7 +16,7 @@
             <template x-for="t in allTypes" :key="t.id"><option :value="t.id" x-text="t.name"></option></template>
         </select>
         <div class="flex-1"></div>
-        <button @click="showAllocate = true" class="btn-primary inline-flex items-center gap-2">
+        <button x-show="hasPerm('hr.leave_balances.edit')" @click="showAllocate = true" class="btn-primary inline-flex items-center gap-2">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
             Allocate Leave
         </button>
@@ -45,7 +45,7 @@
                                 <div class="text-xs text-gray-400" x-text="row.department"></div>
                             </td>
                             <template x-for="b in row.balances" :key="b.leave_type_id">
-                                <td class="table-td text-center cursor-pointer hover:bg-indigo-50 dark:hover:bg-indigo-900/20" @click="openEdit(row, b)">
+                                <td class="table-td text-center cursor-pointer hover:bg-indigo-50 dark:hover:bg-indigo-900/20" @click="hasPerm('hr.leave_balances.edit') && openEdit(row, b)">
                                     <span class="font-semibold" x-text="b.remaining_days ?? (b.allocated_days - b.used_days)"></span>
                                     <span class="text-gray-400 text-xs"> / <span x-text="b.allocated_days"></span></span>
                                 </td>

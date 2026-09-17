@@ -23,9 +23,9 @@
                 <span class="badge mt-1 inline-block" :class="run.status === 'paid' ? 'badge-success' : 'badge-warning'" x-text="run.status"></span>
             </div>
             <div class="flex items-center gap-2">
-                <button x-show="run.status === 'draft'" @click="regenerate()" class="btn-secondary" :disabled="working">Regenerate</button>
-                <button x-show="run.status === 'draft'" @click="markPaid()" class="btn-primary" :disabled="working">Mark as Paid</button>
-                <button x-show="run.status === 'draft'" @click="deleteRun()" class="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold bg-red-50 text-red-600 hover:bg-red-100 transition-colors" :disabled="working">Delete</button>
+                <button x-show="run.status === 'draft' && hasPerm('hr.payroll.create')" @click="regenerate()" class="btn-secondary" :disabled="working">Regenerate</button>
+                <button x-show="run.status === 'draft' && hasPerm('hr.payroll.pay')" @click="markPaid()" class="btn-primary" :disabled="working">Mark as Paid</button>
+                <button x-show="run.status === 'draft' && hasPerm('hr.payroll.delete')" @click="deleteRun()" class="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold bg-red-50 text-red-600 hover:bg-red-100 transition-colors" :disabled="working">Delete</button>
             </div>
         </div>
 

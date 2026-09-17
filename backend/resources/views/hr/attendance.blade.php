@@ -26,7 +26,7 @@
             </select>
             <button @click="markAllPresent()" class="btn-secondary">Mark All Unmarked Present</button>
             <div class="flex-1"></div>
-            <button @click="saveMark()" class="btn-primary" :disabled="markSaving" x-text="markSaving ? 'Saving…' : 'Save Attendance'"></button>
+            <button x-show="hasPerm('hr.attendance.create')" @click="saveMark()" class="btn-primary" :disabled="markSaving" x-text="markSaving ? 'Saving…' : 'Save Attendance'"></button>
         </div>
 
         <div x-show="markLoading" class="flex items-center justify-center py-16">

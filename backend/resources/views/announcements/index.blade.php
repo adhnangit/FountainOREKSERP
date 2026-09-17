@@ -6,7 +6,7 @@
 @section('content')
 <div x-data="announcementsPage()" x-init="init()">
 
-    <div class="flex justify-end mb-6" x-show="canManage">
+    <div class="flex justify-end mb-6" x-show="hasPerm('hr.announcements.manage')">
         <button @click="openCreate()" class="btn-primary inline-flex items-center gap-2">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
             New Announcement
@@ -29,7 +29,7 @@
                         </div>
                         <div class="text-xs text-gray-400 mt-1" x-text="(a.created_by?.name ?? 'System') + ' — ' + fmtDate(a.published_at)"></div>
                     </div>
-                    <div class="flex items-center gap-3 flex-shrink-0" x-show="canManage">
+                    <div class="flex items-center gap-3 flex-shrink-0" x-show="hasPerm('hr.announcements.manage')">
                         <button @click="openEdit(a)" class="text-sm font-medium text-indigo-600 hover:text-indigo-800">Edit</button>
                         <button @click="deleteAnnouncement(a)" class="text-sm font-medium text-red-500 hover:text-red-700">Delete</button>
                     </div>
@@ -100,14 +100,11 @@ function announcementsPage() {
         formError: '',
         form: {},
 
-        get canManage() {
-            const user = JSON.parse(localStorage.getItem('medri_user') || '{}');
-            return (user.permissions ?? []).includes('hr.announcements.manage');
-        },
-
         async init() {
             try {
-                const bd = await apiFetch('/branches').then(r => r.json());
+                // Users without branches.view fall back to their assigned branches
+                const bd = await apiFetch('/branches').then(r => r.json())
+                    .catch(() => JSON.parse(localStorage.getItem('medri_user') || '{}').branches ?? []);
                 this.branches = bd.data ?? bd ?? [];
             } catch (_) {}
             await this.load();

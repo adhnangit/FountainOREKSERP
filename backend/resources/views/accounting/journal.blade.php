@@ -95,7 +95,7 @@
       <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
       <input x-model="search" type="text" placeholder="Search…" />
     </div>
-    <div class="jr-field">
+    <div class="jr-field" x-show="hasPerm('accounting.journal.create')">
       <label>&nbsp;</label>
       <button @click="openCreate()" class="jr-btn-new">
         <svg style="width:15px;height:15px" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path d="M12 5v14M5 12h14"/></svg>
@@ -132,7 +132,7 @@
             <div class="text-sm font-bold text-gray-700 dark:text-gray-200 tabular-nums" x-text="fmtMoney(entry.total_debit)"></div>
           </div>
           <div class="flex items-center gap-2 flex-shrink-0">
-            <button @click.stop="deleteEntry(entry)"
+            <button @click.stop="deleteEntry(entry)" x-show="hasPerm('accounting.journal.create')"
                     class="w-7 h-7 rounded-lg flex items-center justify-center text-gray-300 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
                     title="Delete entry">
                 <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
@@ -415,7 +415,10 @@ function journalPage() {
       const [, , br] = await Promise.all([
         this.load(),
         apiFetch('/accounting/accounts').then(r => r.json()).then(d => this.accounts = d),
-        apiFetch('/branches').then(r => r.json()).then(d => { this.branches = d.data ?? d; }),
+        // Users without branches.view fall back to their assigned branches
+        apiFetch('/branches').then(r => r.json())
+          .catch(() => JSON.parse(localStorage.getItem('medri_user') || '{}').branches ?? [])
+          .then(d => { this.branches = d.data ?? d; }),
       ]);
     },
   };

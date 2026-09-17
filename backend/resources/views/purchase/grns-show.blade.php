@@ -31,7 +31,7 @@
       </div>
 
       <div class="flex items-center gap-2 flex-wrap">
-        <template x-if="grn?.status === 'draft'">
+        <template x-if="grn?.status === 'draft' && hasPerm('grns.confirm')">
           <button @click="confirmGRN()" :disabled="confirming"
                   class="btn-primary flex items-center gap-2 text-sm">
             <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>

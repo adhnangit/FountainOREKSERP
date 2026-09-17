@@ -155,7 +155,7 @@
         <div>
           <div class="flex items-center justify-between">
             <label class="label">Category</label>
-            <button type="button" @click="openCategoryModal()" class="text-xs font-semibold text-indigo-600 hover:text-indigo-800">+ New Category</button>
+            <button type="button" x-show="hasPerm('products.categories.create')" @click="openCategoryModal()" class="text-xs font-semibold text-indigo-600 hover:text-indigo-800">+ New Category</button>
           </div>
           <select x-model="form.category_id" class="input">
             <option value="">Select category…</option>
@@ -308,11 +308,13 @@ function productCreatePage() {
                 toast('Failed to load categories', 'error');
             }
             try {
-                const bd = await apiFetch('/branches').then(r => r.json());
+                // Users without branches.view fall back to their assigned branches
+                const bd = await apiFetch('/branches').then(r => r.json())
+                    .catch(() => JSON.parse(localStorage.getItem('medri_user') || '{}').branches ?? []);
                 this.branches = bd.data ?? bd ?? [];
                 const u = JSON.parse(localStorage.getItem('medri_user') || '{}');
                 const stored = localStorage.getItem('medri_branch');
-                const bid = (stored && stored !== 'all') ? stored : u.default_branch_id;
+                const bid = (stored && stored !== 'all') ? stored : (u.default_branch_id || this.branches[0]?.id);
                 if (bid) this.form.branch_id = bid;
             } catch (_) {}
         },

@@ -13,7 +13,7 @@
             <option value="onboarding">Onboarding</option>
             <option value="offboarding">Offboarding</option>
         </select>
-        <button @click="openCreate()" class="btn-primary inline-flex items-center gap-2">
+        <button x-show="hasPerm('hr.checklists.create')" @click="openCreate()" class="btn-primary inline-flex items-center gap-2">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
             New Template
         </button>
@@ -32,7 +32,7 @@
                         <span class="badge mt-1" :class="t.type === 'onboarding' ? 'badge-success' : 'badge-warning'" x-text="t.type"></span>
                         <span class="badge badge-gray mt-1" x-show="!t.is_active">Inactive</span>
                     </div>
-                    <button @click="deleteTemplate(t)" class="text-red-500 hover:text-red-700 text-sm">Delete</button>
+                    <button x-show="hasPerm('hr.checklists.delete')" @click="deleteTemplate(t)" class="text-red-500 hover:text-red-700 text-sm">Delete</button>
                 </div>
                 <ul class="text-sm divide-y divide-gray-50 dark:divide-gray-800 mt-3">
                     <template x-for="item in t.items" :key="item.id">
@@ -40,7 +40,7 @@
                             <span x-text="item.title"></span>
                             <div class="flex items-center gap-2">
                                 <span class="text-xs text-gray-400" x-text="(item.due_days_offset >= 0 ? '+' : '') + item.due_days_offset + 'd'"></span>
-                                <button @click="deleteItem(t, item)" class="text-gray-300 hover:text-red-500">
+                                <button x-show="hasPerm('hr.checklists.delete')" @click="deleteItem(t, item)" class="text-gray-300 hover:text-red-500">
                                     <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M6 18L18 6M6 6l12 12"/></svg>
                                 </button>
                             </div>
@@ -48,7 +48,7 @@
                     </template>
                     <li x-show="!t.items?.length" class="text-gray-400 py-1.5">No items yet.</li>
                 </ul>
-                <button @click="openAddItem(t)" class="text-xs text-indigo-600 hover:underline mt-2">+ Add item</button>
+                <button x-show="hasPerm('hr.checklists.create')" @click="openAddItem(t)" class="text-xs text-indigo-600 hover:underline mt-2">+ Add item</button>
             </div>
         </template>
         <div x-show="templates.length === 0" class="text-center text-gray-400 py-16 col-span-2">No templates yet.</div>

@@ -41,7 +41,7 @@
               <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
               Download PDF
             </button>
-            <template x-if="hasDraftGrn()">
+            <template x-if="hasDraftGrn() && hasPerm('grns.confirm')">
               <button @click="openReceive()"
                       class="inline-flex items-center gap-1.5 text-xs font-bold px-3.5 py-1.5 rounded-lg transition-all"
                       style="background:#dcfce7;color:#15803d;border:1px solid #86efac">
@@ -49,7 +49,7 @@
                 Receive Items
               </button>
             </template>
-            <template x-if="parseFloat(po?.balance_due ?? 0) > 0 && po?.status !== 'cancelled'">
+            <template x-if="parseFloat(po?.balance_due ?? 0) > 0 && po?.status !== 'cancelled' && hasPerm('purchase_orders.payment')">
               <button @click="openPay()"
                       class="inline-flex items-center gap-1.5 text-xs font-bold px-3.5 py-1.5 rounded-lg transition-all"
                       style="background:rgba(255,255,255,0.15);color:#fff;border:1px solid rgba(255,255,255,0.3)">
@@ -288,7 +288,7 @@
                   <span class="text-xs px-2.5 py-1 rounded-full font-semibold"
                         :class="grn.status === 'confirmed' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'"
                         x-text="grn.status === 'confirmed' ? 'Received' : 'Pending Receipt'"></span>
-                  <template x-if="grn.status === 'draft'">
+                  <template x-if="grn.status === 'draft' && hasPerm('grns.confirm')">
                     <button @click="openReceive()"
                             class="text-xs font-bold px-2.5 py-1 rounded-lg transition-all"
                             style="background:#dcfce7;color:#15803d;border:1px solid #86efac">
@@ -315,7 +315,7 @@
                    x-text="(po?.payments?.length ?? 0) + ' payment(s) · Paid: ' + fmtMoney(po?.paid_amount ?? 0)"></p>
               </div>
             </div>
-            <template x-if="parseFloat(po?.balance_due ?? 0) > 0 && po?.status !== 'cancelled'">
+            <template x-if="parseFloat(po?.balance_due ?? 0) > 0 && po?.status !== 'cancelled' && hasPerm('purchase_orders.payment')">
               <button @click="openPay()"
                       class="text-xs font-bold px-3 py-1.5 rounded-lg transition-all"
                       style="background:#e0e7ff;color:#4338ca;border:1px solid #c7d2fe">
@@ -498,7 +498,7 @@
         {{-- Quick Actions --}}
         <div class="card p-4 space-y-2">
           <p class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Quick Actions</p>
-          <template x-if="hasDraftGrn()">
+          <template x-if="hasDraftGrn() && hasPerm('grns.confirm')">
             <button @click="openReceive()"
                     class="w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-all text-left"
                     style="background:#f0fdf4;color:#15803d;border:1px solid #bbf7d0">
@@ -506,7 +506,7 @@
               Receive Items (GRN)
             </button>
           </template>
-          <template x-if="parseFloat(po?.balance_due ?? 0) > 0 && po?.status !== 'cancelled'">
+          <template x-if="parseFloat(po?.balance_due ?? 0) > 0 && po?.status !== 'cancelled' && hasPerm('purchase_orders.payment')">
             <button @click="openPay()"
                     class="w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-all text-left"
                     style="background:#eef2ff;color:#4338ca;border:1px solid #c7d2fe">

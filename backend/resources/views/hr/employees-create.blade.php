@@ -338,7 +338,8 @@ function employeeCreatePage() {
         async init() {
             try {
                 const [bd, dd, gd, ed] = await Promise.all([
-                    apiFetch('/branches').then(r => r.json()),
+                    // Users without branches.view fall back to their assigned branches
+                    apiFetch('/branches').then(r => r.json()).catch(() => JSON.parse(localStorage.getItem('medri_user') || '{}').branches ?? []),
                     apiFetch('/hr/departments').then(r => r.json()),
                     apiFetch('/hr/designations').then(r => r.json()),
                     apiFetch('/hr/employees?per_page=500').then(r => r.json()),
@@ -349,7 +350,7 @@ function employeeCreatePage() {
                 this.employees = ed.data ?? ed ?? [];
                 const u = JSON.parse(localStorage.getItem('medri_user') || '{}');
                 const stored = localStorage.getItem('medri_branch');
-                const bid = (stored && stored !== 'all') ? stored : u.default_branch_id;
+                const bid = (stored && stored !== 'all') ? stored : (u.default_branch_id || this.branches[0]?.id);
                 if (bid) this.form.branch_id = bid;
             } catch (_) {}
         },

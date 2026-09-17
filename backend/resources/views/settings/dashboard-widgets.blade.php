@@ -12,7 +12,7 @@
       <p class="text-sm text-gray-500 mt-0.5">Choose which dashboard sections are visible for each user role.</p>
     </div>
     <div class="flex items-center gap-2">
-      <button @click="saveRole()" :disabled="saving"
+      <button x-show="hasPerm('settings.edit')" @click="saveRole()" :disabled="saving"
               class="btn-primary flex items-center gap-2">
         <svg x-show="saving" class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
           <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
@@ -120,7 +120,7 @@
         <div class="px-5 py-3 border-t border-gray-100 dark:border-gray-700 flex items-center justify-between text-xs text-gray-400"
              style="background:#fafafa">
           <span>Changes apply immediately for all users with this role</span>
-          <button @click="saveRole()" :disabled="saving"
+          <button x-show="hasPerm('settings.edit')" @click="saveRole()" :disabled="saving"
                   class="text-indigo-600 font-semibold hover:text-indigo-800 disabled:opacity-50"
                   x-text="saving ? 'Saving…' : 'Save'"></button>
         </div>

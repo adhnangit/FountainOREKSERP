@@ -16,7 +16,7 @@
                 <option value="rejected">Rejected</option>
             </select>
         </div>
-        <a href="{{ url('/expenses/create') }}" class="btn-primary inline-flex items-center gap-2">
+        <a href="{{ url('/expenses/create') }}" x-show="hasPerm('expenses.create')" class="btn-primary inline-flex items-center gap-2">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
             New Expense
         </a>
@@ -55,7 +55,7 @@
                             <td class="table-td">
                                 <div class="flex items-center gap-3">
                                     <a :href="BASE + '/expenses/' + e.id" class="text-indigo-600 hover:underline text-sm font-medium">View</a>
-                                    <template x-if="['draft','pending'].includes(e.status)">
+                                    <template x-if="['draft','pending'].includes(e.status) && hasPerm('expenses.create')">
                                         <a :href="BASE + '/expenses/' + e.id + '/edit'" class="text-amber-600 hover:underline text-sm font-medium">Edit</a>
                                     </template>
                                 </div>

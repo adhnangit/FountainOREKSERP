@@ -186,6 +186,7 @@
     </div>
     <div style="margin-left:auto">
       <a href="{{ url('/invoices/create') }}"
+         x-show="hasPerm('invoices.create')"
          style="background:linear-gradient(135deg,#4f46e5,#6366f1);color:#fff;border-radius:10px;padding:8px 18px;font-size:13px;font-weight:700;display:flex;align-items:center;gap:6px;text-decoration:none;box-shadow:0 4px 12px rgba(99,102,241,.35);transition:opacity .15s"
          onmouseover="this.style.opacity='.9'" onmouseout="this.style.opacity='1'">
         <svg style="width:15px;height:15px" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path d="M12 5v14M5 12h14"/></svg>
@@ -281,7 +282,7 @@
                   <a :href="BASE+'/invoices/'+inv.id" class="inv-action-btn" title="View">
                     <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
                   </a>
-                  <a :href="BASE+'/invoices/'+inv.id+'/edit'" class="inv-action-btn" title="Edit" x-show="inv.status==='draft'">
+                  <a :href="BASE+'/invoices/'+inv.id+'/edit'" class="inv-action-btn" title="Edit" x-show="inv.status==='draft' && hasPerm('invoices.edit')">
                     <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
                   </a>
                   <button class="inv-action-btn" @click="printInvoice(inv)" title="Print">
@@ -293,7 +294,7 @@
                   <button class="inv-action-btn" @click="deleteInvoice(inv)"
                           style="border-color:#fecaca;color:#ef4444"
                           onmouseover="this.style.background='#fef2f2'" onmouseout="this.style.background=''"
-                          title="Delete" x-show="!['paid','partially_paid'].includes(inv.status)">
+                          title="Delete" x-show="!['paid','partially_paid'].includes(inv.status) && hasPerm('invoices.delete')">
                     <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                   </button>
                 </div>

@@ -164,6 +164,20 @@
         .tr { text-align: right; }
         .tc { text-align: center; }
 
+        /* ── FOOTER BLOCK (Total → Signature) ─────────────────────
+           On a long invoice the items table itself legitimately spans
+           multiple pages. Each section below (totals/note/bank/terms/
+           signature) already avoids breaking INTERNALLY, but without this
+           wrapper dompdf still breaks BETWEEN them independently — e.g.
+           the note box just barely fits at the bottom of a page while
+           bank details + signature spill alone onto a near-empty next
+           page. Wrapping them as one page-break-inside:avoid unit forces
+           the whole trailing block to move together, so it either
+           finishes on the same page as the items or starts cleanly at
+           the top of the next one — never split with one piece stranded
+           by itself. */
+        .invoice-footer-block { page-break-inside: avoid; }
+
         /* ── TOTAL ───────────────────────────────────────────── */
         .totals-outer {
             width: 100%;
@@ -443,6 +457,7 @@
         </tbody>
     </table>
 
+    <div class="invoice-footer-block">
     <!-- TOTAL -->
     <table class="totals-outer">
         <tr>
@@ -522,6 +537,7 @@
             </td>
         </tr>
     </table>
+    </div>
 
 </body>
 </html>

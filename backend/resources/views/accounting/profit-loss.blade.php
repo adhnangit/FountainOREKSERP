@@ -44,7 +44,7 @@
       <input type="date" x-model="toDate" />
     </div>
     <button @click="load()" class="pl-btn-primary">Generate</button>
-    <button @click="downloadPdf()" :disabled="!data" class="pl-btn-ghost">Download PDF</button>
+    <button @click="downloadPdf()" x-show="hasPerm('accounting.reports')" :disabled="!data" class="pl-btn-ghost">Download PDF</button>
     <div style="margin-left:auto" class="flex gap-2">
       <a href="{{ url('/accounting/trial-balance') }}"  class="pl-link">Trial Balance</a>
       <a href="{{ url('/accounting/balance-sheet') }}"  class="pl-link">Balance Sheet</a>

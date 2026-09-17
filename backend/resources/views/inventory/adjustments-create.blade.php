@@ -217,10 +217,15 @@ function adjustmentCreate() {
 
     async init() {
       this.canApprove = this.checkCanApprove();
-      const r = await apiFetch('/branches');
-      if (!r) return;
-      const d = await r.json();
-      this.branches = d.data ?? d ?? [];
+      try {
+        // Users without branches.view fall back to their assigned branches
+        const r = await apiFetch('/branches');
+        if (!r) return;
+        const d = await r.json();
+        this.branches = d.data ?? d ?? [];
+      } catch (_) {
+        this.branches = JSON.parse(localStorage.getItem('medri_user') || '{}').branches ?? [];
+      }
       if (this.editId) await this.loadDraft();
     },
 

@@ -329,7 +329,7 @@
             <!-- Actions -->
             <div class="flex justify-end gap-3">
                 <button type="button" @click="load()" class="btn-secondary">Discard</button>
-                <button type="submit" :disabled="submitting" class="btn-primary">
+                <button type="submit" x-show="hasPerm('settings.edit')" :disabled="submitting" class="btn-primary">
                     <template x-if="submitting">
                         <svg class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/></svg>
                     </template>

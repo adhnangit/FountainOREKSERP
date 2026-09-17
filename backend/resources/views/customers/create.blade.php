@@ -230,7 +230,9 @@ function customerCreatePage() {
 
         async init() {
             try {
-                const bd = await apiFetch('/branches').then(r => r.json());
+                // Users without branches.view fall back to their assigned branches
+                const bd = await apiFetch('/branches').then(r => r.json())
+                    .catch(() => JSON.parse(localStorage.getItem('medri_user') || '{}').branches ?? []);
                 this.branches = bd.data ?? bd ?? [];
             } catch (e) {}
 
@@ -238,7 +240,7 @@ function customerCreatePage() {
 
             const u = JSON.parse(localStorage.getItem('medri_user') || '{}');
             const bid = localStorage.getItem('medri_branch');
-            this.form.branch_id = (bid && bid !== 'all') ? bid : (u.default_branch_id ?? '');
+            this.form.branch_id = (bid && bid !== 'all') ? bid : (u.default_branch_id || this.branches[0]?.id || '');
         },
 
         async submit() {

@@ -8,7 +8,7 @@
 
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
         <input x-model="search" type="text" placeholder="Search district or city…" class="input w-full sm:w-72" />
-        <button @click="openAddDistrict()" class="btn-primary inline-flex items-center gap-2">
+        <button x-show="hasPerm('settings.edit')" @click="openAddDistrict()" class="btn-primary inline-flex items-center gap-2">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
             Add District
         </button>
@@ -28,7 +28,7 @@
                               :class="d.is_active ? 'badge-success' : 'badge-danger'"
                               x-text="d.is_active ? 'Active' : 'Inactive'"></span>
                     </div>
-                    <div class="flex items-center gap-3 flex-shrink-0">
+                    <div class="flex items-center gap-3 flex-shrink-0" x-show="hasPerm('settings.edit')">
                         <button @click="openEditDistrict(d)" class="text-xs text-indigo-600 hover:underline font-medium">Edit</button>
                         <button @click="deleteDistrict(d)" class="text-xs text-red-500 hover:underline font-medium">Delete</button>
                     </div>
@@ -37,7 +37,7 @@
                     <template x-for="c in cityMatches(d)" :key="c.id">
                         <li class="flex items-center justify-between py-1.5">
                             <span :class="!c.is_active ? 'text-gray-400 line-through' : ''" x-text="c.name"></span>
-                            <div class="flex items-center gap-2 flex-shrink-0">
+                            <div class="flex items-center gap-2 flex-shrink-0" x-show="hasPerm('settings.edit')">
                                 <button @click="openEditCity(d, c)" class="text-xs text-indigo-600 hover:underline">Edit</button>
                                 <button @click="deleteCity(d, c)" class="text-gray-300 hover:text-red-500">
                                     <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M6 18L18 6M6 6l12 12"/></svg>
@@ -47,7 +47,7 @@
                     </template>
                     <li x-show="!cityMatches(d).length" class="text-gray-400 py-1.5">No cities yet.</li>
                 </ul>
-                <button @click="openAddCity(d)" class="text-xs text-indigo-600 hover:underline mt-2">+ Add city</button>
+                <button x-show="hasPerm('settings.edit')" @click="openAddCity(d)" class="text-xs text-indigo-600 hover:underline mt-2">+ Add city</button>
             </div>
         </template>
         <div x-show="filtered.length === 0" class="text-center text-gray-400 py-16 col-span-full">No districts found.</div>

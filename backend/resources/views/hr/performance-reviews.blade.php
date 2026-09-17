@@ -106,7 +106,7 @@
 
                 <div class="flex justify-end gap-3 pt-2">
                     <button type="button" @click="showModal = false" class="btn-secondary">Cancel</button>
-                    <button @click="save()" class="btn-primary" :disabled="saving" x-text="saving ? 'Saving…' : 'Save'"></button>
+                    <button x-show="hasPerm('hr.performance.edit')" @click="save()" class="btn-primary" :disabled="saving" x-text="saving ? 'Saving…' : 'Save'"></button>
                 </div>
             </div>
         </div>

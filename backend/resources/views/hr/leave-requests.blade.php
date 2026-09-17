@@ -16,7 +16,7 @@
             <option value="cancelled">Cancelled</option>
         </select>
         <div class="flex-1"></div>
-        <button @click="openCreate()" class="btn-primary inline-flex items-center gap-2">
+        <button x-show="hasPerm('hr.leave_requests.create')" @click="openCreate()" class="btn-primary inline-flex items-center gap-2">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
             New Leave Request
         </button>
@@ -57,9 +57,9 @@
                         </td>
                         <td class="table-td">
                             <div class="flex items-center gap-3">
-                                <button x-show="r.status === 'pending'" @click="decide(r, 'approve')" class="text-sm font-medium text-green-600 hover:text-green-800">Approve</button>
-                                <button x-show="r.status === 'pending'" @click="decide(r, 'reject')" class="text-sm font-medium text-red-500 hover:text-red-700">Reject</button>
-                                <button x-show="['pending','approved'].includes(r.status)" @click="decide(r, 'cancel')" class="text-sm font-medium text-gray-500 hover:text-gray-700">Cancel</button>
+                                <button x-show="r.status === 'pending' && hasPerm('hr.leave_requests.approve')" @click="decide(r, 'approve')" class="text-sm font-medium text-green-600 hover:text-green-800">Approve</button>
+                                <button x-show="r.status === 'pending' && hasPerm('hr.leave_requests.approve')" @click="decide(r, 'reject')" class="text-sm font-medium text-red-500 hover:text-red-700">Reject</button>
+                                <button x-show="['pending','approved'].includes(r.status) && hasPerm('hr.leave_requests.cancel')" @click="decide(r, 'cancel')" class="text-sm font-medium text-gray-500 hover:text-gray-700">Cancel</button>
                                 <button @click="viewNotes(r)" x-show="r.decision_notes || r.reason" class="text-sm font-medium text-indigo-600 hover:text-indigo-800">Details</button>
                             </div>
                         </td>

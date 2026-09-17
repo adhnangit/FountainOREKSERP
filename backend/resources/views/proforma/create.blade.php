@@ -431,7 +431,8 @@ function proformaCreate() {
     async init() {
       const [cu, br, pr] = await Promise.all([
         apiFetch('/customers?per_page=999').then(r => r.json()),
-        apiFetch('/branches').then(r => r.json()),
+        // Users without branches.view fall back to their assigned branches
+        apiFetch('/branches').then(r => r.json()).catch(() => JSON.parse(localStorage.getItem('medri_user') || '{}').branches ?? []),
         apiFetch('/products?per_page=5000').then(r => r.json()),
       ]);
       this.customers = cu.data || cu || [];
@@ -439,7 +440,7 @@ function proformaCreate() {
       this.products  = pr.data || pr || [];
       try {
         const u = JSON.parse(localStorage.getItem('medri_user') || '{}');
-        const branchId = localStorage.getItem('medri_branch') || u.default_branch_id;
+        const branchId = localStorage.getItem('medri_branch') || u.default_branch_id || this.branches[0]?.id;
         if (branchId) this.form.branch_id = branchId;
       } catch (_) {}
       this.addLine();

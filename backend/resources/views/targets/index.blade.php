@@ -54,7 +54,7 @@
       </template>
 
       {{-- Admin only: New Target button --}}
-      <template x-if="isAdmin">
+      <template x-if="isAdmin && hasPerm('targets.create')">
         <button @click="openCreate()"
                 style="background:#1B3EB6"
                 class="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold text-white shadow transition-opacity hover:opacity-90 ml-2">
@@ -114,7 +114,7 @@
               <span class="tgt-badge text-xs"
                     :style="t.pct>=100?'background:#dcfce7;color:#166534':t.pct>=70?'background:#fef9c3;color:#854d0e':'background:#fee2e2;color:#b91c1c'"
                     x-text="t.pct+'%'"></span>
-              <template x-if="isAdmin">
+              <template x-if="isAdmin && hasPerm('targets.edit')">
                 <div class="flex gap-1">
                   <button @click="openEdit(t)" title="Edit"
                           style="width:24px;height:24px;border-radius:6px;border:1px solid #e2e8f0;background:#f8fafc;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:background .15s"
@@ -174,7 +174,7 @@
       <template x-if="branchTargets.length===0">
         <div class="sm:col-span-2 xl:col-span-3 tgt-card text-center py-8 text-gray-400 text-sm">
           No branch targets set for this period.
-          <template x-if="isAdmin">
+          <template x-if="isAdmin && hasPerm('targets.create')">
             <span> <button @click="openCreate('branch')" class="text-blue-600 hover:underline font-medium">Set one now</button></span>
           </template>
         </div>
@@ -204,7 +204,7 @@
               <span class="tgt-badge text-xs"
                     :style="t.pct>=100?'background:#dcfce7;color:#166534':t.pct>=70?'background:#fef9c3;color:#854d0e':'background:#fee2e2;color:#b91c1c'"
                     x-text="t.pct+'%'"></span>
-              <template x-if="isAdmin">
+              <template x-if="isAdmin && hasPerm('targets.edit')">
                 <div class="flex gap-1">
                   <button @click="openEdit(t)"
                           style="width:24px;height:24px;border-radius:6px;border:1px solid #e2e8f0;background:#f8fafc;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:background .15s"
@@ -264,7 +264,7 @@
       <template x-if="repTargets.length===0">
         <div class="sm:col-span-2 xl:col-span-3 tgt-card text-center py-8 text-gray-400 text-sm">
           No sales rep targets set for this period.
-          <template x-if="isAdmin">
+          <template x-if="isAdmin && hasPerm('targets.create')">
             <span> <button @click="openCreate('rep')" class="text-blue-600 hover:underline font-medium">Set one now</button></span>
           </template>
         </div>

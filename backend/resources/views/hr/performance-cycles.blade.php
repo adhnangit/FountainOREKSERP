@@ -7,7 +7,7 @@
 @section('content')
 <div x-data="performanceCyclesPage()" x-init="init()" x-cloak>
 
-    <div class="flex justify-end mb-6">
+    <div class="flex justify-end mb-6" x-show="hasPerm('hr.performance.create')">
         <button @click="openCreate()" class="btn-primary inline-flex items-center gap-2">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
             New Cycle
@@ -38,7 +38,7 @@
                             <a :href="BASE + '/hr/performance-reviews?cycle_id=' + c.id" class="text-indigo-600 hover:underline" x-text="c.reviews_count"></a>
                         </td>
                         <td class="table-td">
-                            <select x-model="c.status" @change="updateStatus(c)" class="input text-xs w-auto">
+                            <select x-model="c.status" @change="updateStatus(c)" :disabled="!hasPerm('hr.performance.edit')" class="input text-xs w-auto">
                                 <option value="draft">Draft</option>
                                 <option value="active">Active</option>
                                 <option value="closed">Closed</option>
@@ -46,8 +46,8 @@
                         </td>
                         <td class="table-td">
                             <div class="flex items-center gap-3">
-                                <button @click="generateReviews(c)" class="text-sm font-medium text-indigo-600 hover:text-indigo-800">Generate Reviews</button>
-                                <button @click="deleteCycle(c)" class="text-sm font-medium text-red-500 hover:text-red-700">Delete</button>
+                                <button x-show="hasPerm('hr.performance.create')" @click="generateReviews(c)" class="text-sm font-medium text-indigo-600 hover:text-indigo-800">Generate Reviews</button>
+                                <button x-show="hasPerm('hr.performance.delete')" @click="deleteCycle(c)" class="text-sm font-medium text-red-500 hover:text-red-700">Delete</button>
                             </div>
                         </td>
                     </tr>

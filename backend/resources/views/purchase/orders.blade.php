@@ -123,7 +123,7 @@
             <option value="paid">Paid</option>
         </select>
         <div style="margin-left:auto">
-            <a href="{{ url('/purchase-orders/create') }}"
+            <a x-show="hasPerm('purchase_orders.create')" href="{{ url('/purchase-orders/create') }}"
                style="background:linear-gradient(135deg,#4f46e5,#6366f1);color:#fff;border-radius:10px;padding:8px 18px;font-size:13px;font-weight:700;display:flex;align-items:center;gap:6px;text-decoration:none;box-shadow:0 4px 12px rgba(99,102,241,.35);transition:opacity .15s"
                onmouseover="this.style.opacity='.9'" onmouseout="this.style.opacity='1'">
                 <svg style="width:15px;height:15px" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path d="M12 5v14M5 12h14"/></svg>
@@ -179,7 +179,7 @@
                             </td>
                             <td style="white-space:nowrap">
                                 <div class="flex items-center gap-1.5 flex-nowrap">
-                                    <template x-if="po.grns && po.grns.some(g => g.status === 'draft')">
+                                    <template x-if="po.grns && po.grns.some(g => g.status === 'draft') && hasPerm('grns.confirm')">
                                         <button @click="openReceive(po)"
                                                 class="text-xs font-semibold px-2.5 py-1 rounded-lg transition-colors whitespace-nowrap flex-shrink-0"
                                                 style="background:#dcfce7;color:#15803d;border:1px solid #86efac"
@@ -192,7 +192,7 @@
                                        class="text-indigo-600 hover:underline text-sm font-medium flex-shrink-0">View</a>
                                     <button @click="printPO(po)"
                                             class="text-gray-500 hover:underline text-sm font-medium flex-shrink-0">Print</button>
-                                    <template x-if="parseFloat(po.balance_due ?? 0) > 0 && po.status !== 'cancelled'">
+                                    <template x-if="parseFloat(po.balance_due ?? 0) > 0 && po.status !== 'cancelled' && hasPerm('purchase_orders.payment')">
                                         <button @click="openPay(po)"
                                                 class="text-sm font-semibold px-2.5 py-1 rounded-lg transition-colors flex-shrink-0"
                                                 style="background:#f0fdf4;color:#15803d;border:1px solid #bbf7d0">

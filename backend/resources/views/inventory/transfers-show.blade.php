@@ -76,19 +76,19 @@
 
         <!-- Actions -->
         <div class="flex items-center gap-3">
-          <template x-if="t.status === 'pending' || t.status === 'draft'">
+          <template x-if="(t.status === 'pending' || t.status === 'draft') && hasPerm('inventory.transfers.approve')">
             <button @click="approve()" :disabled="acting"
                     class="btn-primary flex items-center gap-2 disabled:opacity-60">
               <span x-text="acting ? 'Processing…' : 'Approve Transfer'"></span>
             </button>
           </template>
-          <template x-if="t.status === 'approved'">
+          <template x-if="t.status === 'approved' && hasPerm('inventory.transfers.approve')">
             <button @click="dispatch()" :disabled="acting"
                     class="btn-primary flex items-center gap-2 disabled:opacity-60">
               <span x-text="acting ? 'Processing…' : 'Dispatch'"></span>
             </button>
           </template>
-          <template x-if="t.status === 'dispatched'">
+          <template x-if="t.status === 'dispatched' && hasPerm('inventory.transfers.approve')">
             <button @click="receive()" :disabled="acting"
                     class="btn-primary flex items-center gap-2 disabled:opacity-60" style="background:#059669">
               <span x-text="acting ? 'Processing…' : 'Mark Received'"></span>

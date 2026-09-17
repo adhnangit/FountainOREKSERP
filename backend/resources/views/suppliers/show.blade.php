@@ -87,11 +87,11 @@
                         <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 7h6m0 10v-3m-3 3v-3m-3 3v-3m9-8H4a1 1 0 00-1 1v10a1 1 0 001 1h16a1 1 0 001-1V6a1 1 0 00-1-1z"/></svg>
                         Bulk Payment
                     </a>
-                    <button @click="openEdit()" class="cd-hdr-btn">
+                    <button @click="openEdit()" x-show="hasPerm('suppliers.edit')" class="cd-hdr-btn">
                         <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
                         Edit
                     </button>
-                    <button @click="deleteSupplier()" class="cd-hdr-btn-del" title="Delete supplier">
+                    <button @click="deleteSupplier()" x-show="hasPerm('suppliers.delete')" class="cd-hdr-btn-del" title="Delete supplier">
                         <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                     </button>
                 </div>
@@ -103,7 +103,7 @@
                     <div class="cd-stat-lbl">Balance Owed</div>
                     <div class="flex items-end justify-between gap-2">
                         <div class="cd-stat-val" :style="(supplier.balance ?? 0) > 0 ? 'color:#dc2626' : 'color:#16a34a'" x-text="fmtMoney(supplier.balance ?? 0)"></div>
-                        <button x-show="(supplier.balance ?? 0) > 0" @click="openPayModal()"
+                        <button x-show="(supplier.balance ?? 0) > 0 && hasPerm('suppliers.edit')" @click="openPayModal()"
                                 class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold border border-green-200 bg-green-50 text-green-700 hover:bg-green-100 transition-colors flex-shrink-0">
                             <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V6m0 10v2m0-2c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                             Pay
@@ -192,7 +192,7 @@
                                     </td>
                                     <td class="text-right font-semibold tabular-nums" :class="p.reversed ? 'line-through' : ''" x-text="fmtMoney(p.amount)"></td>
                                     <td class="text-right">
-                                        <button x-show="!p.reversed && (!p.cheque || p.cheque.status === 'in_hand')"
+                                        <button x-show="!p.reversed && (!p.cheque || p.cheque.status === 'in_hand') && hasPerm('suppliers.edit')"
                                                 @click="deleteObPayment(p)"
                                                 class="text-gray-400 hover:text-red-600 transition-colors" title="Delete this payment">
                                             <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>

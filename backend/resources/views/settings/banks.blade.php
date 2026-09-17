@@ -8,7 +8,7 @@
 
   <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
     <input x-model="search" type="text" placeholder="Search bank name or SWIFT…" class="input w-full sm:w-72" />
-    <button @click="openAdd()" class="btn-primary inline-flex items-center gap-2">
+    <button x-show="hasPerm('settings.edit')" @click="openAdd()" class="btn-primary inline-flex items-center gap-2">
       <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
       Add Bank
     </button>
@@ -45,12 +45,12 @@
               </td>
               <td class="table-td">
                 <div class="flex items-center gap-2">
-                  <button @click="openEdit(b)" class="text-xs text-indigo-600 hover:underline font-medium">Edit</button>
-                  <button @click="toggleActive(b)"
+                  <button x-show="hasPerm('settings.edit')" @click="openEdit(b)" class="text-xs text-indigo-600 hover:underline font-medium">Edit</button>
+                  <button x-show="hasPerm('settings.edit')" @click="toggleActive(b)"
                           :class="b.is_active ? 'text-yellow-600' : 'text-green-600'"
                           class="text-xs hover:underline font-medium"
                           x-text="b.is_active ? 'Deactivate' : 'Activate'"></button>
-                  <button @click="deleteBank(b)" class="text-xs text-red-500 hover:underline font-medium">Delete</button>
+                  <button x-show="hasPerm('settings.edit')" @click="deleteBank(b)" class="text-xs text-red-500 hover:underline font-medium">Delete</button>
                 </div>
               </td>
             </tr>

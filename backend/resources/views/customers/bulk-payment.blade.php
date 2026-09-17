@@ -164,7 +164,7 @@
         </div>
       </div>
 
-      <button type="button" @click="submit()" :disabled="submitting"
+      <button type="button" @click="submit()" :disabled="submitting" x-show="hasPerm('invoices.payment')"
               class="btn-primary w-full flex items-center justify-center gap-2 py-3">
         <span x-text="submitting ? 'Processing…' : 'Record Bulk Payment'"></span>
       </button>

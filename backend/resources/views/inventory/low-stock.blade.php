@@ -74,7 +74,7 @@
                             <td class="table-td">
                                 <div class="flex gap-2">
                                     <a :href="BASE + '/products/' + p.id" class="text-indigo-600 hover:underline text-sm font-medium">View</a>
-                                    <a :href="BASE + '/purchase-orders/create?product_id=' + p.id" class="text-green-600 hover:underline text-sm font-medium">Order</a>
+                                    <a :href="BASE + '/purchase-orders/create?product_id=' + p.id" x-show="hasPerm('purchase_orders.create')" class="text-green-600 hover:underline text-sm font-medium">Order</a>
                                 </div>
                             </td>
                         </tr>

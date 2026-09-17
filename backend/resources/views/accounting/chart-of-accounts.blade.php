@@ -119,7 +119,7 @@
         Opening balances off by Rs <span x-text="fmtAmount(Math.abs(obCheck?.difference??0))"></span> — a historical opening balance needs correcting; new account entries auto-balance via "Opening Balance Equity"
       </span>
     </div>
-    <button @click="openCreateModal(null)"
+    <button @click="openCreateModal(null)" x-show="hasPerm('accounting.settings')"
             style="background:#1B3EB6"
             class="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold text-white shadow transition-opacity hover:opacity-90">
       <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path d="M12 5v14M5 12h14"/></svg>
@@ -172,7 +172,7 @@
                   <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;margin-left:6px">
                     <span class="coa-acc-bal"
                           x-text="fmtCompact(acc.balance)+' '+(acc.normal_balance==='debit'?'Dr':'Cr')"></span>
-                    <button class="coa-plus-btn" @click.stop="openCreateModal(acc)" title="Add Sub-account">
+                    <button class="coa-plus-btn" x-show="hasPerm('accounting.settings')" @click.stop="openCreateModal(acc)" title="Add Sub-account">
                       <svg style="width:11px;height:11px" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path d="M12 5v14M5 12h14"/></svg>
                     </button>
                   </div>
@@ -217,15 +217,15 @@
               </div>
             </div>
             <div class="coa-hdr-actions">
-              <button class="coa-hdr-btn" @click="openCreateModal(selected)">
+              <button class="coa-hdr-btn" x-show="hasPerm('accounting.settings')" @click="openCreateModal(selected)">
                 <svg style="width:12px;height:12px" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path d="M12 5v14M5 12h14"/></svg>
                 Sub-account
               </button>
-              <button class="coa-hdr-btn" @click="openEditModal(selected)">
+              <button class="coa-hdr-btn" x-show="hasPerm('accounting.settings')" @click="openEditModal(selected)">
                 <svg style="width:12px;height:12px" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
                 Edit
               </button>
-              <button class="coa-hdr-btn-del" @click="confirmDelete(selected)">
+              <button class="coa-hdr-btn-del" x-show="hasPerm('accounting.settings')" @click="confirmDelete(selected)">
                 <svg style="width:14px;height:14px" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
               </button>
             </div>
@@ -319,7 +319,7 @@
                               x-text="drCrLabel(entry.balance, selected)"></span>
                       </td>
                       <td style="text-align:center">
-                        <button @click="deleteJournalEntry(entry)"
+                        <button @click="deleteJournalEntry(entry)" x-show="hasPerm('accounting.journal.create')"
                                 style="background:none;border:none;cursor:pointer;color:#cbd5e1;padding:4px;transition:color .15s"
                                 onmouseover="this.style.color='#ef4444'" onmouseout="this.style.color='#cbd5e1'">
                           <svg style="width:14px;height:14px" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
@@ -491,15 +491,15 @@ function chartOfAccounts() {
     drCrBadge(val,acc){ return this.drCrLabel(val,acc)==='Dr'?'coa-badge-dr':'coa-badge-cr'; },
 
     async init(){
-      const [accR,grpR,brR]=await Promise.all([apiFetch('/accounting/accounts'),apiFetch('/accounting/groups'),apiFetch('/branches')]);
+      // Users without branches.view fall back to their assigned branches
+      const [accR,grpR,bd]=await Promise.all([apiFetch('/accounting/accounts'),apiFetch('/accounting/groups'),apiFetch('/branches').then(r=>r.json()).catch(()=>JSON.parse(localStorage.getItem('medri_user')||'{}').branches??[])]);
       this.accounts=await accR.json();
       this.groups=(await grpR.json()).map(g=>({...g,accounts:this.accounts.filter(a=>a.group_id==g.id)}));
-      const bd=await brR.json();
       this.branches=bd.data??bd??[];
       try{
         const u=JSON.parse(localStorage.getItem('medri_user')||'{}');
         const stored=localStorage.getItem('medri_branch');
-        this.defaultBranchId=(stored&&stored!=='all')?stored:(u.default_branch_id??'');
+        this.defaultBranchId=(stored&&stored!=='all')?stored:(u.default_branch_id??this.branches[0]?.id??'');
       }catch(_){}
       this.buildFiltered(); this.listLoading=false;
       const id=params.get('account_id');

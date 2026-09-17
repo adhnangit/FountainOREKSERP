@@ -911,10 +911,35 @@ async function apiFetch(path, opts = {}) {
       const firstError = Object.values(body.errors ?? {})[0]?.[0];
       message = firstError ?? body.message ?? message;
     } catch (e) {}
-    throw new Error(message);
+    // Tagged so the global unhandledrejection listener below can recognize
+    // this as an API failure (vs. an unrelated JS bug) and surface it —
+    // most apiFetch() call sites across the app have no local .catch(), so
+    // without this a permission-denied response used to just die silently
+    // mid-init() with nothing but a console error, leaving the page looking
+    // "stuck" with no visible explanation.
+    const err = new Error(message);
+    err.isApiFetchError = true;
+    err.status = res.status;
+    throw err;
   }
   return res;
 }
+// Safety net for every apiFetch() call with no local .catch() (still the
+// majority of them app-wide). unhandledrejection only fires when NOTHING
+// in the promise chain handled the error, so this never double-toasts a
+// call that already has its own catch/toast — it only catches the ones
+// that were previously failing invisibly.
+window.addEventListener('unhandledrejection', (event) => {
+  const err = event.reason;
+  if (!err || !err.isApiFetchError) return;
+  if (err.status === 403) {
+    toast("You don't have permission to do this.", 'error');
+  } else if (err.status === 404) {
+    toast('Not found.', 'error');
+  } else {
+    toast(err.message || 'Something went wrong. Please try again.', 'error');
+  }
+});
 function toast(msg, type = 'success') {
   const c = { success:'#22A845', error:'#E31E24', warning:'#f59e0b', info:'#1B3EB6' };
   const el = document.createElement('div');

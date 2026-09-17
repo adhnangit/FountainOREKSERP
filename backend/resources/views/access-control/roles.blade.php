@@ -15,7 +15,7 @@
                       x-text="selectedRole.name.replace('_',' ')"></span>
             </template>
         </div>
-        <button @click="showModal = true" class="btn-primary inline-flex items-center gap-2">
+        <button x-show="hasPerm('roles.edit')" @click="showModal = true" class="btn-primary inline-flex items-center gap-2">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
             New Role
         </button>
@@ -101,7 +101,7 @@
                                  x-text="permCountFor(selectedRole) + ' of ' + permissions.length + ' permissions enabled'"></div>
                         </div>
                     </div>
-                    <div class="flex items-center gap-2">
+                    <div class="flex items-center gap-2" x-show="hasPerm('roles.edit')">
                         <button @click="toggleAllPerms(true)"
                                 class="text-xs font-semibold px-3 py-1.5 rounded-lg transition-all"
                                 style="background:#dcfce7;color:#15803d;border:1px solid #86efac">
@@ -136,7 +136,7 @@
                                          :style="'width:' + catPct(cat) + '%;background:' + cat.color"></div>
                                 </div>
                                 {{-- Select all toggle --}}
-                                <button @click="toggleCategory(cat, catEnabledCount(cat) < catPermissions(cat).length)"
+                                <button x-show="hasPerm('roles.edit')" @click="toggleCategory(cat, catEnabledCount(cat) < catPermissions(cat).length)"
                                         class="text-xs font-semibold px-2.5 py-1 rounded-lg border transition-all"
                                         :style="catEnabledCount(cat) === catPermissions(cat).length
                                           ? 'background:#fee2e2;color:#dc2626;border-color:#fca5a5'
@@ -156,6 +156,7 @@
                                     <input type="checkbox"
                                            :checked="hasPermission(perm.id)"
                                            @change="togglePermission(perm.id, $event.target.checked)"
+                                           :disabled="!hasPerm('roles.edit')"
                                            class="mt-0.5 rounded border-gray-300 text-indigo-600 flex-shrink-0" />
                                     <div class="min-w-0">
                                         <div class="text-xs font-bold text-gray-700 dark:text-gray-200 leading-tight"

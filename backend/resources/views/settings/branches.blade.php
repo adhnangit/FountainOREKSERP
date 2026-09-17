@@ -22,7 +22,7 @@
         <div>
             <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
                 <div class="text-sm text-gray-500" x-text="branches.length + ' branches configured'"></div>
-                <button @click="openCreate()" class="btn-primary inline-flex items-center gap-2">
+                <button x-show="hasPerm('branches.create')" @click="openCreate()" class="btn-primary inline-flex items-center gap-2">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
                     New Branch
                 </button>
@@ -91,16 +91,18 @@
                         <!-- Actions -->
                         <div class="flex gap-2 pt-2 border-t border-gray-100">
                             <button @click="openEdit(b)"
+                                    x-show="hasPerm('branches.edit')"
                                     class="flex-1 text-center text-sm font-medium text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50 rounded-lg py-1.5 transition-colors">
                                 Edit
                             </button>
                             <button @click="toggleActive(b)"
+                                    x-show="hasPerm('branches.edit')"
                                     class="flex-1 text-center text-sm font-medium rounded-lg py-1.5 transition-colors"
                                     :class="b.is_active ? 'text-orange-600 hover:bg-orange-50' : 'text-green-600 hover:bg-green-50'"
                                     x-text="b.is_active ? 'Deactivate' : 'Activate'">
                             </button>
                             <button @click="deleteBranch(b)"
-                                    x-show="!b.is_head_office"
+                                    x-show="!b.is_head_office && hasPerm('branches.delete')"
                                     class="flex-1 text-center text-sm font-medium text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg py-1.5 transition-colors">
                                 Delete
                             </button>

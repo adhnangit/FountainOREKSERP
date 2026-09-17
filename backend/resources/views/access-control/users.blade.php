@@ -8,7 +8,7 @@
 
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
         <input x-model="search" type="text" placeholder="Search name or email…" class="input w-full sm:w-72" />
-        <button @click="openCreate()" class="btn-primary inline-flex items-center gap-2">
+        <button x-show="hasPerm('users.create')" @click="openCreate()" class="btn-primary inline-flex items-center gap-2">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
             Add User
         </button>
@@ -54,9 +54,9 @@
                             <td class="table-td text-gray-500 text-xs" x-text="user.last_login_at ? fmtDate(user.last_login_at) : 'Never'"></td>
                             <td class="table-td">
                                 <div class="flex gap-3">
-                                    <button @click="openEdit(user)" class="text-indigo-600 hover:underline text-sm font-medium">Edit</button>
-                                    <button @click="resetPassword(user)" class="text-yellow-600 hover:underline text-sm font-medium">Reset PW</button>
-                                    <button @click="toggleActive(user)"
+                                    <button x-show="hasPerm('users.edit')" @click="openEdit(user)" class="text-indigo-600 hover:underline text-sm font-medium">Edit</button>
+                                    <button x-show="hasPerm('users.edit')" @click="resetPassword(user)" class="text-yellow-600 hover:underline text-sm font-medium">Reset PW</button>
+                                    <button x-show="hasPerm('users.edit')" @click="toggleActive(user)"
                                         class="text-sm font-medium"
                                         :class="(user.is_active ?? true) ? 'text-red-500 hover:underline' : 'text-green-600 hover:underline'"
                                         x-text="(user.is_active ?? true) ? 'Deactivate' : 'Activate'"></button>

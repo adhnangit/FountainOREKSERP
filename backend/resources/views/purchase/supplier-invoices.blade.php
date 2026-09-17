@@ -18,7 +18,7 @@
         <option value="cancelled">Cancelled</option>
       </select>
     </div>
-    <button @click="openCreate()" class="btn-primary flex items-center gap-2">
+    <button x-show="hasPerm('supplier_invoices.create')" @click="openCreate()" class="btn-primary flex items-center gap-2">
       <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M12 4v16m8-8H4"/></svg>
       New Supplier Invoice
     </button>
@@ -91,7 +91,7 @@
               </td>
               <td class="table-td">
                 <div class="flex items-center gap-2">
-                  <template x-if="inv.grn && inv.grn.status === 'draft'">
+                  <template x-if="inv.grn && inv.grn.status === 'draft' && hasPerm('grns.confirm')">
                     <button @click="openReceive(inv)"
                             class="text-sm font-semibold px-3 py-1 rounded-lg transition-colors"
                             style="background:#f0fdf4;color:#15803d;border:1px solid #86efac"
@@ -103,7 +103,7 @@
                   <template x-if="inv.grn && inv.grn.status === 'confirmed'">
                     <span class="text-xs px-2 py-0.5 rounded-full font-semibold bg-green-100 text-green-700">Received</span>
                   </template>
-                  <template x-if="inv.balance_due > 0 && inv.status !== 'cancelled'">
+                  <template x-if="inv.balance_due > 0 && inv.status !== 'cancelled' && hasPerm('supplier_invoices.payment')">
                     <button @click="openPayment(inv)"
                             class="text-sm font-semibold px-3 py-1 rounded-lg transition-colors"
                             style="background:#eef2ff;color:#1B3EB6"

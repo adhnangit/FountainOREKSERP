@@ -17,7 +17,7 @@
             <option value="retired">Retired</option>
         </select>
         <div class="flex-1"></div>
-        <button @click="openCreate()" class="btn-primary inline-flex items-center gap-2">
+        <button x-show="hasPerm('hr.assets.create')" @click="openCreate()" class="btn-primary inline-flex items-center gap-2">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
             New Asset
         </button>
@@ -52,10 +52,10 @@
                         <td class="table-td"><span class="badge" :class="statusBadge(a.status)" x-text="a.status.replace('_',' ')"></span></td>
                         <td class="table-td">
                             <div class="flex items-center gap-3">
-                                <button x-show="a.status === 'available'" @click="openAssign(a)" class="text-sm font-medium text-indigo-600 hover:text-indigo-800">Assign</button>
-                                <button x-show="a.status === 'assigned'" @click="openReturn(a)" class="text-sm font-medium text-amber-600 hover:text-amber-800">Return</button>
-                                <button @click="openEdit(a)" class="text-sm font-medium text-gray-500 hover:text-gray-700">Edit</button>
-                                <button @click="deleteAsset(a)" class="text-sm font-medium text-red-500 hover:text-red-700">Delete</button>
+                                <button x-show="a.status === 'available' && hasPerm('hr.assets.assign')" @click="openAssign(a)" class="text-sm font-medium text-indigo-600 hover:text-indigo-800">Assign</button>
+                                <button x-show="a.status === 'assigned' && hasPerm('hr.assets.assign')" @click="openReturn(a)" class="text-sm font-medium text-amber-600 hover:text-amber-800">Return</button>
+                                <button x-show="hasPerm('hr.assets.edit')" @click="openEdit(a)" class="text-sm font-medium text-gray-500 hover:text-gray-700">Edit</button>
+                                <button x-show="hasPerm('hr.assets.delete')" @click="deleteAsset(a)" class="text-sm font-medium text-red-500 hover:text-red-700">Delete</button>
                             </div>
                         </td>
                     </tr>
@@ -213,7 +213,8 @@ function assetsPage() {
         async init() {
             try {
                 const [bd, ed] = await Promise.all([
-                    apiFetch('/branches').then(r => r.json()),
+                    // Users without branches.view fall back to their assigned branches
+                    apiFetch('/branches').then(r => r.json()).catch(() => JSON.parse(localStorage.getItem('medri_user') || '{}').branches ?? []),
                     apiFetch('/hr/employees?per_page=500').then(r => r.json()),
                 ]);
                 this.branches = bd.data ?? bd ?? [];

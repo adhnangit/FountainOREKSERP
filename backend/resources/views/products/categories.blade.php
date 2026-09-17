@@ -95,7 +95,7 @@
       <input type="text" x-model="search" placeholder="Search category name or code…">
     </div>
     <div style="margin-left:auto">
-      <button @click="openCreate()"
+      <button @click="openCreate()" x-show="hasPerm('products.categories.create')"
               style="background:linear-gradient(135deg,#4f46e5,#6366f1);color:#fff;border-radius:10px;padding:8px 18px;font-size:13px;font-weight:700;display:flex;align-items:center;gap:6px;border:none;cursor:pointer;box-shadow:0 4px 12px rgba(99,102,241,.35);transition:opacity .15s"
               onmouseover="this.style.opacity='.9'" onmouseout="this.style.opacity='1'">
         <svg style="width:15px;height:15px" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path d="M12 5v14M5 12h14"/></svg>
@@ -146,8 +146,8 @@
                 </td>
                 <td>
                   <div class="flex items-center gap-3">
-                    <button @click="openEdit(row)" class="text-sm font-medium text-indigo-600 hover:text-indigo-800">Edit</button>
-                    <button @click="deleteCategory(row)" class="text-sm font-medium text-red-500 hover:text-red-700">Delete</button>
+                    <button @click="openEdit(row)" x-show="hasPerm('products.edit')" class="text-sm font-medium text-indigo-600 hover:text-indigo-800">Edit</button>
+                    <button @click="deleteCategory(row)" x-show="hasPerm('products.delete')" class="text-sm font-medium text-red-500 hover:text-red-700">Delete</button>
                   </div>
                 </td>
               </tr>
@@ -267,11 +267,13 @@ function categoriesPage() {
         async init() {
             await this.load();
             try {
-                const bd = await apiFetch('/branches').then(r => r.json());
+                // Users without branches.view fall back to their assigned branches
+                const bd = await apiFetch('/branches').then(r => r.json())
+                    .catch(() => JSON.parse(localStorage.getItem('medri_user') || '{}').branches ?? []);
                 this.branches = bd.data ?? bd ?? [];
                 const u = JSON.parse(localStorage.getItem('medri_user') || '{}');
                 const stored = localStorage.getItem('medri_branch');
-                this.defaultBranchId = (stored && stored !== 'all') ? stored : (u.default_branch_id ?? '');
+                this.defaultBranchId = (stored && stored !== 'all') ? stored : (u.default_branch_id || this.branches[0]?.id || '');
             } catch (_) {}
         },
 

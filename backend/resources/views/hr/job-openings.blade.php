@@ -15,7 +15,7 @@
             <option value="closed">Closed</option>
             <option value="filled">Filled</option>
         </select>
-        <button @click="openCreate()" class="btn-primary inline-flex items-center gap-2">
+        <button x-show="hasPerm('hr.jobs.create')" @click="openCreate()" class="btn-primary inline-flex items-center gap-2">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
             New Job Opening
         </button>
@@ -53,8 +53,8 @@
                         </td>
                         <td class="table-td">
                             <div class="flex items-center gap-3">
-                                <button @click="openEdit(j)" class="text-sm font-medium text-indigo-600 hover:text-indigo-800">Edit</button>
-                                <button @click="deleteJob(j)" class="text-sm font-medium text-red-500 hover:text-red-700">Delete</button>
+                                <button x-show="hasPerm('hr.jobs.edit')" @click="openEdit(j)" class="text-sm font-medium text-indigo-600 hover:text-indigo-800">Edit</button>
+                                <button x-show="hasPerm('hr.jobs.delete')" @click="deleteJob(j)" class="text-sm font-medium text-red-500 hover:text-red-700">Delete</button>
                             </div>
                         </td>
                     </tr>
@@ -187,7 +187,8 @@ function jobOpeningsPage() {
         async init() {
             try {
                 const [bd, dd] = await Promise.all([
-                    apiFetch('/branches').then(r => r.json()),
+                    // Users without branches.view fall back to their assigned branches
+                    apiFetch('/branches').then(r => r.json()).catch(() => JSON.parse(localStorage.getItem('medri_user') || '{}').branches ?? []),
                     apiFetch('/hr/departments').then(r => r.json()),
                 ]);
                 this.branches = bd.data ?? bd ?? [];

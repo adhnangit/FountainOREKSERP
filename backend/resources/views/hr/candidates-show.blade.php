@@ -98,7 +98,7 @@
                 <div class="card p-0 overflow-visible rounded-2xl">
                     <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-gray-700">
                         <h3 class="text-xs font-semibold uppercase text-gray-400 tracking-wider">Interviews</h3>
-                        <button @click="showInterviewModal = true" class="btn-primary text-xs px-3 py-1.5">Schedule Interview</button>
+                        <button x-show="hasPerm('hr.candidates.edit')" @click="showInterviewModal = true" class="btn-primary text-xs px-3 py-1.5">Schedule Interview</button>
                     </div>
                     <div class="overflow-x-auto">
                         <table class="ed-table min-w-full" style="width:100%">
@@ -294,7 +294,8 @@ function candidateShowPage() {
             try {
                 const [cd, bd, dd, gd, ud] = await Promise.all([
                     apiFetch('/hr/candidates/' + this.id).then(r => r.json()),
-                    apiFetch('/branches').then(r => r.json()),
+                    // Users without branches.view fall back to their assigned branches
+                    apiFetch('/branches').then(r => r.json()).catch(() => JSON.parse(localStorage.getItem('medri_user') || '{}').branches ?? []),
                     apiFetch('/hr/departments').then(r => r.json()),
                     apiFetch('/hr/designations').then(r => r.json()),
                     apiFetch('/users?per_page=200').then(r => r.json()).catch(() => ({ data: [] })),

@@ -20,7 +20,7 @@
           <p class="font-bold text-white">Default Account Mappings</p>
           <p class="text-xs text-blue-200 mt-0.5">These accounts are used when posting automatic journal entries</p>
         </div>
-        <button @click="saveSettings()" class="btn-primary text-sm" :disabled="saving">
+        <button @click="saveSettings()" x-show="hasPerm('accounting.settings')" class="btn-primary text-sm" :disabled="saving">
           <span x-show="saving">Saving…</span>
           <span x-show="!saving">Save Changes</span>
         </button>
@@ -190,7 +190,7 @@
           <p class="font-bold text-white">Financial Years</p>
           <p class="text-xs text-blue-200 mt-0.5">Journal entries require an active financial year</p>
         </div>
-        <button @click="showNewYearModal = true" class="btn-primary text-sm">+ New Year</button>
+        <button @click="showNewYearModal = true" x-show="hasPerm('accounting.settings')" class="btn-primary text-sm">+ New Year</button>
       </div>
 
       <div class="overflow-x-auto">

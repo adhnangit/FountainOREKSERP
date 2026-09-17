@@ -520,6 +520,7 @@
                        class="input text-sm w-full py-1.5" @keydown.stop />
               </div>
               <button type="button"
+                      x-show="hasPerm('customers.create')"
                       @click="open = false; openWalkInModal()"
                       class="w-full flex items-center gap-2 px-3 py-2 text-sm font-medium text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 border-b border-gray-100 dark:border-gray-700">
                 <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
@@ -985,7 +986,8 @@ function invoiceCreate() {
         apiFetch('/customers?per_page=999').then(r => r.json()),
         apiFetch('/products?per_page=5000').then(r => r.json()),
         apiFetch('/services?per_page=999&is_active=1').then(r => r.json()),
-        apiFetch('/branches').then(r => r.json()),
+        // Users without branches.view fall back to their assigned branches
+        apiFetch('/branches').then(r => r.json()).catch(() => JSON.parse(localStorage.getItem('medri_user') || '{}').branches ?? []),
         apiFetch('/accounting/accounts').then(r => r.json()),
       ]);
       this.customers = cd.data || cd || [];
@@ -997,7 +999,7 @@ function invoiceCreate() {
       try {
         const u = JSON.parse(localStorage.getItem('medri_user') || '{}');
         const stored = localStorage.getItem('medri_branch');
-        const bid = (stored && stored !== 'all') ? stored : u.default_branch_id;
+        const bid = (stored && stored !== 'all') ? stored : (u.default_branch_id || this.branches[0]?.id);
         if (bid) { this.form.branch_id = bid; await this.loadBranchUsers(); }
       } catch (_) {}
       if (this.items.length === 0) this.addRow();

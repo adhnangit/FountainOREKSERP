@@ -523,7 +523,7 @@
                         </a>
 
                         {{-- Status change dropdown (in_hand / deposited) --}}
-                        <template x-if="canChange(ch)">
+                        <template x-if="canChange(ch) && hasPerm('cheques.update')">
                             <div class="flex-1 relative" x-data="{ ddOpen: false }">
                                 <button @click="ddOpen=!ddOpen"
                                         class="w-full flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs font-bold text-white transition-colors"

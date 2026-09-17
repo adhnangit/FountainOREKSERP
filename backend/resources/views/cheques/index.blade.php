@@ -508,7 +508,7 @@
                                         </svg>
                                         History
                                     </button>
-                                    <template x-if="canChange(ch)">
+                                    <template x-if="canChange(ch) && hasPerm('cheques.update')">
                                         <div x-data="{
                                             open: false,
                                             ddStyle: {},

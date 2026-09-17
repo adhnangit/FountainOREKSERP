@@ -9,7 +9,7 @@
 
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
         <div class="text-sm text-gray-500" x-text="designations.length + ' designations'"></div>
-        <button @click="openCreate()" class="btn-primary inline-flex items-center gap-2">
+        <button x-show="hasPerm('hr.designations.create')" @click="openCreate()" class="btn-primary inline-flex items-center gap-2">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
             New Designation
         </button>
@@ -47,8 +47,8 @@
                         </td>
                         <td class="table-td">
                             <div class="flex items-center gap-3">
-                                <button @click="openEdit(d)" class="text-sm font-medium text-indigo-600 hover:text-indigo-800">Edit</button>
-                                <button @click="deleteDesignation(d)" class="text-sm font-medium text-red-500 hover:text-red-700">Delete</button>
+                                <button x-show="hasPerm('hr.designations.edit')" @click="openEdit(d)" class="text-sm font-medium text-indigo-600 hover:text-indigo-800">Edit</button>
+                                <button x-show="hasPerm('hr.designations.delete')" @click="deleteDesignation(d)" class="text-sm font-medium text-red-500 hover:text-red-700">Delete</button>
                             </div>
                         </td>
                     </tr>
