@@ -1059,21 +1059,24 @@ function layout() {
       window.addEventListener('branches-changed', () => this.loadSwitcherBranches());
     },
     async loadSwitcherBranches() {
-      const isSuper = this.user?.is_super_admin || (this.user?.roles ?? []).includes('super_admin');
       try {
+        // Refresh the cached user (roles/permissions included) on every page load —
+        // a role's permissions can be edited from the Roles screen at any time, and
+        // without this, hasPerm() below keeps checking the stale snapshot saved at
+        // last login until the user manually logs out and back in.
+        const meRes = await apiFetch('/auth/me');
+        if (meRes) {
+          const me = await meRes.json();
+          this.user = me;
+          localStorage.setItem('medri_user', JSON.stringify(me));
+        }
+        const isSuper = this.user?.is_super_admin || (this.user?.roles ?? []).includes('super_admin');
         if (isSuper) {
           // Super admins can access every branch — list them all
           const r = await apiFetch('/branches?active_only=true');
           if (r) this.switcherBranches = await r.json();
         } else {
-          // Others: refresh assigned branches (cached copy goes stale after login)
-          const r = await apiFetch('/auth/me');
-          if (r) {
-            const me = await r.json();
-            this.user = me;
-            localStorage.setItem('medri_user', JSON.stringify(me));
-            this.switcherBranches = me.branches ?? [];
-          }
+          this.switcherBranches = this.user?.branches ?? [];
         }
       } catch (e) { /* keep cached list on failure */ }
     },

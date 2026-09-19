@@ -155,7 +155,7 @@
     /* ─────────────── SEARCHABLE DROPDOWN ─────────────── */
     .search-dd { position:relative; }
     .search-dd-menu {
-      position:absolute; left:0; right:0; top:calc(100% + 4px);
+      position:fixed;
       background:#fff; border:1px solid #e2e8f0; border-radius:12px;
       box-shadow:0 8px 30px rgba(0,0,0,0.12); z-index:70; overflow:hidden;
     }
@@ -183,6 +183,16 @@
     ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 4px; }
     .main-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; }
     .dark .main-scroll::-webkit-scrollbar-thumb { background: #334155; }
+
+    /* ─────────────── GLOBAL LOADING OVERLAY (PDF gen, etc — anything with a few seconds' latency and no other visible feedback) ─────────────── */
+    .global-loading-overlay{position:fixed;inset:0;z-index:9999;background:rgba(15,23,42,0.35);backdrop-filter:blur(1.5px);display:flex;align-items:center;justify-content:center}
+    .global-loading-box{display:flex;flex-direction:column;align-items:center;gap:14px;background:#fff;padding:26px 34px;border-radius:14px;box-shadow:0 12px 40px rgba(0,0,0,0.25)}
+    .dark .global-loading-box{background:#1e2533}
+    .global-loading-spinner{width:34px;height:34px;border-radius:50%;border:3.5px solid #e2e8f0;border-top-color:#1B3EB6;animation:global-loading-spin .7s linear infinite}
+    .dark .global-loading-spinner{border-color:#334155;border-top-color:#5b7cf0}
+    @keyframes global-loading-spin{to{transform:rotate(360deg)}}
+    .global-loading-msg{font-size:13.5px;font-weight:600;color:#334155}
+    .dark .global-loading-msg{color:#cbd5e1}
   </style>
   <?php echo $__env->yieldPushContent('head'); ?>
 </head>
@@ -863,6 +873,13 @@ elseif (request()->is('access-control*') || request()->is('settings/branches*') 
 
 <div class="fixed top-4 right-4 z-50 flex flex-col gap-2 pointer-events-none" id="toasts"></div>
 
+<div id="global-loading-overlay" class="global-loading-overlay" style="display:none">
+  <div class="global-loading-box">
+    <div class="global-loading-spinner"></div>
+    <div class="global-loading-msg" id="global-loading-msg">Loading…</div>
+  </div>
+</div>
+
 <script>
 const API = '<?php echo e(url('/api')); ?>';
 const BASE = '<?php echo e(url('')); ?>';
@@ -894,10 +911,35 @@ async function apiFetch(path, opts = {}) {
       const firstError = Object.values(body.errors ?? {})[0]?.[0];
       message = firstError ?? body.message ?? message;
     } catch (e) {}
-    throw new Error(message);
+    // Tagged so the global unhandledrejection listener below can recognize
+    // this as an API failure (vs. an unrelated JS bug) and surface it —
+    // most apiFetch() call sites across the app have no local .catch(), so
+    // without this a permission-denied response used to just die silently
+    // mid-init() with nothing but a console error, leaving the page looking
+    // "stuck" with no visible explanation.
+    const err = new Error(message);
+    err.isApiFetchError = true;
+    err.status = res.status;
+    throw err;
   }
   return res;
 }
+// Safety net for every apiFetch() call with no local .catch() (still the
+// majority of them app-wide). unhandledrejection only fires when NOTHING
+// in the promise chain handled the error, so this never double-toasts a
+// call that already has its own catch/toast — it only catches the ones
+// that were previously failing invisibly.
+window.addEventListener('unhandledrejection', (event) => {
+  const err = event.reason;
+  if (!err || !err.isApiFetchError) return;
+  if (err.status === 403) {
+    toast("You don't have permission to do this.", 'error');
+  } else if (err.status === 404) {
+    toast('Not found.', 'error');
+  } else {
+    toast(err.message || 'Something went wrong. Please try again.', 'error');
+  }
+});
 function toast(msg, type = 'success') {
   const c = { success:'#22A845', error:'#E31E24', warning:'#f59e0b', info:'#1B3EB6' };
   const el = document.createElement('div');
@@ -906,6 +948,16 @@ function toast(msg, type = 'success') {
   document.getElementById('toasts').appendChild(el);
   setTimeout(() => { el.style.opacity='0'; el.style.transform='translateX(8px)'; el.style.transition='all 0.3s'; setTimeout(()=>el.remove(),300); }, 3700);
 }
+let _globalLoadingCount = 0;
+function showGlobalLoading(msg = 'Loading…') {
+  _globalLoadingCount++;
+  document.getElementById('global-loading-msg').textContent = msg;
+  document.getElementById('global-loading-overlay').style.display = 'flex';
+}
+function hideGlobalLoading() {
+  _globalLoadingCount = Math.max(0, _globalLoadingCount - 1);
+  if (_globalLoadingCount === 0) document.getElementById('global-loading-overlay').style.display = 'none';
+}
 function fmtMoney(v) {
   if (v == null) return '—';
   return 'Rs. ' + parseFloat(v).toLocaleString('en-LK', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -913,6 +965,14 @@ function fmtMoney(v) {
 function fmtDate(d) {
   if (!d) return '—';
   return new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+}
+// Converts a Date to a YYYY-MM-DD string using ITS OWN local Y/M/D fields —
+// never d.toISOString(), which converts to UTC first and silently rolls a
+// local midnight back to the previous day in any timezone ahead of UTC
+// (e.g. Asia/Colombo, UTC+5:30). Use this wherever a date-range boundary
+// (start of month/quarter/year, etc.) is built from local Date components.
+function toLocalISO(d) {
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
 }
 function exportCSV(filename, headers, rows) {
   const esc = v => '"' + String(v ?? '').replace(/"/g, '""') + '"';
@@ -999,21 +1059,24 @@ function layout() {
       window.addEventListener('branches-changed', () => this.loadSwitcherBranches());
     },
     async loadSwitcherBranches() {
-      const isSuper = this.user?.is_super_admin || (this.user?.roles ?? []).includes('super_admin');
       try {
+        // Refresh the cached user (roles/permissions included) on every page load —
+        // a role's permissions can be edited from the Roles screen at any time, and
+        // without this, hasPerm() below keeps checking the stale snapshot saved at
+        // last login until the user manually logs out and back in.
+        const meRes = await apiFetch('/auth/me');
+        if (meRes) {
+          const me = await meRes.json();
+          this.user = me;
+          localStorage.setItem('medri_user', JSON.stringify(me));
+        }
+        const isSuper = this.user?.is_super_admin || (this.user?.roles ?? []).includes('super_admin');
         if (isSuper) {
           // Super admins can access every branch — list them all
           const r = await apiFetch('/branches?active_only=true');
           if (r) this.switcherBranches = await r.json();
         } else {
-          // Others: refresh assigned branches (cached copy goes stale after login)
-          const r = await apiFetch('/auth/me');
-          if (r) {
-            const me = await r.json();
-            this.user = me;
-            localStorage.setItem('medri_user', JSON.stringify(me));
-            this.switcherBranches = me.branches ?? [];
-          }
+          this.switcherBranches = this.user?.branches ?? [];
         }
       } catch (e) { /* keep cached list on failure */ }
     },
