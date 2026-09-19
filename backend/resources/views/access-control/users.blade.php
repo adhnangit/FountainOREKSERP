@@ -32,34 +32,34 @@
                     </tr>
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-200">
-                    <template x-for="user in filtered" :key="user.id">
+                    <template x-for="u in filtered" :key="u.id">
                         <tr class="hover:bg-gray-50">
                             <td class="table-td">
                                 <div class="flex items-center gap-2">
                                     <div class="w-7 h-7 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold text-xs shrink-0"
-                                        x-text="(user.name ?? '?').charAt(0).toUpperCase()"></div>
-                                    <span class="font-medium text-gray-900" x-text="user.name ?? '—'"></span>
+                                        x-text="(u.name ?? '?').charAt(0).toUpperCase()"></div>
+                                    <span class="font-medium text-gray-900" x-text="u.name ?? '—'"></span>
                                 </div>
                             </td>
-                            <td class="table-td" x-text="user.email ?? '—'"></td>
+                            <td class="table-td" x-text="u.email ?? '—'"></td>
                             <td class="table-td">
                                 <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-indigo-50 text-indigo-700"
-                                      x-text="user.roles?.[0]?.name ?? '—'"></span>
+                                      x-text="u.roles?.[0]?.name ?? '—'"></span>
                             </td>
-                            <td class="table-td" x-text="user.default_branch?.name ?? user.branches?.[0]?.name ?? '—'"></td>
+                            <td class="table-td" x-text="u.default_branch?.name ?? u.branches?.[0]?.name ?? '—'"></td>
                             <td class="table-td">
-                                <span :class="(user.is_active ?? true) ? 'badge-success' : 'badge-gray'"
-                                    x-text="(user.is_active ?? true) ? 'Active' : 'Inactive'"></span>
+                                <span :class="(u.is_active ?? true) ? 'badge-success' : 'badge-gray'"
+                                    x-text="(u.is_active ?? true) ? 'Active' : 'Inactive'"></span>
                             </td>
-                            <td class="table-td text-gray-500 text-xs" x-text="user.last_login_at ? fmtDate(user.last_login_at) : 'Never'"></td>
+                            <td class="table-td text-gray-500 text-xs" x-text="u.last_login_at ? fmtDate(u.last_login_at) : 'Never'"></td>
                             <td class="table-td">
                                 <div class="flex gap-3">
-                                    <button x-show="hasPerm('users.edit')" @click="openEdit(user)" class="text-indigo-600 hover:underline text-sm font-medium">Edit</button>
-                                    <button x-show="hasPerm('users.edit')" @click="resetPassword(user)" class="text-yellow-600 hover:underline text-sm font-medium">Reset PW</button>
-                                    <button x-show="hasPerm('users.edit')" @click="toggleActive(user)"
+                                    <button x-show="hasPerm('users.edit')" @click="openEdit(u)" class="text-indigo-600 hover:underline text-sm font-medium">Edit</button>
+                                    <button x-show="hasPerm('users.edit')" @click="resetPassword(u)" class="text-yellow-600 hover:underline text-sm font-medium">Reset PW</button>
+                                    <button x-show="hasPerm('users.edit')" @click="toggleActive(u)"
                                         class="text-sm font-medium"
-                                        :class="(user.is_active ?? true) ? 'text-red-500 hover:underline' : 'text-green-600 hover:underline'"
-                                        x-text="(user.is_active ?? true) ? 'Deactivate' : 'Activate'"></button>
+                                        :class="(u.is_active ?? true) ? 'text-red-500 hover:underline' : 'text-green-600 hover:underline'"
+                                        x-text="(u.is_active ?? true) ? 'Deactivate' : 'Activate'"></button>
                                 </div>
                             </td>
                         </tr>
