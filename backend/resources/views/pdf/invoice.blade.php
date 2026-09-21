@@ -439,6 +439,7 @@
                 <th>Description</th>
                 <th class="tr" style="width:52px">Quantity</th>
                 <th class="tr" style="width:70px">Price Each</th>
+                <th class="tr" style="width:54px">Discount</th>
                 <th class="tr" style="width:78px">Amount</th>
             </tr>
         </thead>
@@ -456,11 +457,23 @@
                     {{ rtrim(rtrim(number_format($item->quantity, 2), '0'), '.') }}
                 </td>
                 <td class="tr">{{ number_format($item->unit_price, 2) }}</td>
+                <td class="tr">
+                    @if($item->discount_percent > 0)
+                        {{ rtrim(rtrim(number_format($item->discount_percent, 2), '0'), '.') }}%
+                    @elseif($item->discount_amount > 0)
+                        {{-- discount_amount is stored as the line's total flat discount;
+                             show it per unit here, matching Price Each and what was typed. --}}
+                        {{ number_format($item->quantity > 0 ? $item->discount_amount / $item->quantity : $item->discount_amount, 2) }}
+                    @else
+                        —
+                    @endif
+                </td>
                 <td class="tr">{{ number_format($item->total, 2) }}</td>
             </tr>
             @endforeach
             @for($i = 0; $i < $fillerRows; $i++)
             <tr class="filler-row">
+                <td>&nbsp;</td>
                 <td>&nbsp;</td>
                 <td>&nbsp;</td>
                 <td>&nbsp;</td>

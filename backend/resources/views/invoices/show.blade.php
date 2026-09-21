@@ -208,7 +208,10 @@
                     <template x-if="(item.discount_percent||0) > 0">
                       <span class="text-orange-500 font-medium" x-text="item.discount_percent+'%'"></span>
                     </template>
-                    <template x-if="!(item.discount_percent||0) > 0"><span>—</span></template>
+                    <template x-if="!((item.discount_percent||0) > 0) && (item.discount_amount||0) > 0">
+                      <span class="text-orange-500 font-medium" x-text="fmtMoney(item.quantity > 0 ? item.discount_amount / item.quantity : item.discount_amount)"></span>
+                    </template>
+                    <template x-if="!((item.discount_percent||0) > 0) && !((item.discount_amount||0) > 0)"><span>—</span></template>
                   </td>
                   <td class="table-td text-right font-semibold tabular-nums" x-text="fmtMoney(item.total || (item.quantity * item.unit_price))"></td>
                 </tr>
@@ -218,6 +221,12 @@
                 <tr class="bg-gray-50/50 dark:bg-gray-700/20">
                   <td colspan="4" class="table-td text-right text-xs text-gray-500 font-medium">Subtotal</td>
                   <td class="table-td text-right font-semibold tabular-nums" x-text="fmtMoney(inv.subtotal||inv.sub_total||0)"></td>
+                </tr>
+              </template>
+              <template x-if="(inv.discount_amount||0) > 0">
+                <tr class="bg-gray-50/50 dark:bg-gray-700/20">
+                  <td colspan="4" class="table-td text-right text-xs text-gray-500 font-medium">Discount</td>
+                  <td class="table-td text-right font-semibold tabular-nums text-red-500" x-text="'– ' + fmtMoney(inv.discount_amount||0)"></td>
                 </tr>
               </template>
               <template x-if="(inv.tax_amount||0) > 0">
