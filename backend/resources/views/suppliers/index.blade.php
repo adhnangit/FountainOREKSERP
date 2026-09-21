@@ -120,8 +120,7 @@
     </div>
     <div style="margin-left:auto">
       <a href="{{ url('/suppliers/create') }}" x-show="hasPerm('suppliers.create')"
-         style="background:linear-gradient(135deg,#4f46e5,#6366f1);color:#fff;border-radius:10px;padding:8px 18px;font-size:13px;font-weight:700;display:flex;align-items:center;gap:6px;text-decoration:none;box-shadow:0 4px 12px rgba(99,102,241,.35);transition:opacity .15s"
-         onmouseover="this.style.opacity='.9'" onmouseout="this.style.opacity='1'">
+         class="btn-page-action">
         <svg style="width:15px;height:15px" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path d="M12 5v14M5 12h14"/></svg>
         New Supplier
       </a>

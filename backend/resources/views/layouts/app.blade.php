@@ -30,6 +30,24 @@
     body { font-family: 'Inter', system-ui, sans-serif; }
     [x-cloak] { display: none !important; }
 
+    /* Primary page-header action button ("New Invoice", "New Purchase Order", etc).
+       Must be a class, not an inline `display:flex` — x-show toggles an
+       element's inline `style.display` directly, and when it later removes
+       that override it doesn't restore a prior custom inline value, it just
+       clears it, falling back to the tag's default (`inline` for <a>) and
+       silently breaking the icon+label layout every time permissions load
+       asynchronously and flip x-show from false to true. */
+    .btn-page-action {
+      background: linear-gradient(135deg, #4f46e5, #6366f1);
+      color: #fff; border-radius: 10px; padding: 8px 18px;
+      font-size: 13px; font-weight: 700;
+      display: flex; align-items: center; gap: 6px;
+      text-decoration: none; border: none; cursor: pointer;
+      box-shadow: 0 4px 12px rgba(99,102,241,.35);
+      transition: opacity .15s;
+    }
+    .btn-page-action:hover { opacity: .9; }
+
     /* ─────────────── PRINT ─────────────── */
     @media print {
       aside, header, .no-print { display: none !important; }
