@@ -57,6 +57,16 @@
   .dark .po-table tbody td{border-color:#1e293b}
   .dark .po-empty svg{color:#334155}
   .dark .po-empty h5{color:#94a3b8}
+
+  .inv-pagination{display:flex;align-items:center;justify-content:space-between;padding:12px 20px;border-top:1px solid #f1f5f9}
+  .inv-page-info{font-size:12.5px;color:#94a3b8}
+  .inv-page-btns{display:flex;gap:4px}
+  .inv-page-btn{min-width:30px;height:30px;padding:0 6px;border-radius:7px;border:1px solid #e2e8f0;background:#fff;font-size:12px;font-weight:600;color:#475569;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s}
+  .inv-page-btn:hover:not(:disabled):not(.active){background:#f8fafc}
+  .inv-page-btn.active{background:#6366f1;color:#fff;border-color:#6366f1}
+  .inv-page-btn:disabled{opacity:.35;cursor:default}
+  .dark .inv-pagination{border-color:#334155}
+  .dark .inv-page-btn{background:#1e293b;border-color:#334155;color:#94a3b8}
 </style>
 @endpush
 
@@ -70,7 +80,7 @@
                 <svg fill="none" viewBox="0 0 24 24" stroke="#4f46e5" stroke-width="1.8"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
             </div>
             <div>
-                <div class="po-stat-val" style="color:#4f46e5" x-text="items.length"></div>
+                <div class="po-stat-val" style="color:#4f46e5" x-text="stats.total_count"></div>
                 <div class="po-stat-lbl">Total Invoices</div>
             </div>
         </div>
@@ -79,7 +89,7 @@
                 <svg fill="none" viewBox="0 0 24 24" stroke="#2563eb" stroke-width="1.8"><path d="M9 7h6m0 10v-3m-3 3v-3m-3 3v-3m9-8H4a1 1 0 00-1 1v10a1 1 0 001 1h16a1 1 0 001-1V6a1 1 0 00-1-1z"/></svg>
             </div>
             <div>
-                <div class="po-stat-val" style="color:#2563eb" x-text="fmtCompact(items.reduce((s,i) => s + parseFloat(i.total||0), 0))"></div>
+                <div class="po-stat-val" style="color:#2563eb" x-text="fmtCompact(stats.total_amount)"></div>
                 <div class="po-stat-lbl">Invoice Value</div>
             </div>
         </div>
@@ -88,7 +98,7 @@
                 <svg fill="none" viewBox="0 0 24 24" stroke="#16a34a" stroke-width="1.8"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
             </div>
             <div>
-                <div class="po-stat-val" style="color:#16a34a" x-text="fmtCompact(items.reduce((s,i) => s + parseFloat(i.paid_amount||0), 0))"></div>
+                <div class="po-stat-val" style="color:#16a34a" x-text="fmtCompact(stats.paid_amount)"></div>
                 <div class="po-stat-lbl">Paid</div>
             </div>
         </div>
@@ -97,7 +107,7 @@
                 <svg fill="none" viewBox="0 0 24 24" stroke="#b91c1c" stroke-width="1.8"><path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
             </div>
             <div>
-                <div class="po-stat-val" style="color:#b91c1c" x-text="fmtCompact(items.reduce((s,i) => s + parseFloat(i.balance_due||0), 0))"></div>
+                <div class="po-stat-val" style="color:#b91c1c" x-text="fmtCompact(stats.balance_due)"></div>
                 <div class="po-stat-lbl">Outstanding</div>
             </div>
         </div>
@@ -107,16 +117,16 @@
     <div class="po-toolbar">
         <div class="po-search-wrap">
             <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-            <input type="text" x-model="search" placeholder="Search invoice# or supplier…">
+            <input type="text" x-model.debounce.400ms="search" @input.debounce.400ms="page=1;load()" placeholder="Search invoice# or supplier…">
         </div>
-        <select x-model="statusFilter" class="po-select">
+        <select x-model="statusFilter" @change="page=1;load()" class="po-select">
             <option value="">All Statuses</option>
             <option value="confirmed">Confirmed</option>
             <option value="partially_received">Partially Received</option>
             <option value="received">Received</option>
             <option value="cancelled">Cancelled</option>
         </select>
-        <select x-model="payFilter" class="po-select">
+        <select x-model="payFilter" @change="page=1;load()" class="po-select">
             <option value="">All Payments</option>
             <option value="unpaid">Unpaid</option>
             <option value="partially_paid">Partial</option>
@@ -152,7 +162,7 @@
                     </tr>
                 </thead>
                 <tbody>
-                    <template x-for="po in filtered" :key="po.id">
+                    <template x-for="po in items" :key="po.id">
                         <tr>
                             <td>
                                 <a :href="BASE + '/purchase-orders/' + po.id" class="po-num hover:underline"
@@ -204,10 +214,34 @@
                     </template>
                 </tbody>
             </table>
-            <div x-show="!loading && filtered.length === 0" class="po-empty">
+            <div x-show="!loading && items.length === 0" class="po-empty">
                 <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
                 <h5>No supplier invoices found</h5>
                 <p>Try adjusting your search or filters</p>
+            </div>
+        </div>
+
+        {{-- Pagination --}}
+        <div class="inv-pagination" x-show="meta.total > 0">
+            <div class="inv-page-info"
+                 x-text="'Showing '+meta.from+'–'+meta.to+' of '+meta.total+' invoices'"></div>
+            <div class="inv-page-btns">
+                <button class="inv-page-btn" @click="page=1;load()" :disabled="page<=1">
+                    <svg style="width:12px;height:12px" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M11 19l-7-7 7-7M18 19l-7-7 7-7"/></svg>
+                </button>
+                <button class="inv-page-btn" @click="page--;load()" :disabled="page<=1">
+                    <svg style="width:12px;height:12px" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M15 19l-7-7 7-7"/></svg>
+                </button>
+                <template x-for="p in pageNumbers" :key="p">
+                    <button class="inv-page-btn" :class="p===page?'active':''"
+                            @click="page=p;load()" x-text="p"></button>
+                </template>
+                <button class="inv-page-btn" @click="page++;load()" :disabled="page>=meta.last_page">
+                    <svg style="width:12px;height:12px" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M9 5l7 7-7 7"/></svg>
+                </button>
+                <button class="inv-page-btn" @click="page=meta.last_page;load()" :disabled="page>=meta.last_page">
+                    <svg style="width:12px;height:12px" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M13 5l7 7-7 7M6 5l7 7-7 7"/></svg>
+                </button>
             </div>
         </div>
     </div>
@@ -217,7 +251,7 @@
         <div class="fixed inset-0 z-50 flex items-start justify-center p-4 overflow-y-auto"
              style="background:rgba(15,23,42,0.6);backdrop-filter:blur(4px)"
              @click.self="showReceive = false">
-            <div class="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-5xl my-6">
+            <div class="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-6xl my-6">
 
                 {{-- Header --}}
                 <div class="px-6 py-4 border-b border-gray-100 dark:border-gray-700 rounded-t-2xl"
@@ -249,7 +283,7 @@
                             <table class="w-full text-xs">
                                 <thead style="background:#dcfce7">
                                     <tr>
-                                        <th class="text-left px-3 py-2 font-bold text-gray-800 min-w-[140px]">Product</th>
+                                        <th class="text-left px-3 py-2 font-bold text-gray-800 min-w-[180px]">Product</th>
                                         <th class="text-right px-3 py-2 font-bold text-gray-800 w-16">Stock</th>
                                         <th class="text-right px-3 py-2 font-bold text-gray-800 w-20">Qty</th>
                                         <th class="text-right px-3 py-2 font-bold text-gray-800 w-24">Cost Price</th>
@@ -258,41 +292,87 @@
                                         <th class="text-right px-3 py-2 font-bold text-amber-800 w-24 bg-yellow-100">Current Sell</th>
                                         <th class="text-right px-3 py-2 font-bold text-emerald-800 w-24 bg-emerald-100">New Sell Price</th>
                                         <th class="text-right px-3 py-2 font-bold text-gray-800 w-24">Total</th>
+                                        <th class="w-8"></th>
                                     </tr>
                                 </thead>
                                 <tbody class="divide-y divide-gray-100 dark:divide-gray-700/40 bg-white dark:bg-gray-900">
-                                    <template x-for="row in receiveFormItems" :key="row.grn_item_id">
+                                    <template x-for="row in receiveFormItems" :key="row.grn_item_id ?? row._tempId">
                                         <tr class="hover:bg-gray-50 dark:hover:bg-gray-800/20">
-                                            <td class="px-3 py-2">
-                                                <div class="font-semibold text-gray-800 dark:text-gray-100" x-text="row.product_name"></div>
-                                                <div class="text-gray-500 text-xs" x-text="row.unit"></div>
+                                            <td class="px-3 py-2 align-top">
+                                                <div class="search-dd" style="min-width:170px"
+                                                     x-data="{ open: false, q: '', ddStyle: '' }"
+                                                     @click.away="open = false"
+                                                     @keydown.escape="open = false">
+                                                    <button type="button"
+                                                            @click="open = !open; if(open){ const r=$el.getBoundingClientRect(); ddStyle='top:'+(r.bottom+4)+'px;left:'+r.left+'px;width:max('+r.width+'px,260px);'; $nextTick(() => $refs.rps?.focus()) }"
+                                                            class="input text-xs py-1.5 w-full text-left flex items-center justify-between gap-2 font-semibold"
+                                                            :class="!row.product_id ? 'border-blue-200 dark:border-blue-700/60' : ''">
+                                                        <span class="truncate" :class="row.product_id ? 'text-gray-800 dark:text-gray-100' : 'text-gray-400 font-normal'"
+                                                              x-text="row.product_id ? row.product_name : '— Select product —'"></span>
+                                                        <svg class="w-3 h-3 text-gray-400 flex-shrink-0 transition-transform" :class="open ? 'rotate-180' : ''" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M19 9l-7 7-7-7"/></svg>
+                                                    </button>
+                                                    <div x-show="open" x-transition:enter="transition ease-out duration-100" x-transition:enter-start="opacity-0 -translate-y-1" x-transition:enter-end="opacity-100 translate-y-0" class="search-dd-menu" :style="ddStyle">
+                                                        <div class="p-2 border-b border-gray-100 dark:border-gray-700">
+                                                            <input x-ref="rps" x-model="q" type="text" placeholder="Search by name or SKU…"
+                                                                   class="input text-sm w-full py-1.5" @keydown.stop />
+                                                        </div>
+                                                        <div class="max-h-52 overflow-y-auto py-1">
+                                                            <template x-for="p in receiveProductList.filter(p => !q || p.name.toLowerCase().includes(q.toLowerCase()) || (p.code && p.code.toLowerCase().includes(q.toLowerCase())))" :key="p.id">
+                                                                <button type="button"
+                                                                        @click="row.product_id = p.id; onReceiveRowProductChange(row); open = false; q = ''"
+                                                                        class="search-dd-item" :class="row.product_id == p.id ? 'active' : ''">
+                                                                    <div class="flex-1 min-w-0">
+                                                                        <div class="text-sm font-medium text-gray-800 dark:text-gray-100 truncate" x-text="p.name"></div>
+                                                                        <div class="text-xs text-gray-400" x-text="(p.code || '') + (p.unit ? ' · ' + p.unit : '')"></div>
+                                                                    </div>
+                                                                    <template x-if="row.product_id == p.id">
+                                                                        <div class="w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0" style="background:#1B3EB6">
+                                                                            <svg class="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path d="M5 13l4 4L19 7"/></svg>
+                                                                        </div>
+                                                                    </template>
+                                                                </button>
+                                                            </template>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="flex items-center gap-1.5 mt-1">
+                                                    <span class="text-gray-500 text-xs" x-text="row.unit"></span>
+                                                    <span x-show="row.original_product_id && row.product_id && row.product_id !== row.original_product_id"
+                                                          class="px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide bg-amber-100 text-amber-700">
+                                                        Substituted
+                                                    </span>
+                                                    <span x-show="!row.grn_item_id"
+                                                          class="px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide bg-blue-100 text-blue-700">
+                                                        New — not on PO
+                                                    </span>
+                                                </div>
                                             </td>
                                             <td class="px-3 py-2 text-right tabular-nums">
                                                 <span class="font-semibold" :class="row.current_stock > 0 ? 'text-emerald-700' : 'text-gray-400'"
                                                       x-text="parseFloat(row.current_stock).toLocaleString()"></span>
                                             </td>
-                                            <td class="px-3 py-2">
+                                            <td class="px-3 py-2" style="min-width:70px">
                                                 <input type="number" x-model.number="row.quantity_received"
                                                        min="0.01" step="0.01"
                                                        class="no-spinner input text-sm font-semibold text-gray-900 dark:text-gray-100 py-1 text-right tabular-nums w-full" />
                                             </td>
-                                            <td class="px-3 py-2">
+                                            <td class="px-3 py-2" style="min-width:85px">
                                                 <input type="number" x-model.number="row.unit_cost"
                                                        min="0" step="0.01"
                                                        class="no-spinner input text-sm font-semibold text-gray-900 dark:text-gray-100 py-1 text-right tabular-nums w-full" />
                                             </td>
-                                            <td class="px-3 py-2">
+                                            <td class="px-3 py-2" style="min-width:90px">
                                                 <input type="text" x-model="row.batch_number"
                                                        class="input text-xs py-1 w-full" placeholder="Optional" />
                                             </td>
-                                            <td class="px-3 py-2">
+                                            <td class="px-3 py-2" style="min-width:130px">
                                                 <input type="date" x-model="row.expiry_date"
                                                        class="input text-xs py-1 w-full" />
                                             </td>
                                             <td class="px-3 py-2 text-right tabular-nums bg-yellow-50/50 dark:bg-yellow-900/10">
                                                 <span class="text-amber-800 font-semibold" x-text="fmtMoney(row.current_selling_price)"></span>
                                             </td>
-                                            <td class="px-3 py-2 bg-emerald-50/50 dark:bg-emerald-900/10">
+                                            <td class="px-3 py-2 bg-emerald-50/50 dark:bg-emerald-900/10" style="min-width:100px">
                                                 <input type="number" x-model.number="row.selling_price"
                                                        min="0" step="0.01"
                                                        class="no-spinner input text-sm font-semibold text-gray-900 dark:text-gray-100 py-1 text-right tabular-nums w-full border-emerald-300 focus:border-emerald-500"
@@ -300,6 +380,12 @@
                                             </td>
                                             <td class="px-3 py-2 text-right font-semibold tabular-nums text-gray-700 dark:text-gray-200"
                                                 x-text="fmtMoney((row.quantity_received||0)*(row.unit_cost||0))"></td>
+                                            <td class="px-3 py-2 text-center">
+                                                <button type="button" x-show="receiveFormItems.length > 1" @click="removeReceiveRow(row)"
+                                                        class="text-gray-400 hover:text-red-600" title="Remove this line — it won't be received">
+                                                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                                                </button>
+                                            </td>
                                         </tr>
                                     </template>
                                 </tbody>
@@ -308,13 +394,21 @@
                                         <td colspan="8" class="px-3 py-2.5 text-right text-sm font-semibold text-gray-700">Total Receipt Cost</td>
                                         <td class="px-3 py-2.5 text-right font-bold tabular-nums text-emerald-800"
                                             x-text="fmtMoney(receiveFormItems.reduce((s,r)=>s+(r.quantity_received||0)*(r.unit_cost||0),0))"></td>
+                                        <td></td>
                                     </tr>
                                 </tfoot>
                             </table>
                         </div>
 
+                        <button type="button" @click="addReceiveRow()"
+                                class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 hover:bg-emerald-100 hover:border-emerald-300 transition-colors">
+                            <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M12 4v16m8-8H4"/></svg>
+                            Add item not on this PO
+                        </button>
+
                         <div class="p-3 rounded-xl text-xs bg-blue-50 border border-blue-200 text-blue-700 dark:bg-blue-900/20 dark:border-blue-800 dark:text-blue-300">
                             <strong>On confirm:</strong> Stock is added, avg cost updated, DR Inventory / CR Accounts Payable journal posted. Selling prices are updated for items where a new price is entered.
+                            A product picker lets you correct a line if the supplier sent a substitute, or add something that wasn't on the original order.
                         </div>
                     </div>
 
@@ -505,9 +599,12 @@ function supplierInvListPage() {
         items: [], loading: true,
         cashAccounts: [], bankAccounts: [], receivedCheques: [],
         search: '', statusFilter: '', payFilter: '',
+        page: 1,
+        meta: { total: 0, from: 0, to: 0, last_page: 1 },
+        stats: { total_count: 0, total_amount: 0, paid_amount: 0, balance_due: 0 },
         showPay: false, paying: false, selPo: null,
         showReceive: false, receiving: false, receiveLoading: false,
-        selReceivePo: null, receiveFormItems: [],
+        selReceivePo: null, receiveFormItems: [], receiveProductMap: {}, receiveProductList: [], receiveRemovedIds: [],
 
         payMethods: [
             { v:'cash',          label:'Cash',   icon:'💵', bg:'#f0fdf4', border:'#22c55e', color:'#15803d' },
@@ -519,16 +616,12 @@ function supplierInvListPage() {
               received_cheque_id:null, cheque_number:'', bank_name:'', cheque_date:'' },
         banks: [],
 
-        get filtered() {
-            let list = this.items;
-            if (this.statusFilter) list = list.filter(p => p.status === this.statusFilter);
-            if (this.payFilter) list = list.filter(p => (p.payment_status ?? 'unpaid') === this.payFilter);
-            const q = this.search.toLowerCase();
-            if (!q) return list;
-            return list.filter(p =>
-                (p.po_number ?? '').toLowerCase().includes(q) ||
-                (p.supplier?.name ?? '').toLowerCase().includes(q)
-            );
+        get pageNumbers() {
+            const total = this.meta.last_page;
+            const cur = this.page;
+            if (total <= 7) return Array.from({length: total}, (_, i) => i + 1);
+            const pages = new Set([1, total, cur, cur-1, cur+1].filter(p => p >= 1 && p <= total));
+            return [...pages].sort((a,b) => a-b);
         },
 
         isOverdue(po) {
@@ -560,12 +653,11 @@ function supplierInvListPage() {
 
         async init() {
             try {
-                const [posR, accR, chqR] = await Promise.all([
-                    apiFetch('/purchase-orders?per_page=500').then(r => r.json()),
+                const [accR, chqR] = await Promise.all([
                     apiFetch('/accounting/accounts').then(r => r.json()),
                     apiFetch('/cheques?direction=received&status=in_hand&per_page=100').then(r => r.json()),
+                    this.load(),
                 ]);
-                this.items = posR.data ?? posR ?? [];
                 const accounts = Array.isArray(accR) ? accR : (accR.data ?? []);
                 this.cashAccounts    = accounts.filter(a => a.is_cash_account);
                 this.bankAccounts    = accounts.filter(a => a.is_bank_account);
@@ -576,6 +668,17 @@ function supplierInvListPage() {
             } finally {
                 this.loading = false;
             }
+        },
+        async load() {
+            const params = new URLSearchParams({ page: this.page, per_page: 20 });
+            if (this.search)       params.set('search', this.search);
+            if (this.statusFilter) params.set('status', this.statusFilter);
+            if (this.payFilter)    params.set('payment_status', this.payFilter);
+            const r = await apiFetch('/purchase-orders?' + params);
+            const d = await r.json();
+            this.items = d.data ?? d ?? [];
+            this.meta = { total: d.total ?? this.items.length, from: d.from ?? 0, to: d.to ?? 0, last_page: d.last_page ?? 1 };
+            if (d.stats) this.stats = d.stats;
         },
 
         openPay(po) {
@@ -620,8 +723,7 @@ function supplierInvListPage() {
                 });
                 const d = await r.json();
                 if (r.ok) {
-                    const idx = this.items.findIndex(i => i.id === this.selPo.id);
-                    if (idx !== -1) this.items.splice(idx, 1, { ...this.items[idx], ...(d.po ?? {}) });
+                    await this.load(); // refreshes both this page's rows and the stat cards (paid/outstanding changed)
                     this.showPay = false;
                     toast('Payment recorded and journal posted', 'success');
                 } else {
@@ -633,6 +735,7 @@ function supplierInvListPage() {
         async openReceive(po) {
             this.selReceivePo = po;
             this.receiveFormItems = [];
+            this.receiveRemovedIds = [];
             this.receiveLoading = true;
             this.showReceive = true;
 
@@ -655,16 +758,21 @@ function supplierInvListPage() {
                 const prodMap = {};
                 prodList.forEach(p => {
                     prodMap[p.id] = {
+                        name: p.name,
+                        unit: p.unit,
                         selling_price: parseFloat(p.selling_price || 0),
                         stock: parseFloat((p.branchStocks?.[0]?.quantity) ?? 0),
                     };
                 });
+                this.receiveProductMap = prodMap;
+                this.receiveProductList = prodList;
 
                 this.receiveFormItems = draftGrn.items.map(item => {
                     const qty = Number(item.quantity_received) || Number(item.quantity_ordered) || 0;
                     return {
                         grn_item_id:           item.id,
                         product_id:            item.product_id,
+                        original_product_id:   item.product_id, // what this line started as — used to flag a supplier substitution
                         product_name:          item.product?.name ?? item.product_name ?? '—',
                         unit:                  item.product?.unit ?? item.unit ?? '',
                         quantity_received:     qty,
@@ -683,22 +791,76 @@ function supplierInvListPage() {
             }
         },
 
+        // Fired when a row's product picker selection changes — both for swapping an
+        // existing line to a supplier substitute and for picking a product on a
+        // freshly added row. Refreshes the row's stock/price context to the NEW
+        // product's own values rather than leaving the old product's.
+        onReceiveRowProductChange(row) {
+            const p = this.receiveProductMap[row.product_id];
+            if (!p) return;
+            row.product_name = p.name;
+            row.unit = p.unit;
+            row.current_stock = p.stock;
+            row.current_selling_price = p.selling_price;
+            row.selling_price = p.selling_price;
+        },
+        addReceiveRow() {
+            this._receiveTempSeq = (this._receiveTempSeq || 0) + 1;
+            this.receiveFormItems.push({
+                grn_item_id: null,
+                _tempId: 'new-' + this._receiveTempSeq,
+                product_id: '',
+                original_product_id: null, // never had one — this line wasn't on the PO at all
+                product_name: '',
+                unit: '',
+                quantity_received: 1,
+                unit_cost: 0,
+                batch_number: '',
+                expiry_date: '',
+                current_stock: 0,
+                current_selling_price: 0,
+                selling_price: 0,
+            });
+        },
+        removeReceiveRow(row) {
+            // An existing line (has a grn_item_id) must be flagged for the backend
+            // to actually delete — just dropping it from this array would leave it
+            // in the GRN untouched, so it'd still get received as-is.
+            if (row.grn_item_id) this.receiveRemovedIds.push(row.grn_item_id);
+            this.receiveFormItems = this.receiveFormItems.filter(r => r !== row);
+        },
+
         async submitReceive() {
             const draftGrn = (this.selReceivePo?.grns ?? []).find(g => g.status === 'draft');
             if (!draftGrn) { toast('No pending GRN found', 'error'); return; }
+            if (this.receiveFormItems.some(row => !row.product_id)) {
+                toast('Select a product for every line before confirming', 'error'); return;
+            }
             this.receiving = true;
             try {
+                const existingRows = this.receiveFormItems.filter(row => row.grn_item_id);
+                const newRows      = this.receiveFormItems.filter(row => !row.grn_item_id);
                 const r = await apiFetch('/grns/' + draftGrn.id + '/confirm', {
                     method: 'POST',
                     body: JSON.stringify({
-                        items: this.receiveFormItems.map(row => ({
-                            grn_item_id:       row.grn_item_id,
+                        items: existingRows.map(row => ({
+                            grn_item_id:        row.grn_item_id,
+                            product_id:          row.product_id, // only applied when it differs from the line's original product (a supplier substitution)
                             quantity_received:  parseFloat(row.quantity_received),
                             unit_cost:          parseFloat(row.unit_cost),
                             batch_number:       row.batch_number || null,
                             expiry_date:        row.expiry_date  || null,
                             selling_price:      row.selling_price > 0 ? parseFloat(row.selling_price) : null,
                         })),
+                        new_items: newRows.map(row => ({
+                            product_id:          row.product_id,
+                            quantity_received:  parseFloat(row.quantity_received),
+                            unit_cost:          parseFloat(row.unit_cost),
+                            batch_number:       row.batch_number || null,
+                            expiry_date:        row.expiry_date  || null,
+                            selling_price:      row.selling_price > 0 ? parseFloat(row.selling_price) : null,
+                        })),
+                        removed_grn_item_ids: this.receiveRemovedIds,
                     }),
                 });
                 const d = await r.json();

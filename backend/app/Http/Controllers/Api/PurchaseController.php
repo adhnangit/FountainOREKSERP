@@ -47,16 +47,27 @@ class PurchaseController extends Controller
     // Purchase Orders
     public function indexPO(Request $request): JsonResponse
     {
+        $statsQuery = PurchaseOrder::query();
+        $this->branchContext->applyScope($statsQuery);
+        $stats = [
+            'total_count'  => (clone $statsQuery)->count(),
+            'total_amount' => (clone $statsQuery)->sum('total'),
+            'paid_amount'  => (clone $statsQuery)->sum('paid_amount'),
+            'balance_due'  => (clone $statsQuery)->sum('balance_due'),
+        ];
+
         $q = PurchaseOrder::query();
         $this->branchContext->applyScope($q);
         if ($request->status) $q->where('status', $request->status);
         if ($request->supplier_id) $q->where('supplier_id', $request->supplier_id);
+        if ($request->payment_status) $q->where('payment_status', $request->payment_status);
         if ($request->search) {
             $q->where(fn($qq) => $qq->where('po_number', 'like', "%{$request->search}%")
                 ->orWhereHas('supplier', fn($s) => $s->where('name', 'like', "%{$request->search}%"))
             );
         }
-        return response()->json($q->with(['supplier', 'branch', 'createdBy', 'grns.items.product'])->latest()->paginate($request->input('per_page', 20)));
+        $paginated = $q->with(['supplier', 'branch', 'createdBy', 'grns.items.product'])->latest()->paginate($request->input('per_page', 20));
+        return response()->json(array_merge($paginated->toArray(), ['stats' => $stats]));
     }
 
     public function storePO(Request $request): JsonResponse
@@ -144,7 +155,7 @@ class PurchaseController extends Controller
                 $product = \App\Models\Product::find($item['product_id']);
                 $lineTotal = $item['quantity'] * $item['unit_price'];
                 $lineTax = $lineTotal * (($item['tax_percent'] ?? 0) / 100);
-                PurchaseOrderItem::create([
+                $poItem = PurchaseOrderItem::create([
                     'purchase_order_id' => $po->id,
                     'product_id'   => $item['product_id'],
                     'product_name' => $product->name,
@@ -158,9 +169,11 @@ class PurchaseController extends Controller
                 ]);
                 GrnItem::create([
                     'grn_id'            => $grn->id,
+                    'po_item_id'        => $poItem->id,
                     'product_id'        => $item['product_id'],
                     'product_name'      => $product->name,
                     'unit'              => $product->unit,
+                    'quantity_ordered'  => $item['quantity'],
                     'quantity_received' => $item['quantity'],
                     'unit_cost'         => $item['unit_price'],
                     'total_cost'        => $item['quantity'] * $item['unit_price'],
@@ -437,8 +450,33 @@ class PurchaseController extends Controller
             return response()->json(['message' => 'GRN already confirmed.'], 422);
         }
 
+        $request->validate([
+            'items.*.product_id'            => 'nullable|exists:products,id',
+            'new_items'                      => 'nullable|array',
+            'new_items.*.product_id'        => 'required|exists:products,id',
+            'new_items.*.quantity_received' => 'required|numeric|min:0.01',
+            'new_items.*.unit_cost'         => 'required|numeric|min:0',
+            'new_items.*.batch_number'      => 'nullable|string',
+            'new_items.*.expiry_date'       => 'nullable|date',
+            'new_items.*.selling_price'     => 'nullable|numeric|min:0',
+            'removed_grn_item_ids'          => 'nullable|array',
+            'removed_grn_item_ids.*'        => 'integer|exists:grn_items,id',
+        ]);
+
         return DB::transaction(function () use ($goodsReceiptNote, $request) {
             $goodsReceiptNote->load('items');
+
+            // Remove a line the user says wasn't actually delivered — the GRN
+            // is still draft, nothing posted yet, so deleting it outright is
+            // safe. Its po_item_id (if any) simply never gets credited below.
+            $removedIds = $request->input('removed_grn_item_ids', []);
+            if (!empty($removedIds)) {
+                GrnItem::where('grn_id', $goodsReceiptNote->id)->whereIn('id', $removedIds)->delete();
+                $goodsReceiptNote->load('items');
+            }
+            if ($goodsReceiptNote->items->isEmpty()) {
+                return response()->json(['message' => 'A GRN needs at least one item — add one back or cancel instead.'], 422);
+            }
 
             // Apply per-item edits submitted from the receive modal
             $itemUpdates = collect($request->input('items', []));
@@ -448,13 +486,29 @@ class PurchaseController extends Controller
                 if ($edit) {
                     $qty  = isset($edit['quantity_received']) ? (float) $edit['quantity_received'] : $item->quantity_received;
                     $cost = isset($edit['unit_cost'])         ? (float) $edit['unit_cost']         : $item->unit_cost;
-                    $item->update([
+                    $updateData = [
                         'quantity_received' => $qty,
                         'unit_cost'         => $cost,
                         'total_cost'        => $qty * $cost,
                         'batch_number'      => $edit['batch_number'] ?? $item->batch_number,
                         'expiry_date'       => $edit['expiry_date']  ?? $item->expiry_date,
-                    ]);
+                    ];
+
+                    // Supplier substituted a different product for this line.
+                    // po_item_id is deliberately left untouched — it still
+                    // correctly links to the ORIGINAL ordered PO line even
+                    // after a substitution, so PO-received-qty reconciliation
+                    // below still credits what was actually ordered.
+                    if (!empty($edit['product_id']) && (int) $edit['product_id'] !== (int) $item->product_id) {
+                        $newProduct = \App\Models\Product::find($edit['product_id']);
+                        if ($newProduct) {
+                            $updateData['product_id']   = $newProduct->id;
+                            $updateData['product_name'] = $newProduct->name;
+                            $updateData['unit']         = $newProduct->unit;
+                        }
+                    }
+
+                    $item->update($updateData);
                     $item->refresh();
 
                     // A blank selling price means "keep the product's current
@@ -466,6 +520,35 @@ class PurchaseController extends Controller
                     }
                 }
             }
+
+            // Brand-new lines the receiver adds for goods delivered that
+            // weren't on the original PO at all — not tied to any po_item_id.
+            foreach ($request->input('new_items', []) as $newItem) {
+                $newProduct = \App\Models\Product::find($newItem['product_id']);
+                if (!$newProduct) continue;
+                $qty  = (float) $newItem['quantity_received'];
+                $cost = (float) $newItem['unit_cost'];
+                $created = GrnItem::create([
+                    'grn_id'            => $goodsReceiptNote->id,
+                    'po_item_id'        => null,
+                    'product_id'        => $newProduct->id,
+                    'product_name'      => $newProduct->name,
+                    'unit'              => $newProduct->unit,
+                    'quantity_ordered'  => 0,
+                    'quantity_received' => $qty,
+                    'unit_cost'         => $cost,
+                    'total_cost'        => $qty * $cost,
+                    'batch_number'      => $newItem['batch_number'] ?? null,
+                    'expiry_date'       => $newItem['expiry_date'] ?? null,
+                ]);
+
+                if (!empty($newItem['selling_price'])) {
+                    $sellingPrices[$created->id] = (float) $newItem['selling_price'];
+                    \App\Models\Product::where('id', $newProduct->id)
+                        ->update(['selling_price' => (float) $newItem['selling_price']]);
+                }
+            }
+
             $goodsReceiptNote->refresh()->load('items');
 
             foreach ($goodsReceiptNote->items as $item) {
@@ -496,12 +579,14 @@ class PurchaseController extends Controller
                 'confirmed_at' => now(),
             ]);
 
-            // Update PO received quantities
+            // Update PO received quantities — matched by the stable po_item_id
+            // link captured when the line was created, NOT by product_id, since
+            // a supplier substitution means the delivered product may no longer
+            // match what was actually ordered on that line.
             if ($goodsReceiptNote->purchase_order_id) {
                 foreach ($goodsReceiptNote->items as $item) {
-                    PurchaseOrderItem::where('purchase_order_id', $goodsReceiptNote->purchase_order_id)
-                        ->where('product_id', $item->product_id)
-                        ->increment('received_quantity', $item->quantity_received);
+                    if (!$item->po_item_id) continue; // extra item, not tied to any ordered line
+                    PurchaseOrderItem::where('id', $item->po_item_id)->increment('received_quantity', $item->quantity_received);
                 }
                 $po = PurchaseOrder::find($goodsReceiptNote->purchase_order_id);
                 $allReceived = $po->items->every(fn($i) => $i->received_quantity >= $i->quantity);
