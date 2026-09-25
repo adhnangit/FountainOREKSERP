@@ -30,6 +30,17 @@ class SalesReturnController extends Controller
         $q = Invoice::where('type', 'credit_note');
         $this->branchContext->applyScope($q);
 
+        // Branch-scoped (not search-scoped) stats for the summary cards — computed
+        // before search/date filters are applied to $q, so they reflect the full
+        // dataset rather than the current search results.
+        $statsQuery = Invoice::where('type', 'credit_note');
+        $this->branchContext->applyScope($statsQuery);
+        $stats = [
+            'total_count'      => (clone $statsQuery)->count(),
+            'total_amount'     => (clone $statsQuery)->sum('total'),
+            'this_month_count' => (clone $statsQuery)->whereMonth('invoice_date', now()->month)->whereYear('invoice_date', now()->year)->count(),
+        ];
+
         if ($request->search) {
             $q->where(fn($qq) => $qq->where('invoice_number', 'like', "%{$request->search}%")
                 ->orWhereHas('customer', fn($c) => $c->where('name', 'like', "%{$request->search}%"))
@@ -39,11 +50,11 @@ class SalesReturnController extends Controller
         if ($request->from_date) $q->whereDate('invoice_date', '>=', $request->from_date);
         if ($request->to_date) $q->whereDate('invoice_date', '<=', $request->to_date);
 
-        return response()->json(
-            $q->with(['customer', 'branch', 'createdBy', 'originalInvoice', 'items.product'])
-                ->latest('invoice_date')->latest('id')
-                ->paginate($request->input('per_page', 20))
-        );
+        $paginated = $q->with(['customer', 'branch', 'createdBy', 'originalInvoice', 'items.product'])
+            ->latest('invoice_date')->latest('id')
+            ->paginate($request->input('per_page', 20));
+
+        return response()->json(array_merge($paginated->toArray(), ['stats' => $stats]));
     }
 
     /**

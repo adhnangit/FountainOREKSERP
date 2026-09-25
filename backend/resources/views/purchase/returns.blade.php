@@ -47,6 +47,16 @@
 .dark .pr-table tbody td{border-color:#1e293b}
 .dark .pr-empty svg{color:#334155}
 .dark .pr-empty h5{color:#94a3b8}
+
+.inv-pagination{display:flex;align-items:center;justify-content:space-between;padding:12px 20px;border-top:1px solid #f1f5f9}
+.inv-page-info{font-size:12.5px;color:#94a3b8}
+.inv-page-btns{display:flex;gap:4px}
+.inv-page-btn{min-width:30px;height:30px;padding:0 6px;border-radius:7px;border:1px solid #e2e8f0;background:#fff;font-size:12px;font-weight:600;color:#475569;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s}
+.inv-page-btn:hover:not(:disabled):not(.active){background:#f8fafc}
+.inv-page-btn.active{background:#6366f1;color:#fff;border-color:#6366f1}
+.inv-page-btn:disabled{opacity:.35;cursor:default}
+.dark .inv-pagination{border-color:#334155}
+.dark .inv-page-btn{background:#1e293b;border-color:#334155;color:#94a3b8}
 </style>
 
 <div x-data="purchaseReturnsPage()" x-init="init()">
@@ -58,7 +68,7 @@
         <svg fill="none" viewBox="0 0 24 24" stroke="#4f46e5" stroke-width="1.8"><path d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/></svg>
       </div>
       <div>
-        <div class="pr-stat-val" style="color:#4f46e5" x-text="items.length"></div>
+        <div class="pr-stat-val" style="color:#4f46e5" x-text="stats.total_count"></div>
         <div class="pr-stat-lbl">Total Returns</div>
       </div>
     </div>
@@ -67,7 +77,7 @@
         <svg fill="none" viewBox="0 0 24 24" stroke="#b91c1c" stroke-width="1.8"><path d="M9 7h6m0 10v-3m-3 3v-3m-3 3v-3m9-8H4a1 1 0 00-1 1v10a1 1 0 001 1h16a1 1 0 001-1V6a1 1 0 00-1-1z"/></svg>
       </div>
       <div>
-        <div class="pr-stat-val" style="color:#b91c1c" x-text="fmtCompact(totalAmount)"></div>
+        <div class="pr-stat-val" style="color:#b91c1c" x-text="fmtCompact(stats.total_amount)"></div>
         <div class="pr-stat-lbl">Total Debited</div>
       </div>
     </div>
@@ -76,7 +86,7 @@
         <svg fill="none" viewBox="0 0 24 24" stroke="#b45309" stroke-width="1.8"><path d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
       </div>
       <div>
-        <div class="pr-stat-val" style="color:#b45309" x-text="thisMonthCount"></div>
+        <div class="pr-stat-val" style="color:#b45309" x-text="stats.this_month_count"></div>
         <div class="pr-stat-lbl">This Month</div>
       </div>
     </div>
@@ -86,7 +96,7 @@
   <div class="pr-toolbar">
     <div class="pr-search-wrap">
       <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-      <input x-model.debounce.400ms="search" @input.debounce.400ms="load()" type="text" placeholder="Search DN #, PO # or supplier…">
+      <input x-model.debounce.400ms="search" @input.debounce.400ms="page=1;load()" type="text" placeholder="Search DN #, PO # or supplier…">
     </div>
     <div style="margin-left:auto">
       <a x-show="hasPerm('purchase_orders.create')" href="{{ url('/purchase-returns/create') }}"
@@ -139,6 +149,18 @@
         <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/></svg>
         <h5>No purchase returns yet</h5>
         <p>Create a return when goods go back to a supplier</p>
+      </div>
+    </div>
+
+    {{-- Pagination --}}
+    <div class="inv-pagination" x-show="meta.total > 0">
+      <div class="inv-page-info" x-text="'Showing '+meta.from+'–'+meta.to+' of '+meta.total+' returns'"></div>
+      <div class="inv-page-btns">
+        <button class="inv-page-btn" @click="page=1;load()" :disabled="page<=1"><svg style="width:12px;height:12px" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M11 19l-7-7 7-7M18 19l-7-7 7-7"/></svg></button>
+        <button class="inv-page-btn" @click="page--;load()" :disabled="page<=1"><svg style="width:12px;height:12px" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M15 19l-7-7 7-7"/></svg></button>
+        <template x-for="p in pageNumbers" :key="p"><button class="inv-page-btn" :class="p===page?'active':''" @click="page=p;load()" x-text="p"></button></template>
+        <button class="inv-page-btn" @click="page++;load()" :disabled="page>=meta.last_page"><svg style="width:12px;height:12px" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M9 5l7 7-7 7"/></svg></button>
+        <button class="inv-page-btn" @click="page=meta.last_page;load()" :disabled="page>=meta.last_page"><svg style="width:12px;height:12px" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M13 5l7 7-7 7M6 5l7 7-7 7"/></svg></button>
       </div>
     </div>
   </div>
@@ -216,22 +238,28 @@ function purchaseReturnsPage() {
         loading: true,
         search: '',
         detail: null,
-        get totalAmount() { return this.items.reduce((s, r) => s + (parseFloat(r.total) || 0), 0); },
-        get thisMonthCount() {
-            const now = new Date();
-            return this.items.filter(r => {
-                const d = new Date(r.return_date);
-                return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
-            }).length;
+        page: 1,
+        meta: { total: 0, from: 0, to: 0, last_page: 1 },
+        stats: { total_count: 0, total_amount: 0, this_month_count: 0 },
+        get pageNumbers() {
+            const total = this.meta.last_page;
+            const cur = this.page;
+            if (total <= 7) return Array.from({length: total}, (_, i) => i + 1);
+            const pages = new Set([1, total, cur, cur-1, cur+1].filter(p => p >= 1 && p <= total));
+            return [...pages].sort((a,b) => a-b);
         },
         init() { this.load(); },
         async load() {
             this.loading = true;
             try {
-                const r = await apiFetch('/purchase-returns' + (this.search ? '?search=' + encodeURIComponent(this.search) : ''));
+                const params = new URLSearchParams({ page: this.page, per_page: 20 });
+                if (this.search) params.set('search', this.search);
+                const r = await apiFetch('/purchase-returns?' + params);
                 if (!r) return;
                 const data = await r.json();
                 this.items = data.data ?? data ?? [];
+                this.meta = { total: data.total ?? this.items.length, from: data.from ?? 0, to: data.to ?? 0, last_page: data.last_page ?? 1 };
+                if (data.stats) this.stats = data.stats;
             } catch (e) {
                 toast('Failed to load purchase returns', 'error');
             } finally {

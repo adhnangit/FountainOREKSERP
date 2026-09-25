@@ -31,6 +31,17 @@ class PurchaseReturnController extends Controller
         $q = PurchaseReturn::query();
         $this->branchContext->applyScope($q);
 
+        // Branch-scoped (not search-scoped) stats for the summary cards — computed
+        // before search/date filters are applied to $q, so they reflect the full
+        // dataset rather than the current search results.
+        $statsQuery = PurchaseReturn::query();
+        $this->branchContext->applyScope($statsQuery);
+        $stats = [
+            'total_count'      => (clone $statsQuery)->count(),
+            'total_amount'     => (clone $statsQuery)->sum('total'),
+            'this_month_count' => (clone $statsQuery)->whereMonth('return_date', now()->month)->whereYear('return_date', now()->year)->count(),
+        ];
+
         if ($request->search) {
             $q->where(fn($qq) => $qq->where('return_number', 'like', "%{$request->search}%")
                 ->orWhereHas('supplier', fn($s) => $s->where('name', 'like', "%{$request->search}%"))
@@ -40,11 +51,11 @@ class PurchaseReturnController extends Controller
         if ($request->from_date) $q->whereDate('return_date', '>=', $request->from_date);
         if ($request->to_date) $q->whereDate('return_date', '<=', $request->to_date);
 
-        return response()->json(
-            $q->with(['supplier', 'branch', 'createdBy', 'purchaseOrder', 'items.product'])
-                ->latest('return_date')->latest('id')
-                ->paginate($request->input('per_page', 20))
-        );
+        $paginated = $q->with(['supplier', 'branch', 'createdBy', 'purchaseOrder', 'items.product'])
+            ->latest('return_date')->latest('id')
+            ->paginate($request->input('per_page', 20));
+
+        return response()->json(array_merge($paginated->toArray(), ['stats' => $stats]));
     }
 
     /**
