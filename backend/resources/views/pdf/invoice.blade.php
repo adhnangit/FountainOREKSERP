@@ -449,6 +449,9 @@
                 <td>{{ $item->product_code ?? '—' }}</td>
                 <td>
                     <div class="pname">{{ $item->product_name }}</div>
+                    @if($item->notes)
+                        <div class="pnote">{{ $item->notes }}</div>
+                    @endif
                     @if($item->batch_number)
                         <div class="pnote">Batch: {{ $item->batch_number }}</div>
                     @endif

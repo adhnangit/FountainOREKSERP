@@ -338,8 +338,8 @@ class InvoiceController extends Controller
 
     public function update(Request $request, Invoice $invoice): JsonResponse
     {
-        if (!in_array($invoice->status, ['draft', 'proforma'])) {
-            return response()->json(['message' => 'Cannot edit a confirmed invoice.'], 422);
+        if (!in_array($invoice->status, ['draft', 'proforma', 'confirmed'])) {
+            return response()->json(['message' => 'Cannot edit an invoice that has been paid, partially paid, or cancelled.'], 422);
         }
 
         $data = $request->validate([
@@ -354,11 +354,45 @@ class InvoiceController extends Controller
             'items' => 'sometimes|array|min:1',
         ]);
 
-        return DB::transaction(function () use ($data, $invoice) {
+        return DB::transaction(function () use ($data, $invoice, $request) {
             $touchesTotals = isset($data['items']) || array_intersect(
                 ['discount_percent', 'discount_amount', 'tax_percent'],
                 array_keys($data)
             );
+
+            // A confirmed invoice has already deducted stock (at confirm time)
+            // and posted its sales + COGS journal entries. Editing it here
+            // needs to unwind both before applying the change and redo them
+            // afterward against the new items/totals — otherwise stock stays
+            // deducted for line items that no longer exist, or the ledger
+            // keeps showing the pre-edit total forever. draft/proforma
+            // invoices never reached confirm(), so neither ever happened and
+            // there's nothing to unwind for them.
+            $wasConfirmed = $invoice->status === 'confirmed';
+            $itemsChanging = isset($data['items']);
+
+            if ($wasConfirmed && $itemsChanging) {
+                $invoice->loadMissing('items');
+                foreach ($invoice->items as $item) {
+                    if (!$item->product_id) continue; // service lines carry no stock
+                    $this->stockService->restockBatch(
+                        $item->batch_id, $item->quantity,
+                        'sale_return', 'invoice', $invoice->id,
+                        $request->user()->id, now()->toDateString()
+                    );
+                }
+            }
+
+            if ($wasConfirmed && $touchesTotals) {
+                \App\Models\JournalEntry::where('reference_type', 'invoice')
+                    ->where('reference_id', $invoice->id)
+                    ->whereIn('type', ['sales', 'cogs'])
+                    ->get()
+                    ->each(function ($je) {
+                        $je->lines()->delete();
+                        $je->forceDelete();
+                    });
+            }
 
             if (isset($data['items'])) {
                 foreach ($data['items'] as $i => $item) {
@@ -393,6 +427,23 @@ class InvoiceController extends Controller
             }
 
             $invoice->update($data);
+
+            if ($wasConfirmed && $itemsChanging) {
+                $invoice->load('items');
+                foreach ($invoice->items as $item) {
+                    if (!$item->product_id) continue;
+                    $this->stockService->deductFromBatch(
+                        $item->batch_id, $item->quantity,
+                        'sale_out', 'invoice', $invoice->id,
+                        $request->user()->id, $invoice->invoice_date->toDateString()
+                    );
+                }
+            }
+
+            if ($wasConfirmed && $touchesTotals) {
+                $this->postSalesJournal($invoice->fresh(), $request->user()->id);
+            }
+
             return response()->json($invoice->fresh(['items.product', 'customer', 'branch']));
         });
     }

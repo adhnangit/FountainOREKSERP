@@ -42,7 +42,7 @@
               View Profit
             </button>
           </template>
-          <template x-if="inv.status === 'draft' && hasPerm('invoices.edit')">
+          <template x-if="['draft','confirmed'].includes(inv.status) && hasPerm('invoices.edit')">
             <a :href="BASE + '/invoices/' + inv.id + '/edit'"
                class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
               <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
@@ -201,6 +201,7 @@
                   <td class="table-td">
                     <div class="font-medium text-gray-800 dark:text-gray-100" x-text="item.product_name || item.product?.name || '—'"></div>
                     <div class="text-xs text-gray-400 font-mono" x-text="item.product_code || item.product?.sku || ''"></div>
+                    <div class="text-xs text-gray-500 mt-0.5" x-show="item.notes" x-text="item.notes"></div>
                   </td>
                   <td class="table-td text-right tabular-nums" x-text="item.quantity"></td>
                   <td class="table-td text-right tabular-nums" x-text="fmtMoney(item.unit_price)"></td>

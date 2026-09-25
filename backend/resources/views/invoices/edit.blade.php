@@ -26,6 +26,15 @@
     {{-- ══ LEFT COLUMN ══ --}}
     <div class="w-full lg:flex-[65] min-w-0 space-y-5">
 
+      {{-- Confirmed-invoice edit warning --}}
+      <div x-show="inv.status === 'confirmed'" class="flex items-start gap-3 px-4 py-3.5 rounded-xl border border-amber-200 bg-amber-50">
+        <svg class="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
+        <div class="text-sm">
+          <p class="font-bold text-amber-800">This invoice is already confirmed</p>
+          <p class="text-amber-700 mt-0.5">Stock was deducted and it's posted on the ledger. Saving changes here will reverse and redo both automatically to match the new items/totals.</p>
+        </div>
+      </div>
+
       {{-- Cart Card --}}
       <div class="card overflow-hidden">
 
@@ -558,9 +567,9 @@
                 class="btn-secondary w-full flex items-center justify-center gap-2 py-2.5">
           <template x-if="submitting"><svg class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/></svg></template>
           <template x-if="!submitting"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/></svg></template>
-          <span x-text="submitting ? 'Saving…' : 'Save Changes'"></span>
+          <span x-text="submitting ? 'Saving…' : (inv.status === 'confirmed' ? 'Save Changes' : 'Save as Draft')"></span>
         </button>
-        <button type="button" @click="save(true)" :disabled="submitting"
+        <button type="button" @click="save(true)" :disabled="submitting" x-show="inv.status !== 'confirmed'"
                 class="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg font-semibold text-sm text-white transition-all shadow hover:shadow-lg active:scale-[0.98]"
                 style="background:linear-gradient(135deg,#1B3EB6,#0D2272)">
           <template x-if="submitting"><svg class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/></svg></template>
@@ -628,8 +637,8 @@ function invoiceEdit() {
         this.inv = await r.json();
       } catch (e) { this.notFound = true; this.loading = false; return; }
 
-      if (this.inv.status !== 'draft') {
-        toast('Only draft invoices can be edited', 'error');
+      if (!['draft', 'confirmed'].includes(this.inv.status)) {
+        toast('This invoice can no longer be edited', 'error');
         window.location.href = BASE + '/invoices/' + this.id;
         return;
       }
