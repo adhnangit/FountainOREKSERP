@@ -247,6 +247,7 @@ Route::middleware(['auth:sanctum', 'branch.context'])->group(function () {
 
     // Expenses
     Route::middleware('permission:expenses.view')->get('/expenses/categories', [ExpenseController::class, 'categories']);
+    Route::middleware('permission:expenses.view')->get('/expenses/export/{format}', [ExpenseController::class, 'export']);
     Route::middleware('permission:expenses.create')->post('/expenses/categories', [ExpenseController::class, 'storeCategory']);
     Route::apiResource('expenses', ExpenseController::class, ['only' => ['index', 'show']])->middleware('permission:expenses.view');
     Route::apiResource('expenses', ExpenseController::class, ['only' => ['store']])->middleware('permission:expenses.create');

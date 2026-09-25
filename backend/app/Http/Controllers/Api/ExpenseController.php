@@ -22,7 +22,12 @@ class ExpenseController extends Controller
         private AccountingService $accounting
     ) {}
 
-    public function index(Request $request): JsonResponse
+    /**
+     * Shared by index() (paginated) and export() (full result set) so the two
+     * can never drift — export always reflects exactly what's currently
+     * filtered on the list page, not just whatever page happens to be loaded.
+     */
+    private function filteredQuery(Request $request)
     {
         $q = Expense::query();
         $this->branchContext->applyScope($q);
@@ -30,7 +35,60 @@ class ExpenseController extends Controller
         if ($request->category_id) $q->where('category_id', $request->category_id);
         if ($request->from_date) $q->whereDate('expense_date', '>=', $request->from_date);
         if ($request->to_date) $q->whereDate('expense_date', '<=', $request->to_date);
-        return response()->json($q->with(['category', 'account', 'paymentAccount', 'createdBy', 'branch'])->latest('expense_date')->paginate($request->input('per_page', 20)));
+        if ($request->search) {
+            $q->where(fn($qq) => $qq
+                ->where('description', 'like', "%{$request->search}%")
+                ->orWhere('reference_number', 'like', "%{$request->search}%")
+                ->orWhereHas('category', fn($c) => $c->where('name', 'like', "%{$request->search}%"))
+                ->orWhereHas('account', fn($a) => $a->where('name', 'like', "%{$request->search}%"))
+            );
+        }
+        return $q;
+    }
+
+    public function index(Request $request): JsonResponse
+    {
+        $statsQuery = $this->filteredQuery($request);
+        $stats = [
+            'total_count'  => (clone $statsQuery)->count(),
+            'total_amount' => (clone $statsQuery)->sum('amount'),
+        ];
+
+        $paginated = $this->filteredQuery($request)
+            ->with(['category', 'account', 'paymentAccount', 'createdBy', 'branch'])
+            ->latest('expense_date')->latest('id')
+            ->paginate($request->input('per_page', 20));
+
+        return response()->json(array_merge($paginated->toArray(), ['stats' => $stats]));
+    }
+
+    public function export(Request $request, string $format): mixed
+    {
+        abort_unless(in_array($format, ['xlsx', 'csv', 'pdf']), 404);
+
+        $expenses = $this->filteredQuery($request)
+            ->with(['category', 'account', 'createdBy', 'branch'])
+            ->latest('expense_date')->latest('id')
+            ->get();
+
+        $filename = 'expenses_' . now()->format('Y-m-d');
+
+        if ($format === 'pdf') {
+            $totalAmount = $expenses->sum('amount');
+            return \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.expenses-export', [
+                'expenses' => $expenses,
+                'totalAmount' => $totalAmount,
+                'fromDate' => $request->from_date,
+                'toDate' => $request->to_date,
+            ])->download("{$filename}.pdf");
+        }
+
+        $writerType = $format === 'xlsx' ? \Maatwebsite\Excel\Excel::XLSX : \Maatwebsite\Excel\Excel::CSV;
+        return \Maatwebsite\Excel\Facades\Excel::download(
+            new \App\Exports\ExpensesExport($expenses),
+            "{$filename}.{$format}",
+            $writerType
+        );
     }
 
     public function store(Request $request): JsonResponse
