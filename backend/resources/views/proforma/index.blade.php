@@ -4,6 +4,17 @@
 @section('page-desc', 'Draft invoices raised by sales reps — pending admin approval')
 
 @section('content')
+<style>
+.inv-pagination{display:flex;align-items:center;justify-content:space-between;padding:12px 20px;border-top:1px solid #f1f5f9}
+.inv-page-info{font-size:12.5px;color:#94a3b8}
+.inv-page-btns{display:flex;gap:4px}
+.inv-page-btn{min-width:30px;height:30px;padding:0 6px;border-radius:7px;border:1px solid #e2e8f0;background:#fff;font-size:12px;font-weight:600;color:#475569;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s}
+.inv-page-btn:hover:not(:disabled):not(.active){background:#f8fafc}
+.inv-page-btn.active{background:#6366f1;color:#fff;border-color:#6366f1}
+.inv-page-btn:disabled{opacity:.35;cursor:default}
+.dark .inv-pagination{border-color:#334155}
+.dark .inv-page-btn{background:#1e293b;border-color:#334155;color:#94a3b8}
+</style>
 <div x-data="proformaIndex()" x-init="init()">
 
   <!-- Header -->
@@ -11,7 +22,7 @@
     <div class="flex items-center gap-2 flex-wrap">
       <!-- Status filter -->
       <template x-for="s in statuses" :key="s.key">
-        <button @click="filter = s.key; load()"
+        <button @click="setFilter(s.key)"
                 class="px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all"
                 :class="filter === s.key
                   ? 'bg-primary-600 text-white border-primary-600'
@@ -115,6 +126,18 @@
         </template>
       </tbody>
     </table>
+
+    {{-- Pagination --}}
+    <div class="inv-pagination" x-show="meta.total > 0">
+      <div class="inv-page-info" x-text="'Showing '+meta.from+'–'+meta.to+' of '+meta.total+' proforma invoices'"></div>
+      <div class="inv-page-btns">
+        <button class="inv-page-btn" @click="page=1;load()" :disabled="page<=1"><svg style="width:12px;height:12px" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M11 19l-7-7 7-7M18 19l-7-7 7-7"/></svg></button>
+        <button class="inv-page-btn" @click="page--;load()" :disabled="page<=1"><svg style="width:12px;height:12px" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M15 19l-7-7 7-7"/></svg></button>
+        <template x-for="p in pageNumbers" :key="p"><button class="inv-page-btn" :class="p===page?'active':''" @click="page=p;load()" x-text="p"></button></template>
+        <button class="inv-page-btn" @click="page++;load()" :disabled="page>=meta.last_page"><svg style="width:12px;height:12px" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M9 5l7 7-7 7"/></svg></button>
+        <button class="inv-page-btn" @click="page=meta.last_page;load()" :disabled="page>=meta.last_page"><svg style="width:12px;height:12px" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M13 5l7 7-7 7M6 5l7 7-7 7"/></svg></button>
+      </div>
+    </div>
   </div>
 
 </div>
@@ -126,6 +149,8 @@ function proformaIndex() {
     loading: true,
     rows: [],
     filter: 'all',
+    page: 1,
+    meta: { total: 0, from: 0, to: 0, last_page: 1 },
     statuses: [
       { key: 'all',       label: 'All',       count: 0 },
       { key: 'draft',     label: 'Draft',     count: 0 },
@@ -133,22 +158,29 @@ function proformaIndex() {
       { key: 'converted', label: 'Converted', count: 0 },
       { key: 'cancelled', label: 'Cancelled', count: 0 },
     ],
+    get pageNumbers() {
+      const total = this.meta.last_page;
+      const cur = this.page;
+      if (total <= 7) return Array.from({length: total}, (_, i) => i + 1);
+      const pages = new Set([1, total, cur, cur-1, cur+1].filter(p => p >= 1 && p <= total));
+      return [...pages].sort((a,b) => a-b);
+    },
     async init() { await this.load(); },
     async load() {
       this.loading = true;
       try {
-        const params = this.filter !== 'all' ? `?status=${this.filter}` : '';
-        const r = await apiFetch('/proforma-invoices' + params);
+        const params = new URLSearchParams({ page: this.page, per_page: 15 });
+        if (this.filter !== 'all') params.set('status', this.filter);
+        const r = await apiFetch('/proforma-invoices?' + params);
         const d = await r.json();
         this.rows = d.data || d || [];
-        /* update counts */
-        const all = d.data || d || [];
-        this.statuses.forEach(s => {
-          s.count = s.key === 'all' ? all.length : all.filter(x => x.status === s.key).length;
-        });
+        if (d.meta) this.meta = d.meta;
+        else this.meta = { total: this.rows.length, from: this.rows.length ? 1 : 0, to: this.rows.length, last_page: 1 };
+        if (d.counts) { this.statuses.forEach(s => { s.count = d.counts[s.key] ?? 0; }); }
       } catch(e) { this.rows = []; }
       this.loading = false;
     },
+    setFilter(key) { this.filter = key; this.page = 1; this.load(); },
     async convert(p) {
       if (!confirm(`Convert Proforma ${p.proforma_number || '#PI-' + p.id} to a confirmed invoice?\n\nThis will update stock and accounts.`)) return;
       try {

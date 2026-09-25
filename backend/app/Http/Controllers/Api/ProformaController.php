@@ -28,16 +28,34 @@ class ProformaController extends Controller
         $q = Invoice::where('type', 'proforma');
         $this->branchContext->applyScope($q);
 
+        $counts = (clone $q)->selectRaw('status, COUNT(*) as cnt')->groupBy('status')->pluck('cnt', 'status');
+
         if ($request->status) {
             $q->where('status', $request->status);
         }
 
-        $rows = $q->with(['customer', 'branch', 'createdBy'])
-            ->latest('invoice_date')
-            ->get()
-            ->map(fn($i) => $this->transform($i));
+        $paginated = $q->with(['customer', 'branch', 'createdBy'])
+            ->latest('invoice_date')->latest('id')
+            ->paginate($request->input('per_page', 15))
+            ->through(fn($i) => $this->transform($i));
 
-        return response()->json($rows);
+        return response()->json([
+            'data' => $paginated->items(),
+            'meta' => [
+                'total'        => $paginated->total(),
+                'from'         => $paginated->firstItem() ?? 0,
+                'to'           => $paginated->lastItem() ?? 0,
+                'last_page'    => $paginated->lastPage(),
+                'current_page' => $paginated->currentPage(),
+            ],
+            'counts' => [
+                'all'       => $counts->sum(),
+                'draft'     => $counts->get('draft', 0),
+                'sent'      => $counts->get('sent', 0),
+                'converted' => $counts->get('converted', 0),
+                'cancelled' => $counts->get('cancelled', 0),
+            ],
+        ]);
     }
 
     public function store(Request $request): JsonResponse
