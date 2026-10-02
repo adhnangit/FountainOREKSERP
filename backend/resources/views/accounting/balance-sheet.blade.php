@@ -23,6 +23,11 @@
 .dark .bs-btn-ghost:hover{background:#475569}
 .dark .bs-link{background:#312e81;color:#c7d2fe}
 .dark .bs-link:hover{background:#3730a3}
+.bs-group-search input{width:100%;border:1px solid #e2e8f0;border-radius:8px;padding:5px 10px 5px 28px;font-size:12px;color:#1e293b;background:#fff;outline:none;transition:border-color .15s,box-shadow .15s}
+.bs-group-search input:focus{border-color:#6366f1;box-shadow:0 0 0 3px rgba(99,102,241,.12)}
+.bs-group-search{position:relative}
+.bs-group-search svg{position:absolute;left:9px;top:50%;transform:translateY(-50%);width:13px;height:13px;color:#94a3b8;pointer-events:none}
+.dark .bs-group-search input{background:#0f172a;border-color:#334155;color:#e2e8f0}
 </style>
 <div x-data="balanceSheetPage()" x-init="init()">
 
@@ -89,7 +94,15 @@
                   </td>
                   <td class="table-td text-right tabular-nums text-sm font-semibold text-blue-600 w-32" x-text="fmtMoney(grp.total)"></td>
                 </tr>
-                <template x-for="acc in grp.accounts" :key="acc.id">
+                <tr x-show="expandedGroups['asset-' + grp.name] && grp.accounts.length > 8" class="bg-white dark:bg-gray-800/10">
+                  <td colspan="3" class="px-4 pl-8 py-2">
+                    <div class="bs-group-search">
+                      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M11 19a8 8 0 100-16 8 8 0 000 16z"/></svg>
+                      <input type="text" x-model="groupSearch['asset-' + grp.name]" :placeholder="'Search ' + grp.name + '...'" />
+                    </div>
+                  </td>
+                </tr>
+                <template x-for="acc in filteredAccounts(grp, 'asset-' + grp.name)" :key="acc.id">
                   <tr x-show="expandedGroups['asset-' + grp.name]" class="hover:bg-gray-50 dark:hover:bg-gray-800/20">
                     <td class="table-td font-mono text-xs text-gray-400 w-20 pl-8" x-text="acc.code"></td>
                     <td class="table-td">
@@ -100,6 +113,9 @@
                         x-text="fmtMoney(acc.balance)"></td>
                   </tr>
                 </template>
+                <tr x-show="expandedGroups['asset-' + grp.name] && groupSearch['asset-' + grp.name] && filteredAccounts(grp, 'asset-' + grp.name).length === 0">
+                  <td colspan="3" class="table-td text-center text-gray-400 text-xs py-3">No matches.</td>
+                </tr>
               </tbody>
             </template>
             <tbody>
@@ -142,7 +158,15 @@
                     </td>
                     <td class="table-td text-right tabular-nums text-sm font-semibold text-red-600 w-32" x-text="fmtMoney(grp.total)"></td>
                   </tr>
-                  <template x-for="acc in grp.accounts" :key="acc.id">
+                  <tr x-show="expandedGroups['liability-' + grp.name] && grp.accounts.length > 8" class="bg-white dark:bg-gray-800/10">
+                    <td colspan="3" class="px-4 pl-8 py-2">
+                      <div class="bs-group-search">
+                        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M11 19a8 8 0 100-16 8 8 0 000 16z"/></svg>
+                        <input type="text" x-model="groupSearch['liability-' + grp.name]" :placeholder="'Search ' + grp.name + '...'" />
+                      </div>
+                    </td>
+                  </tr>
+                  <template x-for="acc in filteredAccounts(grp, 'liability-' + grp.name)" :key="acc.id">
                     <tr x-show="expandedGroups['liability-' + grp.name]" class="hover:bg-gray-50 dark:hover:bg-gray-800/20">
                       <td class="table-td font-mono text-xs text-gray-400 w-20 pl-8" x-text="acc.code"></td>
                       <td class="table-td">
@@ -153,6 +177,9 @@
                           x-text="fmtMoney(acc.balance)"></td>
                     </tr>
                   </template>
+                  <tr x-show="expandedGroups['liability-' + grp.name] && groupSearch['liability-' + grp.name] && filteredAccounts(grp, 'liability-' + grp.name).length === 0">
+                    <td colspan="3" class="table-td text-center text-gray-400 text-xs py-3">No matches.</td>
+                  </tr>
                 </tbody>
               </template>
               <tbody>
@@ -192,7 +219,15 @@
                     </td>
                     <td class="table-td text-right tabular-nums text-sm font-semibold text-purple-600 w-32" x-text="fmtMoney(grp.total)"></td>
                   </tr>
-                  <template x-for="acc in grp.accounts" :key="acc.id">
+                  <tr x-show="expandedGroups['equity-' + grp.name] && grp.accounts.length > 8" class="bg-white dark:bg-gray-800/10">
+                    <td colspan="3" class="px-4 pl-8 py-2">
+                      <div class="bs-group-search">
+                        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M11 19a8 8 0 100-16 8 8 0 000 16z"/></svg>
+                        <input type="text" x-model="groupSearch['equity-' + grp.name]" :placeholder="'Search ' + grp.name + '...'" />
+                      </div>
+                    </td>
+                  </tr>
+                  <template x-for="acc in filteredAccounts(grp, 'equity-' + grp.name)" :key="acc.id">
                     <tr x-show="expandedGroups['equity-' + grp.name]" class="hover:bg-gray-50 dark:hover:bg-gray-800/20">
                       <td class="table-td font-mono text-xs text-gray-400 w-20 pl-8" x-text="acc.code"></td>
                       <td class="table-td">
@@ -203,6 +238,9 @@
                           x-text="fmtMoney(acc.balance)"></td>
                     </tr>
                   </template>
+                  <tr x-show="expandedGroups['equity-' + grp.name] && groupSearch['equity-' + grp.name] && filteredAccounts(grp, 'equity-' + grp.name).length === 0">
+                    <td colspan="3" class="table-td text-center text-gray-400 text-xs py-3">No matches.</td>
+                  </tr>
                 </tbody>
               </template>
               <tbody>
@@ -252,6 +290,7 @@ function balanceSheetPage() {
     asOf: new Date().toISOString().slice(0,10),
     data: null, loading: false,
     expandedGroups: {},
+    groupSearch: {},
     get isBalanced() {
       if (!this.data) return true;
       const assets = this.data.total_assets ?? 0;
@@ -269,6 +308,15 @@ function balanceSheetPage() {
       return Object.values(groups);
     },
     toggleGroup(key) { this.expandedGroups[key] = !this.expandedGroups[key]; },
+    // Large party-account groups (Customer Accounts, Supplier Accounts) can run
+    // into the hundreds of rows once expanded — this narrows that list down to
+    // a specific customer/supplier by name or account code instead of forcing
+    // a scroll through all of them.
+    filteredAccounts(grp, key) {
+      const q = (this.groupSearch[key] || '').trim().toLowerCase();
+      if (!q) return grp.accounts;
+      return grp.accounts.filter(a => (a.name || '').toLowerCase().includes(q) || (a.code || '').toLowerCase().includes(q));
+    },
     async load() {
       this.loading = true;
       try {
