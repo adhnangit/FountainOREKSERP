@@ -277,13 +277,21 @@ class ReportController extends Controller
         // balance_due, only the customer's credit_balance field). Without
         // both, this report disagrees with the Chart of Accounts / Trial
         // Balance for any customer carrying either one.
+        //
+        // Deliberately NOT pre-filtered to customers with a nonzero
+        // opening_balance/credit_balance — a customer can have BOTH of those
+        // at exactly 0 and still need a nonzero adjustment, if a payment was
+        // ever recorded against their (zero) opening balance via the "Pay
+        // Opening Balance" flow or a manual JE (openingBalancePaid() alone
+        // goes negative in that case). A prior version of this filter missed
+        // that case and silently skipped the adjustment entirely, leaving
+        // this report overstated by the paid amount — matches
+        // Customer::getOutstandingBalanceAttribute(), which never filters.
         $adjustCustomers = Customer::when($branchId, fn($q) => $q->where('branch_id', $branchId))
-            ->with('account:id,opening_balance,normal_balance')
-            ->get()
-            ->filter(fn($c) => (float) $c->credit_balance > 0.001
-                || ($c->account && abs((float) $c->account->opening_balance) > 0.001));
+            ->whereNotNull('account_id')
+            ->with('account:id,opening_balance,normal_balance');
 
-        foreach ($adjustCustomers as $customer) {
+        foreach ($adjustCustomers->cursor() as $customer) {
             $adjustment = (float) ($customer->account->opening_balance ?? 0)
                 - ($customer->account?->openingBalancePaid() ?? 0)
                 - (float) $customer->credit_balance;
@@ -366,14 +374,13 @@ class ReportController extends Controller
         // reduces what's owed to them, e.g. when a purchase return happened after
         // its PO was already fully paid — it never touches any PO's balance_due,
         // only the supplier's credit_balance field). See the identical fix in
-        // customerAging() for why all three terms are needed.
+        // customerAging() for why all three terms are needed and why this is
+        // deliberately not pre-filtered to a nonzero opening_balance/credit_balance.
         $adjustSuppliers = Supplier::when($branchId, fn($q) => $q->where('branch_id', $branchId))
-            ->with('account:id,opening_balance,normal_balance')
-            ->get()
-            ->filter(fn($s) => (float) $s->credit_balance > 0.001
-                || ($s->account && abs((float) $s->account->opening_balance) > 0.001));
+            ->whereNotNull('account_id')
+            ->with('account:id,opening_balance,normal_balance');
 
-        foreach ($adjustSuppliers as $supplier) {
+        foreach ($adjustSuppliers->cursor() as $supplier) {
             $adjustment = (float) ($supplier->account->opening_balance ?? 0)
                 - ($supplier->account?->openingBalancePaid() ?? 0)
                 - (float) $supplier->credit_balance;
