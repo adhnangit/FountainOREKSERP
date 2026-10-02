@@ -383,6 +383,7 @@ function rolesPage() {
                 'users.edit':'Edit Users','users.delete':'Delete Users',
                 'roles.view':'View Roles','roles.edit':'Edit Roles',
                 'activity_log.view':'View Activity Log',
+                'system.maintenance.manage':'Manage Maintenance Mode',
                 'settings.view':'View Settings','settings.edit':'Edit Settings',
                 'branches.view':'View Branches','branches.create':'Create Branches',
                 'branches.edit':'Edit Branches','branches.delete':'Delete Branches',

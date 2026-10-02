@@ -129,6 +129,7 @@ class PermissionsSeeder extends Seeder
             'roles.view',
             'roles.edit',
             'activity_log.view',
+            'system.maintenance.manage',
 
             // Settings & Branches
             'settings.view',

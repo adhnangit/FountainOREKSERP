@@ -20,6 +20,11 @@ Route::get('/branch-logo/{branch}', function (Branch $branch) {
 Route::get('/login', fn() => view('auth.login'))->name('login');
 Route::get('/logout', fn() => redirect('/login'));
 
+// Deliberately not linked anywhere in the app's own nav — exempted from
+// CheckMaintenanceMode so an admin can still sign in while the rest of the
+// system is locked out. See resources/views/access-control/maintenance.blade.php.
+Route::get('/system-access', fn() => view('auth.maintenance-login'))->name('system-access');
+
 Route::get('/', fn() => view('dashboard.index'))->name('dashboard');
 
 Route::get('/invoices',           fn() => view('invoices.index'))->name('invoices.index');
@@ -147,6 +152,7 @@ Route::get('/access-control/users/{id}/edit', fn() => view('access-control.users
 Route::get('/access-control/roles',           fn() => view('access-control.roles'))->name('roles');
 Route::get('/access-control/roles/{id}/edit', fn() => view('access-control.roles'))->name('roles.edit');
 Route::get('/access-control/activity-log', fn() => view('access-control.activity-log'))->name('activity-log');
+Route::get('/access-control/maintenance', fn() => view('access-control.maintenance'))->name('maintenance.settings');
 
 Route::get('/settings', fn() => view('settings.index'))->name('settings');
 Route::get('/settings/branches', fn() => view('settings.branches'))->name('settings.branches');

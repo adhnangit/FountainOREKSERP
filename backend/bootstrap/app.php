@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\CheckMaintenanceMode;
 use App\Http\Middleware\SetBranchContext;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -20,8 +21,21 @@ return Application::configure(basePath: dirname(__DIR__))
             'role_or_permission' => \Spatie\Permission\Middleware\RoleOrPermissionMiddleware::class,
         ]);
 
+        // medri_api_token is a plain value set directly by frontend JS (see
+        // layouts/app.blade.php's setApiToken()), not one of Laravel's own
+        // encrypted response cookies — the default EncryptCookies middleware
+        // tries to decrypt every incoming cookie and silently nulls out any
+        // it can't, which would otherwise make CheckMaintenanceMode's cookie
+        // read always come back empty.
+        $middleware->encryptCookies(except: ['medri_api_token']);
+
+        // Global, not route-by-route — every web page and every API call
+        // passes through this before anything else runs, so a brand new
+        // route never accidentally bypasses maintenance mode by omission.
+        $middleware->web(append: [CheckMaintenanceMode::class]);
         $middleware->api(append: [
             \Illuminate\Http\Middleware\HandleCors::class,
+            CheckMaintenanceMode::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

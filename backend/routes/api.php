@@ -56,6 +56,7 @@ use App\Http\Controllers\Api\InquiryStatusController;
 use App\Http\Controllers\Api\WorkTaskCategoryController;
 use App\Http\Controllers\Api\DashboardWidgetSettingsController;
 use App\Http\Controllers\Api\UserController;
+use App\Http\Controllers\Api\SystemMaintenanceController;
 use Illuminate\Support\Facades\Route;
 
 // Public
@@ -344,6 +345,13 @@ Route::middleware(['auth:sanctum', 'branch.context'])->group(function () {
         Route::put('/roles/{role}', [UserController::class, 'updateRole']);
     });
     Route::middleware('permission:activity_log.view')->get('/activity-log', [UserController::class, 'activityLog']);
+
+    // System Maintenance Mode — read is gated the same as write, unlike POS
+    // settings, since there's no non-admin use case for checking this.
+    Route::middleware('permission:system.maintenance.manage')->group(function () {
+        Route::get('/system/maintenance', [SystemMaintenanceController::class, 'index']);
+        Route::post('/system/maintenance', [SystemMaintenanceController::class, 'update']);
+    });
 
     // Accounting
     Route::prefix('accounting')->group(function () {

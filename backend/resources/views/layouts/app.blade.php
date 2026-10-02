@@ -636,6 +636,8 @@ elseif (request()->is('access-control*') || request()->is('settings/branches*') 
              class="n-sub {{ request()->is('access-control/roles*')        ? 'active' : '' }}">Roles</a>
           <a href="{{ url('/access-control/activity-log') }}" x-show="hasPerm('activity_log.view')"
              class="n-sub {{ request()->is('access-control/activity-log*') ? 'active' : '' }}">Activity Log</a>
+          <a href="{{ url('/access-control/maintenance') }}" x-show="hasPerm('system.maintenance.manage')"
+             class="n-sub {{ request()->is('access-control/maintenance*') ? 'active' : '' }}">Maintenance Mode</a>
           <a x-show="user?.roles?.includes('super_admin') || user?.roles?.includes('branch_manager')"
              href="{{ url('/settings/dashboard-widgets') }}"
              class="n-sub {{ request()->is('settings/dashboard-widgets*') ? 'active' : '' }}">Dashboard Widgets</a>
