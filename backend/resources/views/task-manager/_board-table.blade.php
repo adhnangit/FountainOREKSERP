@@ -111,6 +111,11 @@
 .tb-subtask{background:#fff;border:1px solid #eef0f7;border-radius:10px;padding:9px 14px;margin-bottom:6px}
 .tb-subtask-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .tb-subtask-title{flex:1 1 220px;min-width:160px;font-size:13.5px}
+.tb-subtask-title-input{flex:1 1 220px;min-width:160px;font-size:13.5px;border:1px solid transparent;border-radius:6px;padding:3px 6px;background:transparent;outline:none;font-family:inherit;color:inherit}
+.tb-subtask-title-input:hover{border-color:#e2e8f0;background:#f8fafc}
+.tb-subtask-title-input:focus{border-color:#6366f1;background:#fff;box-shadow:0 0 0 3px rgba(99,102,241,.12)}
+.dark .tb-subtask-title-input:hover{background:#0f172a;border-color:#334155}
+.dark .tb-subtask-title-input:focus{background:#0f172a;border-color:#6366f1}
 .tb-subtask-days{font-size:12px;font-weight:700;color:#475569;white-space:nowrap;flex-shrink:0}
 .dark .tb-subtask-days{color:#cbd5e1}
 .tb-subtask-days.overdue{color:#ef4444;font-weight:700}
@@ -416,7 +421,7 @@
                                                         </template>
                                                     </div>
                                                 </div>
-                                                <span class="tb-subtask-title" :class="st.status === 'Completed' ? 'line-through text-gray-400' : 'text-gray-700 dark:text-gray-200'" x-text="st.title"></span>
+                                                <input type="text" class="tb-subtask-title-input" :class="st.status === 'Completed' ? 'line-through text-gray-400' : 'text-gray-700 dark:text-gray-200'" :value="st.title" @change="renameSubtask(task, st, $event)" @keydown.enter="$event.target.blur()" title="Sub-task title" />
                                                 <select class="tb-assignee-select" @change="patchSubtask(task, st, { priority: $event.target.value })" title="Priority">
                                                     <option value="Low" :selected="st.priority === 'Low'">Low</option>
                                                     <option value="Medium" :selected="st.priority === 'Medium'">Medium</option>
@@ -604,7 +609,7 @@
                                         </template>
                                     </div>
                                 </div>
-                                <span class="tb-subtask-title" :class="st.status === 'Completed' ? 'line-through text-gray-400' : 'text-gray-700 dark:text-gray-200'" x-text="st.title"></span>
+                                <input type="text" class="tb-subtask-title-input" :class="st.status === 'Completed' ? 'line-through text-gray-400' : 'text-gray-700 dark:text-gray-200'" :value="st.title" @change="renameSubtask(detailTask, st, $event)" @keydown.enter="$event.target.blur()" title="Sub-task title" />
                                 <select class="tb-assignee-select" @change="patchSubtask(detailTask, st, { priority: $event.target.value })" title="Priority">
                                     <option value="Low" :selected="st.priority === 'Low'">Low</option>
                                     <option value="Medium" :selected="st.priority === 'Medium'">Medium</option>
@@ -1019,6 +1024,16 @@ function taskBoardPage(scopedToMe = false) {
             } catch (e) {
                 toast(e.message ?? 'Failed to update sub-task', 'error');
             }
+        },
+
+        renameSubtask(task, subtask, event) {
+            const value = event.target.value.trim();
+            if (!value) {
+                event.target.value = subtask.title; // reject a blank title, revert the field
+                return;
+            }
+            if (value === subtask.title) return;
+            this.patchSubtask(task, subtask, { title: value });
         },
 
         subtaskProgress(subtask) {
