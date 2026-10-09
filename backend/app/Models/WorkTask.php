@@ -9,6 +9,7 @@ class WorkTask extends Model
     protected $fillable = [
         'branch_id', 'category_id', 'title', 'description',
         'assigned_to', 'created_by', 'priority', 'status', 'due_date', 'completed_at', 'archived_at',
+        'attachment_path', 'attachment_name',
     ];
 
     protected $casts = [

@@ -1,6 +1,8 @@
 <?php
 
 use App\Models\Branch;
+use App\Models\WorkTask;
+use App\Models\WorkTaskFollowup;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Storage;
 
@@ -16,6 +18,24 @@ Route::get('/branch-logo/{branch}', function (Branch $branch) {
         'Cache-Control' => 'public, max-age=86400',
     ]);
 })->name('branch-logo');
+
+// Task Manager attachments — same reason as branch-logo above: the storage
+// symlink isn't reachable over HTTP, so these stream the file directly.
+Route::get('/task-attachments/task/{workTask}', function (WorkTask $workTask) {
+    abort_unless($workTask->attachment_path && Storage::disk('public')->exists($workTask->attachment_path), 404);
+    return response(Storage::disk('public')->get($workTask->attachment_path), 200, [
+        'Content-Type' => Storage::disk('public')->mimeType($workTask->attachment_path) ?: 'application/octet-stream',
+        'Content-Disposition' => 'inline; filename="'.addslashes($workTask->attachment_name ?? 'attachment').'"',
+    ]);
+})->name('task-attachment');
+
+Route::get('/task-attachments/followup/{followup}', function (WorkTaskFollowup $followup) {
+    abort_unless($followup->attachment_path && Storage::disk('public')->exists($followup->attachment_path), 404);
+    return response(Storage::disk('public')->get($followup->attachment_path), 200, [
+        'Content-Type' => Storage::disk('public')->mimeType($followup->attachment_path) ?: 'application/octet-stream',
+        'Content-Disposition' => 'inline; filename="'.addslashes($followup->attachment_name ?? 'attachment').'"',
+    ]);
+})->name('task-followup-attachment');
 
 Route::get('/login', fn() => view('auth.login'))->name('login');
 Route::get('/logout', fn() => redirect('/login'));

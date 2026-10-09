@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\AccountingController;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\BankController;
 use App\Http\Controllers\Api\DistrictController;
 use App\Http\Controllers\Api\CityController;
@@ -70,6 +71,12 @@ Route::middleware(['auth:sanctum', 'branch.context'])->group(function () {
     Route::put('/auth/profile', [AuthController::class, 'updateProfile']);
     Route::post('/auth/change-password', [AuthController::class, 'changePassword']);
     Route::post('/auth/switch-branch', [AuthController::class, 'switchBranch']);
+
+    // Notifications — personal inbox, no module permission required beyond being logged in
+    Route::get('/notifications', [NotificationController::class, 'index']);
+    Route::get('/notifications/unread-count', [NotificationController::class, 'unreadCount']);
+    Route::patch('/notifications/{notification}/read', [NotificationController::class, 'markRead']);
+    Route::patch('/notifications/mark-all-read', [NotificationController::class, 'markAllRead']);
 
     // Dashboard
     Route::middleware('permission:dashboard.view')->group(function () {

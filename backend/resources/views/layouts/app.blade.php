@@ -802,6 +802,43 @@ elseif (request()->is('access-control*') || request()->is('settings/branches*') 
           </div>
         </div>
 
+        <!-- ── Notifications Bell ── -->
+        <div class="relative" @click.away="notifDropdownOpen = false">
+          <button @click="toggleNotifDropdown()"
+                  class="relative w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 transition-all">
+            <svg style="width:16px;height:16px" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.4-1.4A2 2 0 0118 14.2V11a6 6 0 10-12 0v3.2c0 .5-.2 1-.6 1.4L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
+            <span x-show="unreadNotifCount > 0" x-text="unreadNotifCount > 9 ? '9+' : unreadNotifCount"
+                  class="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 px-1 rounded-full bg-red-500 text-white text-[9px] font-bold flex items-center justify-center"></span>
+          </button>
+
+          <div x-show="notifDropdownOpen" x-cloak
+               x-transition:enter="transition ease-out duration-100"
+               x-transition:enter-start="opacity-0 scale-95 -translate-y-1"
+               x-transition:enter-end="opacity-100 scale-100 translate-y-0"
+               class="absolute right-0 mt-2 w-80 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-100 dark:border-gray-700 z-50 overflow-hidden"
+               style="top:100%">
+            <div class="flex items-center justify-between px-4 py-3 border-b border-gray-100 dark:border-gray-700">
+              <span class="text-sm font-bold text-gray-800 dark:text-gray-100">Notifications</span>
+              <button @click="markAllNotifsRead()" x-show="unreadNotifCount > 0" class="text-xs font-semibold text-gray-400 hover:text-indigo-600">Mark all read</button>
+            </div>
+            <div style="max-height:360px;overflow-y:auto">
+              <template x-for="n in recentNotifications" :key="n.id">
+                <div @click="openNotification(n)" class="flex items-start gap-3 px-4 py-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 border-b border-gray-50 dark:border-gray-700/50 last:border-0"
+                     :style="!n.is_read ? 'background:rgba(99,102,241,.06)' : ''">
+                  <div class="text-base flex-shrink-0" x-text="n.icon || '🔔'"></div>
+                  <div class="flex-1 min-w-0">
+                    <div class="text-xs font-semibold text-gray-800 dark:text-gray-100 truncate" x-text="n.title"></div>
+                    <div class="text-xs text-gray-500 dark:text-gray-400 truncate" x-text="n.message"></div>
+                    <div class="text-[10px] text-gray-400 mt-0.5" x-text="timeAgo(n.created_at)"></div>
+                  </div>
+                  <div x-show="!n.is_read" class="w-2 h-2 rounded-full flex-shrink-0 mt-1" style="background:#6366f1"></div>
+                </div>
+              </template>
+              <div x-show="!recentNotifications.length" class="px-4 py-8 text-center text-xs text-gray-400">You're all caught up.</div>
+            </div>
+          </div>
+        </div>
+
         <!-- ── Dark Toggle ── -->
         <button @click="toggleDark()"
                 class="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 transition-all">
@@ -968,6 +1005,11 @@ function toast(msg, type = 'success') {
   document.getElementById('toasts').appendChild(el);
   setTimeout(() => { el.style.opacity='0'; el.style.transform='translateX(8px)'; el.style.transition='all 0.3s'; setTimeout(()=>el.remove(),300); }, 3700);
 }
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str ?? '';
+  return div.innerHTML;
+}
 let _globalLoadingCount = 0;
 function showGlobalLoading(msg = 'Loading…') {
   _globalLoadingCount++;
@@ -1036,6 +1078,10 @@ function layout() {
     user: null,
     activeBranchId: null,
     switcherBranches: [],
+    unreadNotifCount: 0,
+    _lastUnreadCount: null,
+    notifDropdownOpen: false,
+    recentNotifications: [],
     get activeBranchName() {
       if (!this.activeBranchId) return 'All Branches';
       const b = this.switcherBranches.find(x => String(x.id) === String(this.activeBranchId));
@@ -1077,6 +1123,79 @@ function layout() {
       this.switcherBranches = this.user?.branches ?? [];
       this.loadSwitcherBranches();
       window.addEventListener('branches-changed', () => this.loadSwitcherBranches());
+
+      // Lightweight stand-in for real-time: poll the unread count rather than
+      // hold a WebSocket open (this app deploys to shared hosting with no
+      // persistent-process support, so Reverb/Pusher-style push isn't viable —
+      // same approach used for this in OREKSTECHERP). A detected increase pops
+      // a toast with the new notification(s) so it actually feels live rather
+      // than just quietly bumping a badge number.
+      this.loadUnreadCount();
+      setInterval(() => this.loadUnreadCount(), 8000);
+    },
+    async loadUnreadCount() {
+      try {
+        const r = await apiFetch('/notifications/unread-count');
+        if (!r) return;
+        const newCount = (await r.json()).count;
+        // Skip on the very first call (page load) — otherwise every
+        // already-unread notification from before this session would pop
+        // a toast as if it just arrived.
+        if (this._lastUnreadCount !== null && newCount > this._lastUnreadCount) {
+          await this.announceNewNotifications(newCount - this._lastUnreadCount);
+        }
+        this._lastUnreadCount = newCount;
+        this.unreadNotifCount = newCount;
+      } catch (e) { /* non-fatal */ }
+    },
+    async announceNewNotifications(howMany) {
+      try {
+        const r = await apiFetch('/notifications?per_page=' + Math.min(howMany, 5));
+        const data = r ? await r.json() : { data: [] };
+        (data.data || []).forEach(n => {
+          toast((n.icon || '🔔') + ' <b>' + escapeHtml(n.title) + '</b>'
+            + (n.message ? '<br><span style="opacity:.85">' + escapeHtml(n.message) + '</span>' : ''), 'info');
+        });
+      } catch (e) { /* non-fatal */ }
+      if (this.notifDropdownOpen) this.loadRecentNotifications();
+    },
+    toggleNotifDropdown() {
+      this.notifDropdownOpen = !this.notifDropdownOpen;
+      if (this.notifDropdownOpen) this.loadRecentNotifications();
+    },
+    async loadRecentNotifications() {
+      try {
+        const r = await apiFetch('/notifications?per_page=8');
+        const data = r ? await r.json() : { data: [] };
+        this.recentNotifications = data.data || [];
+      } catch (e) { /* non-fatal */ }
+    },
+    async openNotification(n) {
+      this.notifDropdownOpen = false;
+      if (!n.is_read) {
+        try {
+          await apiFetch('/notifications/' + n.id + '/read', { method: 'PATCH' });
+          n.is_read = true;
+          this.unreadNotifCount = Math.max(0, this.unreadNotifCount - 1);
+          this._lastUnreadCount = this.unreadNotifCount;
+        } catch (e) { /* non-fatal */ }
+      }
+      if (n.link) window.location.href = '{{ url('') }}' + n.link;
+    },
+    async markAllNotifsRead() {
+      try {
+        await apiFetch('/notifications/mark-all-read', { method: 'PATCH' });
+        this.recentNotifications.forEach(n => n.is_read = true);
+        this.unreadNotifCount = 0;
+        this._lastUnreadCount = 0;
+      } catch (e) { /* non-fatal */ }
+    },
+    timeAgo(d) {
+      const diff = Math.floor((Date.now() - new Date(d).getTime()) / 1000);
+      if (diff < 60) return 'just now';
+      if (diff < 3600) return Math.floor(diff / 60) + 'm ago';
+      if (diff < 86400) return Math.floor(diff / 3600) + 'h ago';
+      return Math.floor(diff / 86400) + 'd ago';
     },
     async loadSwitcherBranches() {
       try {

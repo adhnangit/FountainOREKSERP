@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class WorkTaskFollowup extends Model
 {
-    protected $fillable = ['task_id', 'subtask_id', 'user_id', 'note', 'status_snapshot'];
+    protected $fillable = ['task_id', 'subtask_id', 'user_id', 'note', 'status_snapshot', 'attachment_path', 'attachment_name'];
 
     public function task(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {

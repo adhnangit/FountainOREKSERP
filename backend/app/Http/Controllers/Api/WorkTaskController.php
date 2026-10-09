@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\AppNotification;
 use App\Models\WorkTask;
 use App\Models\WorkTaskCategory;
 use App\Models\WorkTaskFollowup;
@@ -172,13 +173,24 @@ class WorkTaskController extends Controller
             'priority' => 'required|in:Low,Medium,High',
             'status' => 'required|in:Pending,In Progress,Completed,Cancelled',
             'due_date' => 'nullable|date',
+            'attachment' => 'nullable|file|max:10240|mimes:pdf,doc,docx,xls,xlsx,png,jpg,jpeg,csv,txt',
         ]);
 
         $data['branch_id'] = $data['branch_id'] ?? $this->branchContext->getBranchId();
         $data['created_by'] = $request->user()->id;
         $data['completed_at'] = $data['status'] === 'Completed' ? now() : null;
 
+        if ($request->hasFile('attachment')) {
+            $data['attachment_path'] = $request->file('attachment')->store('task-attachments', 'public');
+            $data['attachment_name'] = $request->file('attachment')->getClientOriginalName();
+        }
+        unset($data['attachment']);
+
         $task = WorkTask::create($data);
+
+        $this->notifyAssignee($task, $request->user()->id, $task->title);
+        $mentioned = $this->notifyMentions($task, $task->description, $request->user()->id);
+        $this->notifyAllUsers($task, $request->user()->id, 'New task created', $request->user()->name . ' created "' . $task->title . '"', '📋', $mentioned);
 
         return response()->json($task->load(['category', 'assignee']), 201);
     }
@@ -203,6 +215,8 @@ class WorkTaskController extends Controller
 
         $previousStatus = $workTask->status;
         $newStatus = $data['status'] ?? $previousStatus;
+        $previousAssignee = $workTask->assigned_to;
+        $previousDescription = $workTask->description;
 
         $data['completed_at'] = $newStatus === 'Completed'
             ? ($previousStatus === 'Completed' ? $workTask->completed_at : now())
@@ -213,6 +227,17 @@ class WorkTaskController extends Controller
         if ($previousStatus !== $newStatus) {
             $this->logStatusChange($workTask, $request->user()->id, $previousStatus, $newStatus);
         }
+
+        if ($workTask->assigned_to && (int) $workTask->assigned_to !== (int) $previousAssignee) {
+            $this->notifyAssignee($workTask, $request->user()->id, $workTask->title);
+        }
+        // Only re-scan for @mentions when the description text actually changed —
+        // otherwise an unrelated edit (e.g. just priority) would re-notify
+        // whoever was mentioned in a description that was never touched.
+        $mentioned = $workTask->description !== $previousDescription
+            ? $this->notifyMentions($workTask, $workTask->description, $request->user()->id)
+            : [];
+        $this->notifyAllUsers($workTask, $request->user()->id, 'Task updated', $request->user()->name . ' updated "' . $workTask->title . '"', '📋', $mentioned);
 
         return response()->json($workTask->fresh(['category', 'assignee']));
     }
@@ -229,6 +254,9 @@ class WorkTaskController extends Controller
 
         if ($previousStatus !== $data['status']) {
             $this->logStatusChange($workTask, $request->user()->id, $previousStatus, $data['status']);
+            $icon = $data['status'] === 'Completed' ? '✅' : '🔄';
+            $this->notifyAllUsers($workTask, $request->user()->id, 'Task status changed',
+                $request->user()->name . ' marked "' . $workTask->title . '" as ' . $data['status'], $icon);
         }
 
         return response()->json($workTask->fresh(['category', 'assignee']));
@@ -257,13 +285,27 @@ class WorkTaskController extends Controller
 
     public function addFollowup(Request $request, WorkTask $workTask): JsonResponse
     {
-        $data = $request->validate(['note' => 'required|string|min:1']);
+        $data = $request->validate([
+            'note' => 'required|string|min:1',
+            'attachment' => 'nullable|file|max:10240|mimes:pdf,doc,docx,xls,xlsx,png,jpg,jpeg,csv,txt',
+        ]);
 
-        $followup = WorkTaskFollowup::create([
+        $followupData = [
             'task_id' => $workTask->id,
             'user_id' => $request->user()->id,
             'note' => $data['note'],
-        ]);
+        ];
+
+        if ($request->hasFile('attachment')) {
+            $followupData['attachment_path'] = $request->file('attachment')->store('task-attachments', 'public');
+            $followupData['attachment_name'] = $request->file('attachment')->getClientOriginalName();
+        }
+
+        $followup = WorkTaskFollowup::create($followupData);
+
+        $mentioned = $this->notifyMentions($workTask, $data['note'], $request->user()->id);
+        $this->notifyAllUsers($workTask, $request->user()->id, 'New comment on task',
+            $request->user()->name . ' commented on "' . $workTask->title . '"', '💬', $mentioned);
 
         return response()->json($followup->load('user'), 201);
     }
@@ -285,6 +327,9 @@ class WorkTaskController extends Controller
 
         $subtask = WorkTaskSubtask::create($data);
 
+        $this->notifyAllUsers($workTask, $request->user()->id, 'Sub-task added',
+            $request->user()->name . ' added a sub-task to "' . $workTask->title . '"');
+
         return response()->json($subtask->load('assignee'), 201);
     }
 
@@ -302,6 +347,9 @@ class WorkTaskController extends Controller
 
         $subtask->update($data);
 
+        $this->notifyAllUsers($workTask, $request->user()->id, 'Sub-task updated',
+            $request->user()->name . ' updated a sub-task on "' . $workTask->title . '"');
+
         return response()->json($subtask->fresh('assignee'));
     }
 
@@ -318,14 +366,23 @@ class WorkTaskController extends Controller
             'note' => $data['note'],
         ]);
 
+        $mentioned = $this->notifyMentions($workTask, $data['note'], $request->user()->id);
+        $this->notifyAllUsers($workTask, $request->user()->id, 'New note on sub-task',
+            $request->user()->name . ' added a note to a sub-task on "' . $workTask->title . '"', '💬', $mentioned);
+
         return response()->json($followup->load('user'), 201);
     }
 
-    public function toggleSubtask(WorkTask $workTask, WorkTaskSubtask $subtask): JsonResponse
+    public function toggleSubtask(Request $request, WorkTask $workTask, WorkTaskSubtask $subtask): JsonResponse
     {
         abort_if($subtask->work_task_id !== $workTask->id, 404);
 
-        $subtask->update(['status' => $subtask->completed ? 'Pending' : 'Completed']);
+        $nowCompleted = !$subtask->completed;
+        $subtask->update(['status' => $nowCompleted ? 'Completed' : 'Pending']);
+
+        $this->notifyAllUsers($workTask, $request->user()->id, $nowCompleted ? 'Sub-task completed' : 'Sub-task reopened',
+            $request->user()->name . ' ' . ($nowCompleted ? 'completed' : 'reopened') . ' a sub-task on "' . $workTask->title . '"',
+            $nowCompleted ? '✅' : '🔄');
 
         return response()->json($subtask->fresh('assignee'));
     }
@@ -347,5 +404,82 @@ class WorkTaskController extends Controller
             'note' => "Status changed from \"{$from}\" to \"{$to}\".",
             'status_snapshot' => $to,
         ]);
+    }
+
+    /**
+     * Pings the task's current assignee specifically — skipped when there's no
+     * assignee, or the assignee is the one who just did the thing.
+     */
+    private function notifyAssignee(WorkTask $task, int $actorId, string $message): void
+    {
+        if (!$task->assigned_to || (int) $task->assigned_to === $actorId) {
+            return;
+        }
+
+        AppNotification::create([
+            'user_id' => $task->assigned_to,
+            'title' => 'Task assigned to you',
+            'message' => $message,
+            'type' => 'task_assigned',
+            'icon' => '📋',
+            'link' => '/task-manager/board?open=' . $task->id,
+        ]);
+    }
+
+    /**
+     * Broadcasts a task event to every other active user — this module has no
+     * per-task membership/visibility concept, so "all user need to get the
+     * notification" (as requested) means every active account, not a subset.
+     * $exclude lets a caller skip users who already got a more specific
+     * notification for this same action (e.g. an @-mention), so they aren't
+     * double-pinged for one event.
+     */
+    private function notifyAllUsers(WorkTask $task, int $actorId, string $title, string $message, string $icon = '📋', array $exclude = []): void
+    {
+        User::where('is_active', true)
+            ->where('id', '!=', $actorId)
+            ->whereNotIn('id', $exclude)
+            ->pluck('id')
+            ->each(fn ($userId) => AppNotification::create([
+                'user_id' => $userId,
+                'title' => $title,
+                'message' => $message,
+                'type' => 'task_activity',
+                'icon' => $icon,
+                'link' => '/task-manager/board?open=' . $task->id,
+            ]));
+    }
+
+    /**
+     * Parses @[Name](userId) tokens — inserted by the frontend's @mention
+     * picker — out of free text (task description, a follow-up/comment note),
+     * and notifies each mentioned user specifically. Returns the mentioned
+     * user ids so the caller can exclude them from a broader "notify everyone"
+     * broadcast for the same action.
+     */
+    private function notifyMentions(WorkTask $task, ?string $text, int $actorId): array
+    {
+        if (!$text) {
+            return [];
+        }
+
+        preg_match_all('/@\[[^\]]+\]\((\d+)\)/', $text, $matches);
+        $mentionedIds = array_unique(array_map('intval', $matches[1] ?? []));
+
+        foreach ($mentionedIds as $userId) {
+            if ($userId === $actorId) {
+                continue;
+            }
+            AppNotification::create([
+                'user_id' => $userId,
+                'title' => 'You were mentioned',
+                'message' => $task->title,
+                'type' => 'task_mention',
+                'icon' => '💬',
+                'link' => '/task-manager/board?open=' . $task->id,
+            ]);
+        }
+
+        return $mentionedIds;
     }
 }

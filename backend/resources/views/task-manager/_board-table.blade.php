@@ -95,6 +95,16 @@
 .dark .tb-status-opt:hover{background:#334155}
 .dark .tb-status-opt.active{background:rgba(99,102,241,.15);color:#a5b4fc}
 
+/* ── @-mention picker ── */
+.tb-mention{background:#eef2ff;color:#4338ca;border-radius:5px;padding:0 4px;font-weight:600}
+.dark .tb-mention{background:rgba(99,102,241,.2);color:#a5b4fc}
+.tb-mention-menu{position:absolute;top:calc(100% + 4px);left:0;right:0;z-index:30;background:#fff;border:1px solid #e2e8f0;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.12);padding:4px;max-height:180px;overflow-y:auto}
+.tb-mention-opt{display:flex;align-items:center;gap:8px;width:100%;text-align:left;padding:6px 8px;border-radius:7px;border:none;background:none;font-size:12.5px;font-weight:600;color:#334155;cursor:pointer}
+.tb-mention-opt:hover{background:#eef2ff;color:#4338ca}
+.dark .tb-mention-menu{background:#1e293b;border-color:#334155}
+.dark .tb-mention-opt{color:#cbd5e1}
+.dark .tb-mention-opt:hover{background:rgba(99,102,241,.15);color:#a5b4fc}
+
 /* ── Days-running progress bar ── */
 .tb-progress-track{width:80px;height:5px;border-radius:3px;background:#e2e8f0;overflow:hidden;margin-top:5px}
 .tb-progress-fill{height:100%;border-radius:3px;transition:width .3s}
@@ -133,6 +143,11 @@
 .tb-note-link{color:#4f46e5;text-decoration:underline;word-break:break-all}
 .tb-note-link:hover{color:#4338ca}
 .dark .tb-note-link{color:#a5b4fc}
+.tb-attachment-link{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:600;color:#4f46e5;background:#eef2ff;border-radius:7px;padding:5px 10px;text-decoration:none}
+.tb-attachment-link svg{width:13px;height:13px;flex-shrink:0}
+.tb-attachment-link:hover{background:#e0e7ff}
+.dark .tb-attachment-link{background:rgba(99,102,241,.15);color:#a5b4fc}
+.dark .tb-attachment-link:hover{background:rgba(99,102,241,.25)}
 .tb-add-row{display:flex;gap:8px;margin-top:6px}
 .tb-mini-input{flex:1;border:1px solid #e2e8f0;border-radius:8px;padding:6px 10px;font-size:12.5px;outline:none;background:#fff}
 .tb-mini-input:focus{border-color:#6366f1;box-shadow:0 0 0 3px rgba(99,102,241,.1)}
@@ -517,9 +532,17 @@
                     <label class="label">Title <span class="text-red-500">*</span></label>
                     <input x-model="form.title" type="text" class="input w-full" placeholder="e.g. Follow up with supplier on PUR-0021" required />
                 </div>
-                <div>
+                <div class="relative">
                     <label class="label">Description</label>
-                    <textarea x-model="form.description" rows="3" class="input w-full resize-none" placeholder="Details about this task…"></textarea>
+                    <textarea x-ref="descInput" x-model="form.description" @input="handleMentionInput($event, 'description')" @keydown.escape="mentionOpen = false" rows="3" class="input w-full resize-none" placeholder="Details about this task… (type @ to mention someone)"></textarea>
+                    <div x-show="mentionOpen && mentionField === 'description'" x-cloak class="tb-mention-menu">
+                        <template x-for="u in mentionMatches" :key="u.id">
+                            <button type="button" @click="insertMention(u, $refs.descInput)" class="tb-mention-opt">
+                                <span x-text="u.name"></span>
+                            </button>
+                        </template>
+                        <div x-show="!mentionMatches.length" class="px-2 py-1.5 text-xs text-gray-400">No matching users</div>
+                    </div>
                 </div>
                 <div class="grid grid-cols-2 gap-3">
                     <div>
@@ -565,6 +588,17 @@
                     </div>
                 </div>
 
+                <div x-show="!editId">
+                    <label class="label">Attach Document</label>
+                    <input type="file" x-ref="attachmentInput" class="input w-full" accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg,.csv,.txt" />
+                    <p class="text-xs text-gray-400 mt-1">PDF, Word, Excel, CSV, text or image — up to 10MB.</p>
+                </div>
+                <div x-show="editId && form.attachment_name" class="text-xs text-gray-500 flex items-center gap-1.5">
+                    <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 10-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/></svg>
+                    Attached: <span class="font-medium" x-text="form.attachment_name"></span>
+                    <span class="text-gray-300">(uploading a new attachment isn't supported while editing yet)</span>
+                </div>
+
                 <div x-show="formError" class="text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2" x-text="formError"></div>
 
                 <div class="flex justify-end gap-3 pt-2">
@@ -592,7 +626,11 @@
                 </button>
             </div>
             <div class="p-6">
-                <p class="text-sm text-gray-600 dark:text-gray-300 mb-4" style="word-break:break-word" x-show="detailTask?.description" x-html="linkify(detailTask?.description)"></p>
+                <p class="text-sm text-gray-600 dark:text-gray-300 mb-2" style="word-break:break-word" x-show="detailTask?.description" x-html="linkify(detailTask?.description)"></p>
+                <a x-show="detailTask?.attachment_path" :href="'{{ url('/task-attachments/task') }}/' + detailTask?.id" target="_blank" class="tb-attachment-link mb-4">
+                    <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 10-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/></svg>
+                    <span x-text="detailTask?.attachment_name"></span>
+                </a>
 
                 <div class="flex flex-wrap gap-2 mb-5">
                     <template x-for="st in ['Pending','In Progress','Completed','Cancelled']" :key="st">
@@ -659,10 +697,28 @@
                 </div>
 
                 <div class="text-xs font-bold uppercase tracking-wide text-gray-400 mb-2">Follow-ups &amp; Activity</div>
-                <div class="flex gap-2 mb-4">
-                    <input type="text" x-model="newNote" @keydown.enter="addFollowup()" class="input flex-1" placeholder="Add a follow-up note…" />
+                <div class="relative flex gap-2 mb-1">
+                    <input type="text" x-ref="noteInput" x-model="newNote" @input="handleMentionInput($event, 'note')" @keydown.escape="mentionOpen = false" @keydown.enter="mentionOpen ? $event.preventDefault() : addFollowup()" class="input flex-1" placeholder="Add a follow-up note… (type @ to mention someone)" />
+                    <input type="file" x-ref="followupAttachmentInput" class="hidden" accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg,.csv,.txt" @change="followupAttachmentName = $event.target.files[0]?.name || ''" />
+                    <button type="button" @click="$refs.followupAttachmentInput.click()" class="tb-action-btn" title="Attach a document">
+                        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 10-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/></svg>
+                    </button>
                     <button @click="addFollowup()" class="btn-primary text-sm">Add</button>
+                    <div x-show="mentionOpen && mentionField === 'note'" x-cloak class="tb-mention-menu" style="top:calc(100% + 4px);right:auto">
+                        <template x-for="u in mentionMatches" :key="u.id">
+                            <button type="button" @click="insertMention(u, $refs.noteInput)" class="tb-mention-opt">
+                                <span x-text="u.name"></span>
+                            </button>
+                        </template>
+                        <div x-show="!mentionMatches.length" class="px-2 py-1.5 text-xs text-gray-400">No matching users</div>
+                    </div>
                 </div>
+                <div x-show="followupAttachmentName" class="text-xs text-gray-500 mb-4 flex items-center gap-1.5">
+                    <span>📎</span>
+                    <span x-text="followupAttachmentName"></span>
+                    <button type="button" @click="$refs.followupAttachmentInput.value = ''; followupAttachmentName = ''" class="text-gray-400 hover:text-red-500 font-bold">&times;</button>
+                </div>
+                <div x-show="!followupAttachmentName" class="mb-4"></div>
 
                 <div class="space-y-2 max-h-64 overflow-y-auto">
                     <template x-for="fu in (detailTask?.followups ?? [])" :key="fu.id">
@@ -672,6 +728,10 @@
                                 <span x-text="timeAgo(fu.created_at)"></span>
                             </div>
                             <div class="text-sm text-gray-700 dark:text-gray-200" style="word-break:break-word" x-html="linkify(fu.note)"></div>
+                            <a x-show="fu.attachment_path" :href="'{{ url('/task-attachments/followup') }}/' + fu.id" target="_blank" class="tb-attachment-link mt-1.5">
+                                <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 10-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/></svg>
+                                <span x-text="fu.attachment_name"></span>
+                            </a>
                         </div>
                     </template>
                     <p x-show="!(detailTask?.followups ?? []).length" class="text-sm text-gray-400 text-center py-6">No follow-ups yet. Add the first update above.</p>
@@ -698,9 +758,17 @@
                 </button>
             </div>
             <div class="p-6">
-                <div class="flex gap-2 mb-4">
-                    <input type="text" x-model="subtaskNewNote" @keydown.enter="addSubtaskNote(notesTask, notesSubtask)" class="input flex-1" placeholder="Add a note…" />
+                <div class="relative flex gap-2 mb-4">
+                    <input type="text" x-ref="subtaskNoteInput" x-model="subtaskNewNote" @input="handleMentionInput($event, 'subtaskNote')" @keydown.escape="mentionOpen = false" @keydown.enter="mentionOpen ? $event.preventDefault() : addSubtaskNote(notesTask, notesSubtask)" class="input flex-1" placeholder="Add a note… (type @ to mention someone)" />
                     <button @click="addSubtaskNote(notesTask, notesSubtask)" class="btn-primary text-sm">Add</button>
+                    <div x-show="mentionOpen && mentionField === 'subtaskNote'" x-cloak class="tb-mention-menu" style="top:calc(100% + 4px);right:auto">
+                        <template x-for="u in mentionMatches" :key="u.id">
+                            <button type="button" @click="insertMention(u, $refs.subtaskNoteInput)" class="tb-mention-opt">
+                                <span x-text="u.name"></span>
+                            </button>
+                        </template>
+                        <div x-show="!mentionMatches.length" class="px-2 py-1.5 text-xs text-gray-400">No matching users</div>
+                    </div>
                 </div>
                 <div class="space-y-2 max-h-72 overflow-y-auto">
                     <template x-for="f in (notesSubtask?.followups ?? [])" :key="f.id">
@@ -747,6 +815,7 @@ function taskBoardPage(scopedToMe = false) {
         showDetail: false,
         detailTask: null,
         newNote: '',
+        followupAttachmentName: '',
         newSubtask: '',
 
         expandedTaskId: null,
@@ -758,8 +827,18 @@ function taskBoardPage(scopedToMe = false) {
         notesSubtask: null,
         subtaskNewNote: '',
 
+        mentionOpen: false,
+        mentionField: null, // 'description' | 'note' | 'subtaskNote'
+        mentionQuery: '',
+
         get subtaskCompletedCount() {
             return (this.detailTask?.subtasks ?? []).filter(s => s.completed).length;
+        },
+
+        get mentionMatches() {
+            if (!this.mentionOpen) return [];
+            const q = this.mentionQuery.toLowerCase();
+            return this.users.filter(u => u.name.toLowerCase().includes(q)).slice(0, 6);
         },
 
         get pageNumbers() {
@@ -887,6 +966,7 @@ function taskBoardPage(scopedToMe = false) {
                 priority: task.priority ?? 'Medium',
                 status: task.status ?? 'Pending',
                 due_date: task.due_date ? task.due_date.slice(0, 10) : '',
+                attachment_name: task.attachment_name ?? '',
             };
             this.formError = '';
             this.showModal = true;
@@ -898,16 +978,32 @@ function taskBoardPage(scopedToMe = false) {
             this.formError = '';
             try {
                 const payload = {
-                    ...this.form,
+                    title: this.form.title,
+                    description: this.form.description,
                     category_id: this.form.category_id || null,
                     assigned_to: this.form.assigned_to || null,
+                    priority: this.form.priority,
+                    status: this.form.status,
                     due_date: this.form.due_date || null,
                 };
                 const url = this.editId ? '/work-tasks/' + this.editId : '/work-tasks';
                 const method = this.editId ? 'PUT' : 'POST';
-                await apiFetch(url, { method, body: JSON.stringify(payload) });
+
+                const file = this.$refs.attachmentInput?.files?.[0];
+                let body;
+                if (!this.editId && file) {
+                    const fd = new FormData();
+                    Object.entries(payload).forEach(([k, v]) => fd.append(k, v ?? ''));
+                    fd.append('attachment', file);
+                    body = fd;
+                } else {
+                    body = JSON.stringify(payload);
+                }
+
+                await apiFetch(url, { method, body });
                 toast(this.editId ? 'Task updated.' : 'Task created.');
                 this.showModal = false;
+                if (this.$refs.attachmentInput) this.$refs.attachmentInput.value = '';
                 await this.load();
                 await this.loadStats();
             } catch (e) {
@@ -1009,8 +1105,20 @@ function taskBoardPage(scopedToMe = false) {
         async addFollowup() {
             if (!this.newNote.trim()) return;
             try {
-                await apiFetch('/work-tasks/' + this.detailTask.id + '/followups', { method: 'POST', body: JSON.stringify({ note: this.newNote }) });
+                const file = this.$refs.followupAttachmentInput?.files?.[0];
+                let body;
+                if (file) {
+                    const fd = new FormData();
+                    fd.append('note', this.newNote);
+                    fd.append('attachment', file);
+                    body = fd;
+                } else {
+                    body = JSON.stringify({ note: this.newNote });
+                }
+                await apiFetch('/work-tasks/' + this.detailTask.id + '/followups', { method: 'POST', body });
                 this.newNote = '';
+                this.followupAttachmentName = '';
+                if (this.$refs.followupAttachmentInput) this.$refs.followupAttachmentInput.value = '';
                 await this.openDetail(this.detailTask.id);
                 await this.load();
             } catch (e) {
@@ -1221,6 +1329,38 @@ function taskBoardPage(scopedToMe = false) {
             return this.fmtDate(d);
         },
 
+        handleMentionInput(event, field) {
+            const el = event.target;
+            const pos = el.selectionStart;
+            const uptoCursor = el.value.slice(0, pos);
+            const match = uptoCursor.match(/@([a-zA-Z0-9._ ]{0,30})$/);
+            if (match) {
+                this.mentionOpen = true;
+                this.mentionField = field;
+                this.mentionQuery = match[1];
+            } else {
+                this.mentionOpen = false;
+            }
+        },
+
+        insertMention(user, el) {
+            const pos = el.selectionStart;
+            const value = el.value;
+            const uptoCursor = value.slice(0, pos);
+            const replaced = uptoCursor.replace(/@([a-zA-Z0-9._ ]{0,30})$/, '@[' + user.name + '](' + user.id + ') ');
+            const newValue = replaced + value.slice(pos);
+
+            if (this.mentionField === 'description') this.form.description = newValue;
+            else if (this.mentionField === 'note') this.newNote = newValue;
+            else if (this.mentionField === 'subtaskNote') this.subtaskNewNote = newValue;
+
+            this.mentionOpen = false;
+            this.$nextTick(() => {
+                el.focus();
+                el.setSelectionRange(replaced.length, replaced.length);
+            });
+        },
+
         escapeHtml(text) {
             const div = document.createElement('div');
             div.textContent = text ?? '';
@@ -1230,7 +1370,10 @@ function taskBoardPage(scopedToMe = false) {
         linkify(text) {
             if (!text) return '';
             const escaped = this.escapeHtml(text);
-            return escaped.replace(/(https?:\/\/[^\s<]+|www\.[^\s<]+)/gi, (match) => {
+            const withMentions = escaped.replace(/@\[([^\]]+)\]\((\d+)\)/g, (m, name) => {
+                return '<span class="tb-mention">@' + name + '</span>';
+            });
+            return withMentions.replace(/(https?:\/\/[^\s<]+|www\.[^\s<]+)/gi, (match) => {
                 let trail = '';
                 while (match.length && '.,;:!?)]}\'"'.includes(match[match.length - 1])) {
                     trail = match[match.length - 1] + trail;
