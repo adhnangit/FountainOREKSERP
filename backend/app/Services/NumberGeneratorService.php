@@ -207,13 +207,28 @@ class NumberGeneratorService
 
     public function customerCode(): string
     {
-        $count = $this->nextGlobalNumber('customer', fn() => $this->maxSuffix(\App\Models\Customer::withTrashed(), 'code'));
+        // A customer's own row can disappear (e.g. a direct DB cleanup that
+        // bypasses the app's soft-delete) while its auto-created AR-CUST-xxxxx
+        // ledger account — which actually enforces uniqueness — lives on,
+        // soft-deleted. Checking only `customers` then lets the generator
+        // reissue that exact number and collide with the still-present
+        // account row. Folding in the account codes closes that gap.
+        $count = $this->nextGlobalNumber('customer', fn() => max(
+            $this->maxSuffix(\App\Models\Customer::withTrashed(), 'code'),
+            $this->maxSuffix(\App\Models\Account::withTrashed()->where('code', 'like', 'AR-CUST-%'), 'code')
+        ));
         return 'CUST-' . str_pad($count, 5, '0', STR_PAD_LEFT);
     }
 
     public function supplierCode(): string
     {
-        $count = $this->nextGlobalNumber('supplier', fn() => $this->maxSuffix(\App\Models\Supplier::withTrashed(), 'code'));
+        // Same reasoning as customerCode() — fold in the AP-SUPP-xxxxx ledger
+        // account codes so a vanished supplier row can't cause a reissued
+        // code to collide with its still-present account.
+        $count = $this->nextGlobalNumber('supplier', fn() => max(
+            $this->maxSuffix(\App\Models\Supplier::withTrashed(), 'code'),
+            $this->maxSuffix(\App\Models\Account::withTrashed()->where('code', 'like', 'AP-SUPP-%'), 'code')
+        ));
         return 'SUPP-' . str_pad($count, 5, '0', STR_PAD_LEFT);
     }
 
