@@ -211,6 +211,7 @@
         .trow-grand .tl { font-size: 15px; font-weight: 700; color: #111; }
         .trow-grand .tv { font-size: 13px; font-weight: 700; color: #111; }
         .trow-balance td { font-weight: 700; color: #111; border-top: 1px solid #333; }
+        .credit-note-notice { font-size: 7.5px; color: #92400e; background: #fffbeb; border: 1px solid #fde68a; border-radius: 3px; padding: 4px 6px; margin-top: 4px; text-align: right; }
 
         /* ── FOOTER NOTE BOX ─────────────────────────────────── */
         .footer-note-box {
@@ -525,6 +526,13 @@
                     </tr>
                     @endif
                 </table>
+                @if($invoice->creditNotes->isNotEmpty())
+                <div class="credit-note-notice">
+                    @foreach($invoice->creditNotes as $cn)
+                        Rs. {{ number_format($cn->total, 2) }} returned via Credit Note {{ $cn->invoice_number }} on {{ $cn->invoice_date->format('d M Y') }}@if(!$loop->last)<br>@endif
+                    @endforeach
+                </div>
+                @endif
             </td>
         </tr>
     </table>

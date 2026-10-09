@@ -159,6 +159,21 @@
           </div>
         </div>
 
+        <!-- Returned-via-credit-note notice — explains a Balance Due that doesn't match total-paid at a glance -->
+        <template x-if="(inv.credit_notes ?? []).length">
+          <div class="bg-amber-50 dark:bg-amber-900/20 border-t border-amber-100 dark:border-amber-800 px-5 py-3 space-y-1">
+            <template x-for="cn in inv.credit_notes" :key="cn.id">
+              <div class="flex items-center justify-between text-sm text-amber-700 dark:text-amber-300">
+                <div class="flex items-center gap-2">
+                  <svg class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M3 10h10a4 4 0 014 4v2M3 10l4-4M3 10l4 4"/></svg>
+                  <span><strong x-text="fmtMoney(cn.total)"></strong> returned via Credit Note <strong x-text="cn.invoice_number"></strong> on <span x-text="fmtDate(cn.invoice_date)"></span></span>
+                </div>
+                <a :href="BASE + '/invoices/' + cn.id" class="text-xs font-semibold hover:underline flex-shrink-0">View</a>
+              </div>
+            </template>
+          </div>
+        </template>
+
         <!-- Customer credit balance notice -->
         <template x-if="customerCredit > 0">
           <div class="bg-blue-50 dark:bg-blue-900/20 border-t border-blue-100 dark:border-blue-800 px-5 py-3 flex items-center justify-between">

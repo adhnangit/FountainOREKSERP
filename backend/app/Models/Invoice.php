@@ -73,6 +73,12 @@ class Invoice extends Model
         return $this->belongsTo(Invoice::class, 'original_invoice_id');
     }
 
+    /** Credit notes (sales returns) issued against this invoice — the other direction of originalInvoice(). */
+    public function creditNotes(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(Invoice::class, 'original_invoice_id')->where('type', 'credit_note');
+    }
+
     public function isOverdue(): bool
     {
         if (!$this->due_date) return false;

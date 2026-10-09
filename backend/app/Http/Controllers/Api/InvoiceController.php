@@ -266,7 +266,7 @@ class InvoiceController extends Controller
     public function show(Invoice $invoice): JsonResponse
     {
         return response()->json(
-            $invoice->load(['items.product', 'customer', 'branch', 'createdBy', 'salesRep', 'payments.cheque'])
+            $invoice->load(['items.product', 'customer', 'branch', 'createdBy', 'salesRep', 'payments.cheque', 'creditNotes'])
         );
     }
 
@@ -938,7 +938,7 @@ class InvoiceController extends Controller
 
     public function pdf(Invoice $invoice)
     {
-        $invoice->load(['items.product', 'customer', 'branch', 'createdBy', 'salesRep']);
+        $invoice->load(['items.product', 'customer', 'branch', 'createdBy', 'salesRep', 'creditNotes']);
         $pdf = Pdf::loadView('pdf.invoice', compact('invoice'));
         return $pdf->download("invoice-{$invoice->invoice_number}.pdf");
     }
