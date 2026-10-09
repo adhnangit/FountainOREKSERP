@@ -21,6 +21,9 @@
 .tb-select:focus{border-color:#6366f1;box-shadow:0 0 0 3px rgba(99,102,241,.12)}
 .tb-overdue-toggle{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:#b91c1c;cursor:pointer;background:#fef2f2;border:1px solid #fecaca;border-radius:9px;padding:7px 12px;white-space:nowrap}
 .tb-overdue-toggle input{accent-color:#dc2626;cursor:pointer}
+.tb-archive-toggle{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:#475569;cursor:pointer;background:#f8fafc;border:1px solid #e2e8f0;border-radius:9px;padding:7px 12px;white-space:nowrap}
+.tb-archive-toggle input{accent-color:#64748b;cursor:pointer}
+.dark .tb-archive-toggle{background:#1e293b;border-color:#334155;color:#cbd5e1}
 
 /* ── Status Tabs ── */
 .tb-tabs{display:flex;gap:4px;background:#f1f5f9;border-radius:10px;padding:3px;flex-wrap:wrap}
@@ -262,6 +265,10 @@
                 <input type="checkbox" x-model="filters.overdue" @change="page=1; load()">
                 Overdue only
             </label>
+            <label class="tb-archive-toggle">
+                <input type="checkbox" x-model="showArchived" @change="page=1; load()">
+                Show Archived
+            </label>
             <button class="tb-btn-ghost" @click="resetFilters()" style="margin-left:auto">Reset Filters</button>
         </div>
         <div class="tb-toolbar-row">
@@ -310,7 +317,10 @@
                     <tbody>
                         <tr class="tb-row" :class="expandedTaskId === task.id ? 'expandable-open' : ''">
                             <td>
-                                <div class="tb-title" @click="openDetail(task.id)" x-text="task.title"></div>
+                                <div class="tb-title" @click="openDetail(task.id)">
+                                    <span x-text="task.title"></span>
+                                    <span x-show="task.archived_at" class="tb-badge" style="background:#f1f5f9;color:#64748b;margin-left:6px">Archived</span>
+                                </div>
                                 <div class="tb-desc" x-show="task.description" x-text="task.description"></div>
                                 <template x-if="filters.assigned_to && (task.subtasks ?? []).length">
                                     <div class="tb-match-note">
@@ -393,6 +403,12 @@
                                     </button>
                                     <button @click="scheduleOnCalendar(task)" class="tb-action-btn" title="Schedule on Calendar">
                                         <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                                    </button>
+                                    <button x-show="!task.archived_at && ['Completed','Cancelled'].includes(task.status)" @click="archiveTask(task)" class="tb-action-btn" title="Archive">
+                                        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 8h14M5 8a2 2 0 01-2-2V5a1 1 0 011-1h16a1 1 0 011 1v1a2 2 0 01-2 2M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8M10 12h4"/></svg>
+                                    </button>
+                                    <button x-show="task.archived_at" @click="restoreTask(task)" class="tb-action-btn" title="Restore">
+                                        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
                                     </button>
                                     <button @click="deleteTask(task)" class="tb-action-btn danger" title="Delete">
                                         <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
@@ -715,6 +731,7 @@ function taskBoardPage(scopedToMe = false) {
         page: 1,
         meta: { total: 0, from: 1, to: 0, last_page: 1 },
         filters: { category_id: '', status: [], priority: '', assigned_to: '', overdue: false, search: '' },
+        showArchived: false,
         stats: {},
         // Only true when embedded on the Task Manager Dashboard, which passes
         // scopedToMe=true when including this partial. On the standalone
@@ -813,6 +830,7 @@ function taskBoardPage(scopedToMe = false) {
                 if (this.filters.assigned_to) params.set('assigned_to', this.filters.assigned_to);
                 if (this.filters.overdue) params.set('overdue', '1');
                 if (this.filters.search) params.set('search', this.filters.search);
+                if (this.showArchived) params.set('archived', '1');
                 const data = await apiFetch('/work-tasks?' + params.toString()).then(r => r.json());
                 this.tasks = data.data ?? [];
                 this.meta = { total: data.total ?? 0, from: data.from ?? 0, to: data.to ?? 0, last_page: data.last_page ?? 1 };
@@ -847,6 +865,7 @@ function taskBoardPage(scopedToMe = false) {
 
         resetFilters() {
             this.filters = { category_id: '', status: [], priority: '', assigned_to: '', overdue: false, search: '' };
+            this.showArchived = false;
             this.page = 1;
             this.load();
         },
@@ -907,6 +926,28 @@ function taskBoardPage(scopedToMe = false) {
                 await this.loadStats();
             } catch (e) {
                 toast(e.message ?? 'Failed to delete task', 'error');
+            }
+        },
+
+        async archiveTask(task) {
+            try {
+                await apiFetch('/work-tasks/' + task.id + '/archive', { method: 'PATCH' });
+                toast('Task archived.');
+                await this.load();
+                await this.loadStats();
+            } catch (e) {
+                toast(e.message ?? 'Failed to archive task', 'error');
+            }
+        },
+
+        async restoreTask(task) {
+            try {
+                await apiFetch('/work-tasks/' + task.id + '/restore', { method: 'PATCH' });
+                toast('Task restored.');
+                await this.load();
+                await this.loadStats();
+            } catch (e) {
+                toast(e.message ?? 'Failed to restore task', 'error');
             }
         },
 

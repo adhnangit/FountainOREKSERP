@@ -303,6 +303,8 @@ Route::middleware(['auth:sanctum', 'branch.context'])->group(function () {
     Route::apiResource('work-tasks', WorkTaskController::class, ['only' => ['store', 'update', 'destroy']])->middleware('permission:task_manager.manage');
     Route::middleware('permission:task_manager.manage')->group(function () {
         Route::patch('/work-tasks/{workTask}/status', [WorkTaskController::class, 'quickStatus']);
+        Route::patch('/work-tasks/{workTask}/archive', [WorkTaskController::class, 'archive']);
+        Route::patch('/work-tasks/{workTask}/restore', [WorkTaskController::class, 'restore']);
         Route::post('/work-tasks/{workTask}/followups', [WorkTaskController::class, 'addFollowup']);
         Route::post('/work-tasks/{workTask}/subtasks', [WorkTaskController::class, 'storeSubtask']);
         Route::patch('/work-tasks/{workTask}/subtasks/{subtask}', [WorkTaskController::class, 'updateSubtask']);

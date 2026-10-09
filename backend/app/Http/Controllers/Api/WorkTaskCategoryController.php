@@ -3,9 +3,11 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\WorkTask;
 use App\Models\WorkTaskCategory;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class WorkTaskCategoryController extends Controller
 {
@@ -22,7 +24,7 @@ class WorkTaskCategoryController extends Controller
             'name' => 'required|string|max:255',
             'color' => 'required|string|max:7',
             'status' => 'required|in:Active,Inactive',
-            'parent_id' => 'nullable|exists:work_task_categories,id',
+            'parent_id' => ['nullable', Rule::exists('work_task_categories', 'id')->whereNull('deleted_at')],
         ]);
 
         $category = WorkTaskCategory::create($data);
@@ -36,7 +38,7 @@ class WorkTaskCategoryController extends Controller
             'name' => 'required|string|max:255',
             'color' => 'required|string|max:7',
             'status' => 'required|in:Active,Inactive',
-            'parent_id' => 'nullable|exists:work_task_categories,id',
+            'parent_id' => ['nullable', Rule::exists('work_task_categories', 'id')->whereNull('deleted_at')],
         ]);
 
         if (!empty($data['parent_id'])) {
@@ -54,9 +56,13 @@ class WorkTaskCategoryController extends Controller
     public function destroy(WorkTaskCategory $workTaskCategory): JsonResponse
     {
         // Promote any children to the deleted category's own parent rather than
-        // leaving them pointing at a now-missing row; tasks filed under it just
-        // fall back to uncategorized via the FK's nullOnDelete.
+        // leaving them pointing at a now-soft-deleted row.
         WorkTaskCategory::where('parent_id', $workTaskCategory->id)->update(['parent_id' => $workTaskCategory->parent_id]);
+
+        // The category is soft-deleted (not removed), so the FK's nullOnDelete
+        // never fires — uncategorize its tasks explicitly instead.
+        WorkTask::where('category_id', $workTaskCategory->id)->update(['category_id' => null]);
+
         $workTaskCategory->delete();
 
         return response()->json(['message' => 'Category deleted.']);

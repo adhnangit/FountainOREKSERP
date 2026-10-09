@@ -12,6 +12,7 @@ use App\Services\BranchContextService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class WorkTaskController extends Controller
 {
@@ -31,7 +32,7 @@ class WorkTaskController extends Controller
     {
         $today = Carbon::today();
 
-        $q = WorkTask::with('category');
+        $q = WorkTask::with('category')->whereNull('archived_at');
         $this->branchContext->applyScope($q);
 
         if ($request->boolean('my_tasks')) {
@@ -125,6 +126,7 @@ class WorkTaskController extends Controller
 
         $q = WorkTask::with(['category', 'assignee'])
             ->withCount(['followups', 'subtasks', 'subtasks as subtasks_completed_count' => fn ($q) => $q->where('completed', true)])
+            ->when($request->boolean('archived'), fn ($q) => $q->whereNotNull('archived_at'), fn ($q) => $q->whereNull('archived_at'))
             ->when($categoryIds, fn ($q) => $q->whereIn('category_id', $categoryIds))
             ->when($request->status, fn ($q) => $q->whereIn('status', explode(',', $request->status)))
             ->when($request->priority, fn ($q) => $q->where('priority', $request->priority))
@@ -163,7 +165,7 @@ class WorkTaskController extends Controller
     {
         $data = $request->validate([
             'branch_id' => 'nullable|exists:branches,id',
-            'category_id' => 'nullable|exists:work_task_categories,id',
+            'category_id' => ['nullable', Rule::exists('work_task_categories', 'id')->whereNull('deleted_at')],
             'title' => 'required|string|max:255',
             'description' => 'nullable|string',
             'assigned_to' => 'nullable|exists:users,id',
@@ -190,7 +192,7 @@ class WorkTaskController extends Controller
     {
         $data = $request->validate([
             'branch_id' => 'nullable|exists:branches,id',
-            'category_id' => 'nullable|exists:work_task_categories,id',
+            'category_id' => ['nullable', Rule::exists('work_task_categories', 'id')->whereNull('deleted_at')],
             'title' => 'sometimes|string|max:255',
             'description' => 'nullable|string',
             'assigned_to' => 'nullable|exists:users,id',
@@ -228,6 +230,20 @@ class WorkTaskController extends Controller
         if ($previousStatus !== $data['status']) {
             $this->logStatusChange($workTask, $request->user()->id, $previousStatus, $data['status']);
         }
+
+        return response()->json($workTask->fresh(['category', 'assignee']));
+    }
+
+    public function archive(WorkTask $workTask): JsonResponse
+    {
+        $workTask->update(['archived_at' => now()]);
+
+        return response()->json($workTask->fresh(['category', 'assignee']));
+    }
+
+    public function restore(WorkTask $workTask): JsonResponse
+    {
+        $workTask->update(['archived_at' => null]);
 
         return response()->json($workTask->fresh(['category', 'assignee']));
     }

@@ -8,12 +8,13 @@ class WorkTask extends Model
 {
     protected $fillable = [
         'branch_id', 'category_id', 'title', 'description',
-        'assigned_to', 'created_by', 'priority', 'status', 'due_date', 'completed_at',
+        'assigned_to', 'created_by', 'priority', 'status', 'due_date', 'completed_at', 'archived_at',
     ];
 
     protected $casts = [
         'due_date' => 'date',
         'completed_at' => 'datetime',
+        'archived_at' => 'datetime',
     ];
 
     public function category(): \Illuminate\Database\Eloquent\Relations\BelongsTo
