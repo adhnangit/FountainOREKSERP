@@ -139,13 +139,18 @@ class AccountingController extends Controller
         $this->assertBranchWriteAllowed((int) $data['branch_id']);
 
         // The create-account form has no checkbox for this — every account
-        // filed under the "Bank Accounts" group must be a real bank account,
-        // so this is derived rather than left to a UI control that doesn't
-        // exist. Without it, new bank sub-accounts silently default to
-        // is_bank_account=false and never appear in the cheque "deposited
-        // into" picker or other bank-account-only dropdowns.
-        if (AccountGroup::find($data['group_id'])?->name === 'Bank Accounts') {
+        // filed under the "Bank Accounts" / "Cash Accounts" group must be a
+        // real bank/cash account, so this is derived rather than left to a UI
+        // control that doesn't exist. Without it, new sub-accounts silently
+        // default to is_bank_account=false / is_cash_account=false and never
+        // appear in the cheque "deposited into" picker, Record Payment cash
+        // account dropdown, or other bank/cash-account-only pickers.
+        $groupName = AccountGroup::find($data['group_id'])?->name;
+        if ($groupName === 'Bank Accounts') {
             $data['is_bank_account'] = true;
+        }
+        if ($groupName === 'Cash Accounts') {
+            $data['is_cash_account'] = true;
         }
 
         $account = Account::create($data);
