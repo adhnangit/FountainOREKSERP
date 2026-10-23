@@ -198,6 +198,7 @@ Route::middleware(['auth:sanctum', 'branch.context'])->group(function () {
     Route::middleware('permission:purchase_orders.payment')->post('/purchase-orders/{purchaseOrder}/payment', [PurchaseController::class, 'recordPOPayment']);
     Route::middleware('permission:purchase_orders.payment')->post('/suppliers/{supplier}/bulk-payment', [PurchaseController::class, 'bulkPaymentPO']);
     Route::middleware('role:super_admin')->delete('/purchase-orders/{purchaseOrder}/payments/{payment}', [PurchaseController::class, 'deletePOPayment']);
+    Route::middleware('role:super_admin')->post('/purchase-orders/backfill-invoice-liability', [PurchaseController::class, 'backfillInvoiceLiability']);
 
     // Purchase Returns — reuse purchase order permissions
     Route::middleware('permission:purchase_orders.view')->group(function () {

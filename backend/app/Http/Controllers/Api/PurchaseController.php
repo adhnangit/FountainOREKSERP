@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\GoodsReceiptNote;
 use App\Models\GrnItem;
+use App\Models\JournalEntry;
 use App\Models\PurchaseOrder;
 use App\Models\PurchaseOrderItem;
 use App\Models\SupplierInvoice;
@@ -207,6 +208,38 @@ class PurchaseController extends Controller
                     'unit_cost'         => $item['unit_price'],
                     'total_cost'        => $item['quantity'] * $item['unit_price'],
                 ]);
+            }
+
+            // Journal: DR Inventory/Purchases, CR Accounts Payable — recognizes
+            // the liability the moment the invoice is recorded, not whenever
+            // (or whether) someone later confirms the draft GRN via "Receive
+            // Items". Confirming the GRN only moves stock quantities/batches
+            // from here on (see confirmGRN) — it no longer re-posts this same
+            // amount, except for the delta if what's confirmed differs from
+            // what was originally invoiced.
+            if ($total > 0) {
+                try {
+                    $this->accounting->ensureSupplierAccount($po->supplier);
+                    $po->supplier->refresh();
+                    $apId = $po->supplier->account_id
+                         ?: $this->accounting->getAccountId($po->branch_id, 'acc_trade_payables');
+                    $inventoryId = $this->accounting->getAccountId($po->branch_id, 'acc_inventory')
+                                 ?: $this->accounting->getAccountId($po->branch_id, 'acc_purchases');
+                    if ($apId && $inventoryId) {
+                        $this->accounting->createEntry(
+                            $po->branch_id, 'purchase',
+                            "Invoice received – {$po->po_number}",
+                            $data['order_date'],
+                            [
+                                ['account_id' => $inventoryId, 'debit' => $total, 'credit' => 0,      'description' => "Invoice – {$po->po_number}"],
+                                ['account_id' => $apId,        'debit' => 0,      'credit' => $total, 'description' => "AP – {$po->po_number}"],
+                            ],
+                            $request->user()->id, 'purchase_order', $po->id
+                        );
+                    }
+                } catch (\Throwable $e) {
+                    Log::error('storePO liability journal failed', ['po_id' => $po->id, 'error' => $e->getMessage()]);
+                }
             }
 
             // Auto-record payment if method is not on_account
@@ -770,11 +803,20 @@ class PurchaseController extends Controller
                 $po->update(['status' => $allReceived ? 'received' : 'partially_received']);
             }
 
-            // Journal: DR Inventory, CR Accounts Payable
+            // Journal: a PO-linked GRN already had its full liability recognized
+            // at invoice time (see storePO) — only the difference between what
+            // was invoiced and what's actually being confirmed here (an edited
+            // quantity/cost, or a brand-new line added during receiving) still
+            // needs posting. A standalone GRN with no linked PO has no prior
+            // invoice entry at all, so it posts its full confirmed total exactly
+            // as before.
             try {
                 $goodsReceiptNote->load('items');
-                $total = $goodsReceiptNote->items->sum(fn($i) => $i->quantity_received * $i->unit_cost);
-                if ($total > 0) {
+                $confirmedTotal = $goodsReceiptNote->items->sum(fn($i) => $i->quantity_received * $i->unit_cost);
+                $linkedPo = $goodsReceiptNote->purchase_order_id ? PurchaseOrder::find($goodsReceiptNote->purchase_order_id) : null;
+                $amountToPost = $linkedPo ? round($confirmedTotal - (float) $linkedPo->total, 2) : round($confirmedTotal, 2);
+
+                if ($amountToPost != 0) {
                     $branchId     = $goodsReceiptNote->branch_id;
                     $inventoryId  = $this->accounting->getAccountId($branchId, 'acc_inventory')
                                  ?: $this->accounting->getAccountId($branchId, 'acc_purchases');
@@ -784,13 +826,19 @@ class PurchaseController extends Controller
                     $apId         = $supplier?->account_id
                                  ?: $this->accounting->getAccountId($branchId, 'acc_trade_payables');
                     if ($inventoryId && $apId) {
+                        $entryType   = $linkedPo ? 'adjustment' : 'grn_confirmed';
+                        $description = $linkedPo
+                            ? "Receiving adjustment – {$goodsReceiptNote->grn_number}"
+                            : "Goods Received – {$goodsReceiptNote->grn_number}";
+                        $amount         = abs($amountToPost);
+                        $debitAccount   = $amountToPost > 0 ? $inventoryId : $apId;
+                        $creditAccount  = $amountToPost > 0 ? $apId : $inventoryId;
                         $this->accounting->createEntry(
-                            $branchId, 'grn_confirmed',
-                            "Goods Received – {$goodsReceiptNote->grn_number}",
+                            $branchId, $entryType, $description,
                             $goodsReceiptNote->received_date->toDateString(),
                             [
-                                ['account_id' => $inventoryId, 'debit' => $total, 'credit' => 0,      'description' => "Inventory – {$goodsReceiptNote->grn_number}"],
-                                ['account_id' => $apId,        'debit' => 0,      'credit' => $total, 'description' => "AP – {$goodsReceiptNote->grn_number}"],
+                                ['account_id' => $debitAccount,  'debit' => $amount, 'credit' => 0,      'description' => $description],
+                                ['account_id' => $creditAccount, 'debit' => 0,       'credit' => $amount, 'description' => $description],
                             ],
                             $request->user()->id, 'grn', $goodsReceiptNote->id
                         );
@@ -802,6 +850,75 @@ class PurchaseController extends Controller
 
             return response()->json(['message' => 'GRN confirmed and stock updated.']);
         });
+    }
+
+    /**
+     * One-time, idempotent correction for invoices created before storePO()
+     * started recognizing the AP liability at invoice time (see storePO):
+     * every non-cancelled PO whose GRN was never confirmed never got a
+     * liability entry under the old code path either, so its supplier's
+     * ledger balance silently disagreed with reality (payments debited AP
+     * with no matching credit ever posted). Posts the missing entry, dated
+     * at the invoice's own order_date. Safe to call more than once — already
+     * fixed or already-GRN-confirmed invoices are skipped.
+     */
+    public function backfillInvoiceLiability(Request $request): JsonResponse
+    {
+        $fixed = [];
+        $skipped = 0;
+
+        PurchaseOrder::with(['grns', 'supplier'])
+            ->where('status', '!=', 'cancelled')
+            ->chunkById(50, function ($orders) use (&$fixed, &$skipped, $request) {
+                foreach ($orders as $po) {
+                    if ((float) $po->total <= 0) { $skipped++; continue; }
+                    // Already recognized the normal way — its GRN was confirmed,
+                    // which already posted (at least) the full amount back then.
+                    if ($po->grns->contains(fn ($g) => $g->status !== 'draft')) { $skipped++; continue; }
+                    $already = JournalEntry::where('reference_type', 'purchase_order')
+                        ->where('reference_id', $po->id)
+                        ->where('type', 'purchase')
+                        ->exists();
+                    if ($already) { $skipped++; continue; }
+
+                    try {
+                        $this->accounting->ensureSupplierAccount($po->supplier);
+                        $po->supplier->refresh();
+                        $apId = $po->supplier->account_id
+                             ?: $this->accounting->getAccountId($po->branch_id, 'acc_trade_payables');
+                        $inventoryId = $this->accounting->getAccountId($po->branch_id, 'acc_inventory')
+                                     ?: $this->accounting->getAccountId($po->branch_id, 'acc_purchases');
+                        if (!$apId || !$inventoryId) { $skipped++; continue; }
+
+                        $entry = $this->accounting->createEntry(
+                            $po->branch_id, 'purchase',
+                            "Invoice received (backfill) – {$po->po_number}",
+                            $po->order_date->toDateString(),
+                            [
+                                ['account_id' => $inventoryId, 'debit' => (float) $po->total, 'credit' => 0,                     'description' => "Invoice – {$po->po_number}"],
+                                ['account_id' => $apId,        'debit' => 0,                     'credit' => (float) $po->total, 'description' => "AP – {$po->po_number}"],
+                            ],
+                            $request->user()->id, 'purchase_order', $po->id
+                        );
+
+                        if ($entry) {
+                            $fixed[] = ['po_number' => $po->po_number, 'amount' => (float) $po->total];
+                        } else {
+                            $skipped++;
+                        }
+                    } catch (\Throwable $e) {
+                        Log::error('backfillInvoiceLiability failed', ['po_id' => $po->id, 'error' => $e->getMessage()]);
+                        $skipped++;
+                    }
+                }
+            });
+
+        return response()->json([
+            'message'     => 'Backfilled ' . count($fixed) . ' invoice(s), skipped ' . $skipped . '.',
+            'fixed'       => $fixed,
+            'fixed_count' => count($fixed),
+            'skipped'     => $skipped,
+        ]);
     }
 
     public function recordPOPayment(Request $request, PurchaseOrder $purchaseOrder): JsonResponse
