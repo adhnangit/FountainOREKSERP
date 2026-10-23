@@ -64,8 +64,20 @@
                    x-text="idx + 1"></div>
 
               <div class="flex-1 min-w-0">
+                {{-- Product / Service toggle --}}
+                <div class="flex items-center gap-1 mb-2">
+                  <button type="button"
+                          @click="row.type = 'product'; row.service_id = ''; row.unit_cost = 0; calcRow(idx)"
+                          class="text-[11px] font-semibold px-2.5 py-1 rounded-md transition-colors"
+                          :class="row.type !== 'service' ? 'bg-emerald-700 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400'">Product</button>
+                  <button type="button"
+                          @click="row.type = 'service'; row.product_id = ''; row.unit_cost = 0; calcRow(idx)"
+                          class="text-[11px] font-semibold px-2.5 py-1 rounded-md transition-colors"
+                          :class="row.type === 'service' ? 'bg-emerald-700 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400'">Service</button>
+                </div>
+
                 {{-- Product dropdown --}}
-                <div class="flex items-center gap-2 mb-2.5">
+                <div class="flex items-center gap-2 mb-2.5" x-show="row.type !== 'service'">
                   <div class="search-dd flex-1 min-w-0" @click.away="row.open = false" @keydown.escape="row.open = false">
                     <button type="button"
                             @click="row.open = !row.open; if(row.open){ const r=$el.getBoundingClientRect(); row.ddStyle='top:'+(r.bottom+4)+'px;left:'+r.left+'px;width:'+r.width+'px;'; }"
@@ -106,6 +118,53 @@
                         <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M12 4v16m8-8H4"/></svg>
                         Create New Product
                       </button>
+                    </div>
+                  </div>
+                  <button type="button" @click="removeRow(idx)"
+                          x-show="items.length > 1"
+                          class="flex-shrink-0 w-7 h-7 rounded-lg flex items-center justify-center text-gray-300 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all"
+                          title="Remove">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                  </button>
+                </div>
+
+                {{-- Service dropdown --}}
+                <div class="flex items-center gap-2 mb-2.5" x-show="row.type === 'service'">
+                  <div class="search-dd flex-1 min-w-0" @click.away="row.open = false" @keydown.escape="row.open = false">
+                    <button type="button"
+                            @click="row.open = !row.open; if(row.open){ const r=$el.getBoundingClientRect(); row.ddStyle='top:'+(r.bottom+4)+'px;left:'+r.left+'px;width:'+r.width+'px;'; }"
+                            class="input text-sm w-full text-left flex items-center justify-between gap-2"
+                            :class="!row.service_id ? 'border-emerald-200 dark:border-emerald-700/60' : ''">
+                      <span class="truncate"
+                            :class="row.service_id ? 'text-gray-800 dark:text-gray-100' : 'text-gray-400'"
+                            x-text="row.service_id ? (services.find(s => s.id == row.service_id)?.name || '—') : '— Select service —'"></span>
+                      <svg class="w-3.5 h-3.5 text-gray-400 flex-shrink-0 transition-transform" :class="row.open ? 'rotate-180' : ''" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M19 9l-7 7-7-7"/></svg>
+                    </button>
+                    <div x-show="row.open" x-transition:enter="transition ease-out duration-100" x-transition:enter-start="opacity-0 -translate-y-1" x-transition:enter-end="opacity-100 translate-y-0" class="search-dd-menu" :style="row.ddStyle">
+                      <div class="p-2 border-b border-gray-100 dark:border-gray-700">
+                        <input x-model="row.q" type="text" placeholder="Search service…"
+                               class="input text-sm w-full py-1.5" @keydown.stop />
+                      </div>
+                      <div class="max-h-52 overflow-y-auto py-1">
+                        <template x-for="s in services.filter(s => !row.q || s.name.toLowerCase().includes(row.q.toLowerCase()) || (s.code && s.code.toLowerCase().includes(row.q.toLowerCase())))" :key="s.id">
+                          <button type="button"
+                                  @click="row.service_id = s.id; onServiceSelect(row); row.open = false; row.q = ''"
+                                  class="search-dd-item"
+                                  :class="row.service_id == s.id ? 'active' : ''">
+                            <div class="flex-1 min-w-0">
+                              <div class="text-sm font-medium text-gray-800 dark:text-gray-100 truncate" x-text="s.name"></div>
+                              <div class="text-xs text-gray-400" x-text="(s.code || '') + (s.unit ? ' · ' + s.unit : '')"></div>
+                            </div>
+                            <template x-if="row.service_id == s.id">
+                              <div class="w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0" style="background:#065f46">
+                                <svg class="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path d="M5 13l4 4L19 7"/></svg>
+                              </div>
+                            </template>
+                          </button>
+                        </template>
+                        <div x-show="services.filter(s => !row.q || s.name.toLowerCase().includes(row.q.toLowerCase())).length === 0"
+                             class="px-4 py-3 text-xs text-gray-400 text-center">No services found</div>
+                      </div>
                     </div>
                   </div>
                   <button type="button" @click="removeRow(idx)"
@@ -511,6 +570,7 @@ function poCreatePage() {
     return {
         suppliers: [],
         products: [],
+        services: [],
         categories: [],
         cashAccounts: [],
         bankAccounts: [],
@@ -552,12 +612,13 @@ function poCreatePage() {
             notes: '',
         },
         banks: [],
-        items: [{ product_id: '', qty: 1, unit_cost: 0, line_total: 0, open: false, q: '', ddStyle: '' }],
+        items: [{ type: 'product', product_id: '', service_id: '', qty: 1, unit_cost: 0, line_total: 0, open: false, q: '', ddStyle: '' }],
         async init() {
             try {
-                const [sr, pr, accR, chqR, catR, brR] = await Promise.all([
+                const [sr, pr, svr, accR, chqR, catR, brR] = await Promise.all([
                     apiFetch('/suppliers?per_page=200').then(r => r.json()),
                     apiFetch('/products?per_page=5000').then(r => r.json()),
+                    apiFetch('/services?per_page=999&is_active=1').then(r => r.json()),
                     apiFetch('/accounting/accounts').then(r => r.json()),
                     apiFetch('/cheques?direction=received&status=in_hand&per_page=100').then(r => r.json()),
                     apiFetch('/products/categories').then(r => r.json()),
@@ -578,6 +639,7 @@ function poCreatePage() {
                 }
                 this.suppliers = sr.data ?? sr ?? [];
                 this.products  = pr.data ?? pr ?? [];
+                this.services  = svr.data ?? svr ?? [];
                 const accounts = Array.isArray(accR) ? accR : (accR.data ?? []);
                 this.cashAccounts    = accounts.filter(a => a.is_cash_account);
                 this.bankAccounts    = accounts.filter(a => a.is_bank_account);
@@ -659,7 +721,7 @@ function poCreatePage() {
             }
         },
         addRow() {
-            this.items.push({ product_id: '', qty: 1, unit_cost: 0, line_total: 0, open: false, q: '', ddStyle: '' });
+            this.items.push({ type: 'product', product_id: '', service_id: '', qty: 1, unit_cost: 0, line_total: 0, open: false, q: '', ddStyle: '' });
         },
         removeRow(idx) {
             this.items.splice(idx, 1);
@@ -672,6 +734,13 @@ function poCreatePage() {
                 row.line_total = (row.qty || 1) * row.unit_cost;
                 this.calcTotals();
             }
+        },
+        onServiceSelect(row) {
+            // Services only carry a customer-facing selling rate, not a supplier
+            // cost — nothing meaningful to prefill, so leave unit_cost for the
+            // user to enter what's actually being paid to the supplier.
+            row.line_total = (row.qty || 1) * (row.unit_cost || 0);
+            this.calcTotals();
         },
         calcRow(idx) {
             const r = this.items[idx];
@@ -690,7 +759,10 @@ function poCreatePage() {
                 return;
             }
             if (!this.form.supplier_id) { toast('Please select a supplier', 'error'); return; }
-            if (this.items.some(r => !r.product_id)) { toast('Please select a product for every row', 'error'); return; }
+            if (this.items.some(r => r.type === 'service' ? !r.service_id : !r.product_id)) {
+                toast('Please select a product or service for every row', 'error');
+                return;
+            }
             this.submitting = true;
             try {
                 const branchId = parseInt(this.form.branch_id);
@@ -700,7 +772,8 @@ function poCreatePage() {
                     account_id:         this.form.account_id         ? parseInt(this.form.account_id)         : null,
                     received_cheque_id: this.form.received_cheque_id ? parseInt(this.form.received_cheque_id) : null,
                     items: this.items.map(r => ({
-                        product_id: r.product_id,
+                        product_id: r.type === 'service' ? null : r.product_id,
+                        service_id: r.type === 'service' ? r.service_id : null,
                         quantity:   r.qty,
                         unit_price: r.unit_cost,
                         tax_percent: 0,

@@ -92,11 +92,18 @@ class PurchaseController extends Controller
             'notes'              => 'nullable|string',
             'terms'              => 'nullable|string',
             'items'              => 'required|array|min:1',
-            'items.*.product_id' => 'required|exists:products,id',
+            'items.*.product_id' => 'nullable|exists:products,id',
+            'items.*.service_id' => 'nullable|exists:services,id',
             'items.*.quantity'   => 'required|numeric|min:0.01',
             'items.*.unit_price' => 'required|numeric|min:0',
             'items.*.tax_percent'=> 'nullable|numeric|min:0',
         ]);
+
+        foreach ($data['items'] as $i => $item) {
+            if (empty($item['product_id']) === empty($item['service_id'])) {
+                return response()->json(['message' => "Item #".($i + 1).": choose exactly one of product or service."], 422);
+            }
+        }
 
         return DB::transaction(function () use ($data, $request) {
             $subtotal = 0;
@@ -152,12 +159,34 @@ class PurchaseController extends Controller
             ]);
 
             foreach ($data['items'] as $item) {
-                $product = \App\Models\Product::find($item['product_id']);
                 $lineTotal = $item['quantity'] * $item['unit_price'];
                 $lineTax = $lineTotal * (($item['tax_percent'] ?? 0) / 100);
+
+                // A service line has nothing to receive into inventory — create
+                // the PO line item only, and skip the GRN item entirely below.
+                if (!empty($item['service_id'])) {
+                    $service = \App\Models\Service::find($item['service_id']);
+                    PurchaseOrderItem::create([
+                        'purchase_order_id' => $po->id,
+                        'service_id'   => $item['service_id'],
+                        'item_type'    => 'service',
+                        'product_name' => $service->name,
+                        'product_code' => $service->code,
+                        'unit'         => $service->unit ?: 'service',
+                        'quantity'     => $item['quantity'],
+                        'unit_price'   => $item['unit_price'],
+                        'tax_percent'  => $item['tax_percent'] ?? 0,
+                        'tax_amount'   => $lineTax,
+                        'total'        => $lineTotal + $lineTax,
+                    ]);
+                    continue;
+                }
+
+                $product = \App\Models\Product::find($item['product_id']);
                 $poItem = PurchaseOrderItem::create([
                     'purchase_order_id' => $po->id,
                     'product_id'   => $item['product_id'],
+                    'item_type'    => 'product',
                     'product_name' => $product->name,
                     'product_code' => $product->code,
                     'unit'         => $product->unit,

@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class PurchaseOrderItem extends Model
 {
     protected $fillable = [
-        'purchase_order_id', 'product_id', 'product_name', 'product_code',
+        'purchase_order_id', 'product_id', 'service_id', 'item_type', 'product_name', 'product_code',
         'unit', 'quantity', 'received_quantity', 'unit_price',
         'tax_percent', 'tax_amount', 'total', 'notes',
     ];
@@ -29,5 +29,10 @@ class PurchaseOrderItem extends Model
     public function product(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
         return $this->belongsTo(Product::class);
+    }
+
+    public function service(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    {
+        return $this->belongsTo(Service::class);
     }
 }
