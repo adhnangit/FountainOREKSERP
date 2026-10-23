@@ -475,6 +475,9 @@
                         <div>
                             <label class="block text-xs font-semibold text-gray-500 mb-1">Amount *</label>
                             <input x-model="pf.amount" type="number" step="0.01" min="0.01" class="input" placeholder="0.00" />
+                            <p class="text-[11px] text-amber-600 mt-1 font-medium"
+                               x-show="parseFloat(pf.amount || 0) > parseFloat(selPo?.balance_due ?? 0)"
+                               x-text="fmtMoney(parseFloat(pf.amount || 0) - parseFloat(selPo?.balance_due ?? 0)) + ' extra will be added as supplier credit'"></p>
                         </div>
                         <div>
                             <label class="block text-xs font-semibold text-gray-500 mb-1">Payment Date *</label>
@@ -740,7 +743,7 @@ function supplierInvListPage() {
                 if (r.ok) {
                     await this.load(); // refreshes both this page's rows and the stat cards (paid/outstanding changed)
                     this.showPay = false;
-                    toast('Payment recorded and journal posted', 'success');
+                    toast(d.message ?? 'Payment recorded and journal posted', 'success');
                 } else {
                     toast(d.message ?? 'Payment failed', 'error');
                 }

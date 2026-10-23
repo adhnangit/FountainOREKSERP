@@ -807,7 +807,7 @@ class PurchaseController extends Controller
     public function recordPOPayment(Request $request, PurchaseOrder $purchaseOrder): JsonResponse
     {
         $data = $request->validate([
-            'amount'             => 'required|numeric|min:0.01|max:' . $purchaseOrder->balance_due,
+            'amount'             => 'required|numeric|min:0.01',
             'payment_method'     => 'required|in:cash,cheque,bank_transfer',
             'payment_date'       => 'required|date',
             'reference_number'   => 'nullable|string',
@@ -822,6 +822,7 @@ class PurchaseController extends Controller
         return DB::transaction(function () use ($data, $purchaseOrder, $request) {
             $chequeId   = null;
             $chequeType = $data['cheque_type'] ?? 'issued';
+            $amountPaid = (float) $data['amount'];
 
             if ($data['payment_method'] === 'cheque') {
                 if ($chequeType === 'received' && !empty($data['received_cheque_id'])) {
@@ -830,7 +831,7 @@ class PurchaseController extends Controller
                         "Used to pay supplier: {$purchaseOrder->supplier->name} · Invoice {$purchaseOrder->po_number} · {$data['payment_date']}"
                     );
                     $chequeId = $heldCheque->id;
-                    if ((float) $data['amount'] > (float) $heldCheque->amount) {
+                    if ($amountPaid > (float) $heldCheque->amount) {
                         abort(422, 'Payment amount exceeds the selected cheque\'s value (Rs. ' . number_format((float) $heldCheque->amount, 2) . ').');
                     }
                 } else {
@@ -844,63 +845,79 @@ class PurchaseController extends Controller
                         'bank_name'            => $data['bank_name'],
                         'cheque_date'          => $data['cheque_date'],
                         'received_issued_date' => $data['payment_date'],
-                        'amount'               => $data['amount'],
+                        'amount'               => $amountPaid,
                         'status'               => 'in_hand',
                     ]);
                     $chequeId = $cheque->id;
                 }
             }
 
-            SupplierPayment::create([
-                'purchase_order_id' => $purchaseOrder->id,
-                'branch_id'         => $purchaseOrder->branch_id,
-                'created_by'        => $request->user()->id,
-                'amount'            => $data['amount'],
-                'payment_method'    => $data['payment_method'],
-                'payment_date'      => $data['payment_date'],
-                'reference_number'  => $data['reference_number'] ?? null,
-                'cheque_id'         => $chequeId,
-                'account_id'        => $data['account_id'] ?? null,
-                'cheque_type'       => $chequeType,
-            ]);
+            // Anything beyond this invoice's own balance becomes standing credit
+            // on the supplier (same mechanism as bulkPaymentPO's overpayment
+            // handling) rather than being rejected outright.
+            $cashForThis = min($amountPaid, (float) $purchaseOrder->balance_due);
+            $excess = round($amountPaid - $cashForThis, 2);
 
-            $newPaid    = (float) $purchaseOrder->paid_amount + (float) $data['amount'];
-            $newBalance = max(0, (float) $purchaseOrder->total - $newPaid);
-            $purchaseOrder->update([
-                'paid_amount'    => $newPaid,
-                'balance_due'    => $newBalance,
-                'payment_status' => $newBalance <= 0 ? 'paid' : 'partially_paid',
-            ]);
+            if ($cashForThis > 0) {
+                SupplierPayment::create([
+                    'purchase_order_id' => $purchaseOrder->id,
+                    'branch_id'         => $purchaseOrder->branch_id,
+                    'created_by'        => $request->user()->id,
+                    'amount'            => $cashForThis,
+                    'payment_method'    => $data['payment_method'],
+                    'payment_date'      => $data['payment_date'],
+                    'reference_number'  => $data['reference_number'] ?? null,
+                    'cheque_id'         => $chequeId,
+                    'account_id'        => $data['account_id'] ?? null,
+                    'cheque_type'       => $chequeType,
+                ]);
 
-            // DR Accounts Payable, CR Cash/Bank
-            try {
-                $branchId = $purchaseOrder->branch_id;
-                $purchaseOrder->load('supplier');
-                $this->accounting->ensureSupplierAccount($purchaseOrder->supplier);
-                $purchaseOrder->supplier->refresh();
-                $apId   = $purchaseOrder->supplier->account_id
-                       ?: $this->accounting->getAccountId($branchId, 'acc_trade_payables');
-                $cashId = !empty($data['account_id'])
-                       ? (int) $data['account_id']
-                       : ($this->accounting->getAccountId($branchId, 'acc_cash')
-                          ?: $this->accounting->getAccountId($branchId, 'acc_bank'));
-                if ($apId && $cashId) {
-                    $this->accounting->createEntry(
-                        $branchId, 'payment_made',
-                        "Payment – {$purchaseOrder->po_number}",
-                        $data['payment_date'],
-                        [
-                            ['account_id' => $apId,   'debit' => (float) $data['amount'], 'credit' => 0,                     'description' => "AP – {$purchaseOrder->po_number}"],
-                            ['account_id' => $cashId, 'debit' => 0,                        'credit' => (float) $data['amount'], 'description' => "Payment – {$purchaseOrder->po_number}"],
-                        ],
-                        $request->user()->id, 'purchase_order', $purchaseOrder->id
-                    );
+                $newPaid    = (float) $purchaseOrder->paid_amount + $cashForThis;
+                $newBalance = max(0, (float) $purchaseOrder->total - $newPaid);
+                $purchaseOrder->update([
+                    'paid_amount'    => $newPaid,
+                    'balance_due'    => $newBalance,
+                    'payment_status' => $newBalance <= 0 ? 'paid' : 'partially_paid',
+                ]);
+
+                // DR Accounts Payable, CR Cash/Bank
+                try {
+                    $branchId = $purchaseOrder->branch_id;
+                    $purchaseOrder->load('supplier');
+                    $this->accounting->ensureSupplierAccount($purchaseOrder->supplier);
+                    $purchaseOrder->supplier->refresh();
+                    $apId   = $purchaseOrder->supplier->account_id
+                           ?: $this->accounting->getAccountId($branchId, 'acc_trade_payables');
+                    $cashId = !empty($data['account_id'])
+                           ? (int) $data['account_id']
+                           : ($this->accounting->getAccountId($branchId, 'acc_cash')
+                              ?: $this->accounting->getAccountId($branchId, 'acc_bank'));
+                    if ($apId && $cashId) {
+                        $this->accounting->createEntry(
+                            $branchId, 'payment_made',
+                            "Payment – {$purchaseOrder->po_number}",
+                            $data['payment_date'],
+                            [
+                                ['account_id' => $apId,   'debit' => $cashForThis, 'credit' => 0,           'description' => "AP – {$purchaseOrder->po_number}"],
+                                ['account_id' => $cashId, 'debit' => 0,            'credit' => $cashForThis, 'description' => "Payment – {$purchaseOrder->po_number}"],
+                            ],
+                            $request->user()->id, 'purchase_order', $purchaseOrder->id
+                        );
+                    }
+                } catch (\Throwable $e) {
+                    Log::error('recordPOPayment journal failed', ['po_id' => $purchaseOrder->id, 'error' => $e->getMessage()]);
                 }
-            } catch (\Throwable $e) {
-                Log::error('recordPOPayment journal failed', ['po_id' => $purchaseOrder->id, 'error' => $e->getMessage()]);
             }
 
-            return response()->json(['message' => 'Payment recorded.', 'po' => $purchaseOrder->fresh(['supplier', 'branch', 'payments'])]);
+            if ($excess > 0) {
+                $purchaseOrder->supplier()->increment('credit_balance', $excess);
+            }
+
+            $message = $excess > 0
+                ? 'Payment recorded. Rs. ' . number_format($excess, 2) . ' extra added as supplier credit for future invoices.'
+                : 'Payment recorded.';
+
+            return response()->json(['message' => $message, 'po' => $purchaseOrder->fresh(['supplier', 'branch', 'payments'])]);
         });
     }
 
