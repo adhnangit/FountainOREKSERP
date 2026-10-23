@@ -298,6 +298,154 @@ class PurchaseController extends Controller
         return response()->json($purchaseOrder->load(['items.product', 'supplier', 'branch', 'grns.items.product', 'payments.cheque']));
     }
 
+    /**
+     * Whether this invoice's line items (and therefore its delete-ability) are
+     * still safe to change: no payment has been recorded against it yet, and
+     * its goods receipt is still a draft (nothing has hit inventory or posted
+     * an AP journal entry — see confirmGRN/receiveGRN, not here).
+     */
+    private function poIsEditableFreely(PurchaseOrder $purchaseOrder): bool
+    {
+        return (float) $purchaseOrder->paid_amount <= 0
+            && !$purchaseOrder->grns()->where('status', '!=', 'draft')->exists();
+    }
+
+    public function updatePO(Request $request, PurchaseOrder $purchaseOrder): JsonResponse
+    {
+        $data = $request->validate([
+            'supplier_id'          => 'sometimes|exists:suppliers,id',
+            'order_date'           => 'sometimes|date',
+            'expected_date'        => 'nullable|date',
+            'due_date'             => 'nullable|date',
+            'reference'            => 'nullable|string|max:100',
+            'supplier_invoice_ref' => 'nullable|string|max:100',
+            'payment_terms_days'   => 'nullable|integer|min:0',
+            'notes'                => 'nullable|string',
+            'terms'                => 'nullable|string',
+            'items'                => 'sometimes|array|min:1',
+            'items.*.product_id'   => 'nullable|exists:products,id',
+            'items.*.service_id'   => 'nullable|exists:services,id',
+            'items.*.quantity'     => 'required_with:items|numeric|min:0.01',
+            'items.*.unit_price'   => 'required_with:items|numeric|min:0',
+            'items.*.tax_percent'  => 'nullable|numeric|min:0',
+        ]);
+
+        if (isset($data['items'])) {
+            if (!$this->poIsEditableFreely($purchaseOrder)) {
+                return response()->json(['message' => "Items can't be changed once this invoice has a payment or a confirmed receipt."], 422);
+            }
+            foreach ($data['items'] as $i => $item) {
+                if (empty($item['product_id']) === empty($item['service_id'])) {
+                    return response()->json(['message' => "Item #".($i + 1).": choose exactly one of product or service."], 422);
+                }
+            }
+        }
+
+        return DB::transaction(function () use ($data, $purchaseOrder) {
+            $purchaseOrder->update(collect($data)->only([
+                'supplier_id', 'order_date', 'expected_date', 'due_date',
+                'reference', 'supplier_invoice_ref', 'payment_terms_days', 'notes', 'terms',
+            ])->toArray());
+
+            if (isset($data['items'])) {
+                // Replace the line items outright — safe only because
+                // poIsEditableFreely() above already guarantees no payment and
+                // no confirmed receipt exist yet for this invoice.
+                $purchaseOrder->items()->delete();
+                $grn = $purchaseOrder->grns()->where('status', 'draft')->first();
+                $grn?->items()->delete();
+
+                $subtotal = 0;
+                $taxAmount = 0;
+
+                foreach ($data['items'] as $item) {
+                    $lineTotal = $item['quantity'] * $item['unit_price'];
+                    $lineTax = $lineTotal * (($item['tax_percent'] ?? 0) / 100);
+                    $subtotal += $lineTotal;
+                    $taxAmount += $lineTax;
+
+                    if (!empty($item['service_id'])) {
+                        $service = \App\Models\Service::find($item['service_id']);
+                        PurchaseOrderItem::create([
+                            'purchase_order_id' => $purchaseOrder->id,
+                            'service_id'   => $item['service_id'],
+                            'item_type'    => 'service',
+                            'product_name' => $service->name,
+                            'product_code' => $service->code,
+                            'unit'         => $service->unit ?: 'service',
+                            'quantity'     => $item['quantity'],
+                            'unit_price'   => $item['unit_price'],
+                            'tax_percent'  => $item['tax_percent'] ?? 0,
+                            'tax_amount'   => $lineTax,
+                            'total'        => $lineTotal + $lineTax,
+                        ]);
+                        continue;
+                    }
+
+                    $product = \App\Models\Product::find($item['product_id']);
+                    $poItem = PurchaseOrderItem::create([
+                        'purchase_order_id' => $purchaseOrder->id,
+                        'product_id'   => $item['product_id'],
+                        'item_type'    => 'product',
+                        'product_name' => $product->name,
+                        'product_code' => $product->code,
+                        'unit'         => $product->unit,
+                        'quantity'     => $item['quantity'],
+                        'unit_price'   => $item['unit_price'],
+                        'tax_percent'  => $item['tax_percent'] ?? 0,
+                        'tax_amount'   => $lineTax,
+                        'total'        => $lineTotal + $lineTax,
+                    ]);
+
+                    if ($grn) {
+                        GrnItem::create([
+                            'grn_id'            => $grn->id,
+                            'po_item_id'        => $poItem->id,
+                            'product_id'        => $item['product_id'],
+                            'product_name'      => $product->name,
+                            'unit'              => $product->unit,
+                            'quantity_ordered'  => $item['quantity'],
+                            'quantity_received' => $item['quantity'],
+                            'unit_cost'         => $item['unit_price'],
+                            'total_cost'        => $item['quantity'] * $item['unit_price'],
+                        ]);
+                    }
+                }
+
+                $total = $subtotal + $taxAmount;
+                $purchaseOrder->update([
+                    'subtotal'    => $subtotal,
+                    'tax_amount'  => $taxAmount,
+                    'total'       => $total,
+                    'balance_due' => max(0, $total - $purchaseOrder->paid_amount),
+                ]);
+            }
+
+            return response()->json($purchaseOrder->fresh()->load(['items', 'supplier']));
+        });
+    }
+
+    public function destroyPO(PurchaseOrder $purchaseOrder): JsonResponse
+    {
+        if ((float) $purchaseOrder->paid_amount > 0) {
+            return response()->json(['message' => "Can't delete an invoice that already has a payment recorded. Remove the payment first."], 422);
+        }
+        if ($purchaseOrder->grns()->where('status', '!=', 'draft')->exists()) {
+            return response()->json(['message' => "Can't delete an invoice whose goods receipt has already been confirmed."], 422);
+        }
+
+        DB::transaction(function () use ($purchaseOrder) {
+            foreach ($purchaseOrder->grns as $grn) {
+                $grn->items()->delete();
+                $grn->delete();
+            }
+            $purchaseOrder->items()->delete();
+            $purchaseOrder->delete();
+        });
+
+        return response()->json(['message' => 'Supplier invoice deleted.']);
+    }
+
     public function pdfPO(PurchaseOrder $purchaseOrder)
     {
         $po = $purchaseOrder->load(['items', 'supplier', 'branch', 'createdBy']);

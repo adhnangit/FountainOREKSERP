@@ -201,6 +201,10 @@
                                        class="text-indigo-600 hover:underline text-sm font-medium flex-shrink-0">View</a>
                                     <button @click="printPO(po)"
                                             class="text-gray-500 hover:underline text-sm font-medium flex-shrink-0">Print</button>
+                                    <a x-show="hasPerm('purchase_orders.edit')" :href="BASE + '/purchase-orders/' + po.id + '/edit'"
+                                       class="text-emerald-700 hover:underline text-sm font-medium flex-shrink-0">Edit</a>
+                                    <button x-show="hasPerm('purchase_orders.delete')" @click="deletePO(po)"
+                                            class="text-red-500 hover:underline text-sm font-medium flex-shrink-0">Delete</button>
                                     <template x-if="parseFloat(po.balance_due ?? 0) > 0 && po.status !== 'cancelled' && hasPerm('purchase_orders.payment')">
                                         <button @click="openPay(po)"
                                                 class="text-sm font-semibold px-2.5 py-1 rounded-lg transition-colors flex-shrink-0"
@@ -649,6 +653,17 @@ function supplierInvListPage() {
                 };
                 setTimeout(() => { document.body.removeChild(iframe); URL.revokeObjectURL(url); }, 60000);
             } catch(e) { toast('Print failed', 'error'); hideGlobalLoading(); }
+        },
+
+        async deletePO(po) {
+            if (!confirm(`Delete invoice "${po.po_number}"? This cannot be undone.`)) return;
+            try {
+                await apiFetch('/purchase-orders/' + po.id, { method: 'DELETE' });
+                toast('Supplier invoice deleted.');
+                await this.load();
+            } catch (e) {
+                toast(e.message ?? 'Failed to delete invoice', 'error');
+            }
         },
 
         async init() {

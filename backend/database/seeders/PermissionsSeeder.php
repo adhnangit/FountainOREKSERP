@@ -34,6 +34,8 @@ class PermissionsSeeder extends Seeder
             // Procurement
             'purchase_orders.view',
             'purchase_orders.create',
+            'purchase_orders.edit',
+            'purchase_orders.delete',
             'purchase_orders.approve',
             'purchase_orders.payment',
             'grns.view',
@@ -215,7 +217,7 @@ class PermissionsSeeder extends Seeder
                 'dashboard.view',
                 'invoices.view','invoices.create','invoices.edit','invoices.confirm','invoices.payment','invoices.cancel',
                 'proforma.view','proforma.create','proforma.convert',
-                'purchase_orders.view','purchase_orders.create','purchase_orders.approve','purchase_orders.payment',
+                'purchase_orders.view','purchase_orders.create','purchase_orders.edit','purchase_orders.delete','purchase_orders.approve','purchase_orders.payment',
                 'grns.view','grns.create','grns.confirm',
                 'supplier_invoices.view','supplier_invoices.create','supplier_invoices.payment',
                 'customers.view','customers.create','customers.edit',
@@ -276,7 +278,7 @@ class PermissionsSeeder extends Seeder
             ],
             'purchase_officer'  => [
                 'dashboard.view',
-                'purchase_orders.view','purchase_orders.create',
+                'purchase_orders.view','purchase_orders.create','purchase_orders.edit',
                 'grns.view','grns.create',
                 'supplier_invoices.view','supplier_invoices.create',
                 'suppliers.view','suppliers.create','suppliers.edit',

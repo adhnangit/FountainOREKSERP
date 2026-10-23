@@ -62,6 +62,7 @@ Route::get('/proforma-invoices/{id}',          fn() => view('proforma.show'))->n
 
 Route::get('/purchase-orders',        fn() => view('purchase.orders'))->name('purchase-orders.index');
 Route::get('/purchase-orders/create', fn() => view('purchase.orders-create'))->name('purchase-orders.create');
+Route::get('/purchase-orders/{id}/edit', fn() => view('purchase.orders-edit'))->name('purchase-orders.edit');
 Route::get('/purchase-orders/{id}',   fn() => view('purchase.orders-show'))->name('purchase-orders.show');
 
 Route::get('/purchase-returns',        fn() => view('purchase.returns'))->name('purchase-returns.index');

@@ -349,6 +349,7 @@ function rolesPage() {
                 'invoices.cancel':'Cancel Invoices',
                 'proforma.view':'View Proforma','proforma.create':'Create Proforma','proforma.convert':'Convert to Invoice',
                 'purchase_orders.view':'View POs','purchase_orders.create':'Create POs',
+                'purchase_orders.edit':'Edit POs','purchase_orders.delete':'Delete POs',
                 'purchase_orders.approve':'Approve POs','purchase_orders.payment':'PO Payments',
                 'grns.view':'View GRNs','grns.create':'Create GRNs','grns.confirm':'Confirm GRNs',
                 'supplier_invoices.view':'View Supplier Invoices','supplier_invoices.create':'Create Supplier Invoices',

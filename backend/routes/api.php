@@ -192,6 +192,8 @@ Route::middleware(['auth:sanctum', 'branch.context'])->group(function () {
         Route::get('/purchase-orders/{purchaseOrder}', [PurchaseController::class, 'showPO']);
     });
     Route::middleware('permission:purchase_orders.create')->post('/purchase-orders', [PurchaseController::class, 'storePO']);
+    Route::middleware('permission:purchase_orders.edit')->put('/purchase-orders/{purchaseOrder}', [PurchaseController::class, 'updatePO']);
+    Route::middleware('permission:purchase_orders.delete')->delete('/purchase-orders/{purchaseOrder}', [PurchaseController::class, 'destroyPO']);
     Route::middleware('permission:purchase_orders.approve')->post('/purchase-orders/{purchaseOrder}/approve', [PurchaseController::class, 'approvePO']);
     Route::middleware('permission:purchase_orders.payment')->post('/purchase-orders/{purchaseOrder}/payment', [PurchaseController::class, 'recordPOPayment']);
     Route::middleware('permission:purchase_orders.payment')->post('/suppliers/{supplier}/bulk-payment', [PurchaseController::class, 'bulkPaymentPO']);
