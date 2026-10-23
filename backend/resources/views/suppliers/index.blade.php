@@ -163,6 +163,7 @@
               </td>
               <td style="text-align:right">
                 <span class="sup-balance tabular-nums" :style="(s.balance ?? 0) > 0 ? 'color:#dc2626' : 'color:#16a34a'" x-text="fmtMoney(s.balance ?? 0)"></span>
+                <div x-show="(s.credit_balance ?? 0) > 0" class="text-[11px] font-semibold mt-0.5" style="color:#2563eb" x-text="fmtMoney(s.credit_balance ?? 0) + ' credit'"></div>
               </td>
               <td>
                 <a :href="BASE + '/suppliers/' + s.id" class="sup-action-btn" title="View">
