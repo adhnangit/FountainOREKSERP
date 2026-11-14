@@ -19,9 +19,9 @@ class InterBranchTransfer extends Model
     ];
 
     protected $casts = [
-        'request_date' => 'date',
-        'dispatch_date' => 'date',
-        'received_date' => 'date',
+        'request_date' => 'date:Y-m-d',
+        'dispatch_date' => 'date:Y-m-d',
+        'received_date' => 'date:Y-m-d',
     ];
 
     public function fromBranch(): \Illuminate\Database\Eloquent\Relations\BelongsTo

@@ -18,7 +18,7 @@ class Candidate extends Model
     protected $casts = [
         'rating' => 'integer',
         'offered_salary' => 'decimal:2',
-        'offer_date' => 'date',
+        'offer_date' => 'date:Y-m-d',
     ];
 
     public function jobOpening(): \Illuminate\Database\Eloquent\Relations\BelongsTo

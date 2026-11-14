@@ -19,8 +19,8 @@ class StockMovement extends Model
         'quantity' => 'decimal:2',
         'unit_cost' => 'decimal:2',
         'balance_quantity' => 'decimal:2',
-        'expiry_date' => 'date',
-        'movement_date' => 'date',
+        'expiry_date' => 'date:Y-m-d',
+        'movement_date' => 'date:Y-m-d',
     ];
 
     public function product(): \Illuminate\Database\Eloquent\Relations\BelongsTo

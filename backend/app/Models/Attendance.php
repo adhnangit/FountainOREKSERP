@@ -15,7 +15,7 @@ class Attendance extends Model
     ];
 
     protected $casts = [
-        'date' => 'date',
+        'date' => 'date:Y-m-d',
         'work_hours' => 'decimal:2',
         'late_minutes' => 'integer',
     ];

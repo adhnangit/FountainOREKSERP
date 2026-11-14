@@ -17,7 +17,7 @@ class PurchaseReturn extends Model
     ];
 
     protected $casts = [
-        'return_date' => 'date',
+        'return_date' => 'date:Y-m-d',
         'subtotal' => 'decimal:2',
         'tax_amount' => 'decimal:2',
         'total' => 'decimal:2',

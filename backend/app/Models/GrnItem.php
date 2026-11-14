@@ -19,7 +19,7 @@ class GrnItem extends Model
         'quantity_received' => 'decimal:2',
         'unit_cost' => 'decimal:2',
         'total_cost' => 'decimal:2',
-        'expiry_date' => 'date',
+        'expiry_date' => 'date:Y-m-d',
     ];
 
     public function grn(): \Illuminate\Database\Eloquent\Relations\BelongsTo

@@ -22,7 +22,7 @@ class InvoiceItem extends Model
         'tax_percent' => 'decimal:2',
         'tax_amount' => 'decimal:2',
         'total' => 'decimal:2',
-        'expiry_date' => 'date',
+        'expiry_date' => 'date:Y-m-d',
     ];
 
     public function invoice(): \Illuminate\Database\Eloquent\Relations\BelongsTo

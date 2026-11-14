@@ -17,7 +17,7 @@ class JournalEntry extends Model
     ];
 
     protected $casts = [
-        'entry_date' => 'date',
+        'entry_date' => 'date:Y-m-d',
         'total_debit' => 'decimal:2',
         'total_credit' => 'decimal:2',
         'is_auto_generated' => 'boolean',

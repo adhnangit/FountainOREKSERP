@@ -23,9 +23,9 @@ class Expense extends Model
 
     protected $casts = [
         'amount' => 'decimal:2',
-        'expense_date' => 'date',
+        'expense_date' => 'date:Y-m-d',
         'is_recurring' => 'boolean',
-        'recurrence_end_date' => 'date',
+        'recurrence_end_date' => 'date:Y-m-d',
         'approved_at' => 'datetime',
     ];
 

@@ -17,8 +17,8 @@ class JobOpening extends Model
 
     protected $casts = [
         'openings_count' => 'integer',
-        'posted_date' => 'date',
-        'closing_date' => 'date',
+        'posted_date' => 'date:Y-m-d',
+        'closing_date' => 'date:Y-m-d',
     ];
 
     public function branch(): \Illuminate\Database\Eloquent\Relations\BelongsTo

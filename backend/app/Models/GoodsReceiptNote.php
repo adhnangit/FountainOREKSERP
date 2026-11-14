@@ -19,7 +19,7 @@ class GoodsReceiptNote extends Model
     ];
 
     protected $casts = [
-        'received_date' => 'date',
+        'received_date' => 'date:Y-m-d',
         'confirmed_at' => 'datetime',
     ];
 

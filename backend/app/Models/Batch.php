@@ -21,8 +21,8 @@ class Batch extends Model
         'selling_price' => 'decimal:2',
         'quantity_received' => 'decimal:2',
         'quantity_remaining' => 'decimal:2',
-        'received_date' => 'date',
-        'expiry_date' => 'date',
+        'received_date' => 'date:Y-m-d',
+        'expiry_date' => 'date:Y-m-d',
     ];
 
     public function product(): \Illuminate\Database\Eloquent\Relations\BelongsTo

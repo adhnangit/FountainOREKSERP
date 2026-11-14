@@ -21,11 +21,11 @@ class PurchaseOrder extends Model
     ];
 
     protected $casts = [
-        'order_date'    => 'date',
-        'invoice_date'  => 'date',
-        'expected_date' => 'date',
-        'due_date'      => 'date',
-        'cheque_date'   => 'date',
+        'order_date'    => 'date:Y-m-d',
+        'invoice_date'  => 'date:Y-m-d',
+        'expected_date' => 'date:Y-m-d',
+        'due_date'      => 'date:Y-m-d',
+        'cheque_date'   => 'date:Y-m-d',
         'subtotal'      => 'decimal:2',
         'tax_amount'    => 'decimal:2',
         'discount_amount' => 'decimal:2',

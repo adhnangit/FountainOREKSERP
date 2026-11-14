@@ -11,8 +11,8 @@ class FinancialYear extends Model
     protected $fillable = ['name', 'start_date', 'end_date', 'status'];
 
     protected $casts = [
-        'start_date' => 'date',
-        'end_date' => 'date',
+        'start_date' => 'date:Y-m-d',
+        'end_date' => 'date:Y-m-d',
     ];
 
     public function journalEntries(): \Illuminate\Database\Eloquent\Relations\HasMany

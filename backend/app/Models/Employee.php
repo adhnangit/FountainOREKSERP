@@ -23,10 +23,10 @@ class Employee extends Model
     ];
 
     protected $casts = [
-        'date_of_birth' => 'date',
-        'join_date' => 'date',
-        'confirmation_date' => 'date',
-        'exit_date' => 'date',
+        'date_of_birth' => 'date:Y-m-d',
+        'join_date' => 'date:Y-m-d',
+        'confirmation_date' => 'date:Y-m-d',
+        'exit_date' => 'date:Y-m-d',
         'probation_period_months' => 'integer',
         'basic_salary' => 'decimal:2',
         'epf_etf_applicable' => 'boolean',

@@ -15,8 +15,8 @@ class AssetAssignment extends Model
     ];
 
     protected $casts = [
-        'assigned_date' => 'date',
-        'returned_date' => 'date',
+        'assigned_date' => 'date:Y-m-d',
+        'returned_date' => 'date:Y-m-d',
     ];
 
     public function asset(): \Illuminate\Database\Eloquent\Relations\BelongsTo

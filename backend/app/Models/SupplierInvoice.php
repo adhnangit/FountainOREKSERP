@@ -17,8 +17,8 @@ class SupplierInvoice extends Model
     ];
 
     protected $casts = [
-        'invoice_date' => 'date',
-        'due_date' => 'date',
+        'invoice_date' => 'date:Y-m-d',
+        'due_date' => 'date:Y-m-d',
         'subtotal' => 'decimal:2',
         'tax_amount' => 'decimal:2',
         'discount_amount' => 'decimal:2',

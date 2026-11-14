@@ -10,7 +10,7 @@ class WorkTaskSubtask extends Model
 
     protected $casts = [
         'completed' => 'boolean',
-        'due_date' => 'date',
+        'due_date' => 'date:Y-m-d',
     ];
 
     /**

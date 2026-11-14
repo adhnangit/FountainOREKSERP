@@ -15,7 +15,7 @@ class PerformanceGoal extends Model
     ];
 
     protected $casts = [
-        'target_date' => 'date',
+        'target_date' => 'date:Y-m-d',
         'progress_percent' => 'integer',
     ];
 

@@ -20,11 +20,11 @@ class Cheque extends Model
 
     protected $casts = [
         'amount' => 'decimal:2',
-        'cheque_date' => 'date',
-        'received_issued_date' => 'date',
-        'deposited_date' => 'date',
-        'cleared_date' => 'date',
-        'bounced_date' => 'date',
+        'cheque_date' => 'date:Y-m-d',
+        'received_issued_date' => 'date:Y-m-d',
+        'deposited_date' => 'date:Y-m-d',
+        'cleared_date' => 'date:Y-m-d',
+        'bounced_date' => 'date:Y-m-d',
         'is_re_presented' => 'boolean',
     ];
 

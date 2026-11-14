@@ -14,7 +14,7 @@ class Announcement extends Model
     protected $casts = [
         'is_pinned' => 'boolean',
         'published_at' => 'datetime',
-        'expires_at' => 'date',
+        'expires_at' => 'date:Y-m-d',
     ];
 
     public function branch(): \Illuminate\Database\Eloquent\Relations\BelongsTo

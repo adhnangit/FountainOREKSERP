@@ -12,7 +12,7 @@ class Holiday extends Model
     protected $fillable = ['branch_id', 'date', 'name', 'is_recurring_yearly', 'notes'];
 
     protected $casts = [
-        'date' => 'date',
+        'date' => 'date:Y-m-d',
         'is_recurring_yearly' => 'boolean',
     ];
 

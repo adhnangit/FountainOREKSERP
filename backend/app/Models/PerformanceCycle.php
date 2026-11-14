@@ -12,8 +12,8 @@ class PerformanceCycle extends Model
     protected $fillable = ['name', 'start_date', 'end_date', 'status', 'created_by'];
 
     protected $casts = [
-        'start_date' => 'date',
-        'end_date' => 'date',
+        'start_date' => 'date:Y-m-d',
+        'end_date' => 'date:Y-m-d',
     ];
 
     public function reviews(): \Illuminate\Database\Eloquent\Relations\HasMany
