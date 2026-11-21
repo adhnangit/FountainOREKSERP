@@ -21,6 +21,30 @@
 .prd-select{border:1px solid #e2e8f0;border-radius:9px;padding:7px 10px;font-size:12.5px;color:#334155;background:#f8fafc;outline:none}
 .prd-select:focus{border-color:#6366f1;box-shadow:0 0 0 3px rgba(99,102,241,.12)}
 
+.prd-adv-toggle{position:relative;display:inline-flex;align-items:center;gap:6px;border:1px solid #e2e8f0;border-radius:9px;padding:7px 12px;font-size:12.5px;font-weight:600;color:#334155;background:#f8fafc;cursor:pointer;transition:all .15s}
+.prd-adv-toggle:hover{border-color:#c7d2fe;color:#4f46e5}
+.prd-adv-toggle.active{border-color:#6366f1;color:#4f46e5;background:#eef2ff}
+.prd-adv-toggle svg{width:14px;height:14px}
+.prd-adv-badge{background:#6366f1;color:#fff;font-size:10px;font-weight:700;border-radius:999px;min-width:16px;height:16px;display:inline-flex;align-items:center;justify-content:center;padding:0 4px}
+.prd-adv-panel{background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:16px 18px;margin-bottom:16px;display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+.prd-adv-field label{display:block;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#94a3b8;margin-bottom:5px}
+.prd-adv-field input,.prd-adv-field select{width:100%;border:1px solid #e2e8f0;border-radius:8px;padding:6px 10px;font-size:12.5px;color:#1e293b;background:#f8fafc;outline:none}
+.prd-adv-field input:focus,.prd-adv-field select:focus{border-color:#6366f1;box-shadow:0 0 0 3px rgba(99,102,241,.12);background:#fff}
+.prd-adv-range{display:flex;align-items:center;gap:6px}
+.prd-adv-range span{color:#cbd5e1;font-size:11px}
+.prd-adv-actions{grid-column:1/-1;display:flex;justify-content:flex-end;gap:8px;padding-top:2px;border-top:1px solid #f1f5f9;margin-top:2px}
+.prd-adv-clear{font-size:12px;font-weight:600;color:#94a3b8;background:none;border:none;cursor:pointer;padding:6px 10px}
+.prd-adv-clear:hover{color:#475569}
+
+.dark .prd-adv-toggle{background:#0f172a;border-color:#334155;color:#cbd5e1}
+.dark .prd-adv-toggle.active{background:#1e3a5f;border-color:#6366f1;color:#93c5fd}
+.dark .prd-adv-panel{background:#1e293b;border-color:#334155}
+.dark .prd-adv-field label{color:#64748b}
+.dark .prd-adv-field input,.dark .prd-adv-field select{background:#0f172a;border-color:#334155;color:#e2e8f0}
+.dark .prd-adv-actions{border-color:#334155}
+.dark .prd-adv-clear{color:#64748b}
+.dark .prd-adv-clear:hover{color:#cbd5e1}
+
 .prd-table-card{background:#fff;border-radius:14px;border:1px solid #e2e8f0;overflow:hidden}
 .prd-table{width:100%;border-collapse:separate;border-spacing:0}
 .prd-table thead th{padding:10px 16px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#94a3b8;background:#f8fafc;border-bottom:1px solid #e2e8f0;white-space:nowrap}
@@ -132,12 +156,73 @@
       <option value="low">Low Stock</option>
       <option value="out">Out of Stock</option>
     </select>
+    <button type="button" class="prd-adv-toggle" :class="showAdvanced ? 'active' : ''" @click="showAdvanced = !showAdvanced">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M3 4h18M6 10h12M10 16h4"/></svg>
+      Advanced Filters
+      <span class="prd-adv-badge" x-show="advancedCount > 0" x-text="advancedCount"></span>
+    </button>
     <div style="margin-left:auto">
       <a href="{{ url('/products/create') }}" x-show="hasPerm('products.create')"
          class="btn-page-action">
         <svg style="width:15px;height:15px" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path d="M12 5v14M5 12h14"/></svg>
         New Product
       </a>
+    </div>
+  </div>
+
+  {{-- Advanced Filters Panel --}}
+  <div class="prd-adv-panel" x-show="showAdvanced" x-cloak>
+    <div class="prd-adv-field">
+      <label>Supplier</label>
+      <select x-model="supplierFilter" @change="page=1; load(); loadStats()">
+        <option value="">All Suppliers</option>
+        <template x-for="s in suppliers" :key="s.id">
+          <option :value="s.id" x-text="s.name"></option>
+        </template>
+      </select>
+    </div>
+    <div class="prd-adv-field">
+      <label>Status</label>
+      <select x-model="statusFilter" @change="page=1; load(); loadStats()">
+        <option value="">All</option>
+        <option value="active">Active</option>
+        <option value="inactive">Inactive</option>
+      </select>
+    </div>
+    <div class="prd-adv-field">
+      <label>Brand</label>
+      <input type="text" x-model="brandFilter" @input.debounce.400ms="page=1; load(); loadStats()" placeholder="e.g. Abbott">
+    </div>
+    <div class="prd-adv-field">
+      <label>Unit</label>
+      <input type="text" x-model="unitFilter" @input.debounce.400ms="page=1; load(); loadStats()" placeholder="e.g. pcs, box">
+    </div>
+    <div class="prd-adv-field">
+      <label>Cost Price Range</label>
+      <div class="prd-adv-range">
+        <input type="number" step="0.01" min="0" x-model="costMin" @input.debounce.400ms="page=1; load(); loadStats()" placeholder="Min">
+        <span>&ndash;</span>
+        <input type="number" step="0.01" min="0" x-model="costMax" @input.debounce.400ms="page=1; load(); loadStats()" placeholder="Max">
+      </div>
+    </div>
+    <div class="prd-adv-field">
+      <label>Sale Price Range</label>
+      <div class="prd-adv-range">
+        <input type="number" step="0.01" min="0" x-model="saleMin" @input.debounce.400ms="page=1; load(); loadStats()" placeholder="Min">
+        <span>&ndash;</span>
+        <input type="number" step="0.01" min="0" x-model="saleMax" @input.debounce.400ms="page=1; load(); loadStats()" placeholder="Max">
+      </div>
+    </div>
+    <div class="prd-adv-field">
+      <label>Stock Value Range</label>
+      <div class="prd-adv-range">
+        <input type="number" step="0.01" min="0" x-model="stockValueMin" @input.debounce.400ms="page=1; load(); loadStats()" placeholder="Min">
+        <span>&ndash;</span>
+        <input type="number" step="0.01" min="0" x-model="stockValueMax" @input.debounce.400ms="page=1; load(); loadStats()" placeholder="Max">
+      </div>
+    </div>
+    <div class="prd-adv-actions">
+      <button type="button" class="prd-adv-clear" @click="clearAdvanced()">Clear advanced filters</button>
     </div>
   </div>
 
@@ -262,6 +347,18 @@ function productsPage() {
         search: '',
         categoryFilter: '',
         stockStatusFilter: '',
+        showAdvanced: false,
+        suppliers: [],
+        supplierFilter: '',
+        statusFilter: '',
+        brandFilter: '',
+        unitFilter: '',
+        costMin: '',
+        costMax: '',
+        saleMin: '',
+        saleMax: '',
+        stockValueMin: '',
+        stockValueMax: '',
         page: 1,
         meta: { total: 0, from: 0, to: 0, last_page: 1 },
         isAllBranches: localStorage.getItem('medri_branch') === 'all' || !localStorage.getItem('medri_branch'),
@@ -272,6 +369,17 @@ function productsPage() {
             if (total <= 7) return Array.from({length: total}, (_, i) => i + 1);
             const pages = new Set([1, total, cur, cur-1, cur+1].filter(p => p >= 1 && p <= total));
             return [...pages].sort((a,b) => a-b);
+        },
+        get advancedCount() {
+            return [this.supplierFilter, this.statusFilter, this.brandFilter, this.unitFilter,
+                    this.costMin, this.costMax, this.saleMin, this.saleMax,
+                    this.stockValueMin, this.stockValueMax].filter(v => v !== '' && v !== null).length;
+        },
+        clearAdvanced() {
+            this.supplierFilter = ''; this.statusFilter = ''; this.brandFilter = ''; this.unitFilter = '';
+            this.costMin = ''; this.costMax = ''; this.saleMin = ''; this.saleMax = '';
+            this.stockValueMin = ''; this.stockValueMax = '';
+            this.page = 1; this.load(); this.loadStats();
         },
         stockQty(p) {
             if (p.stock_qty != null) return p.stock_qty;
@@ -289,6 +397,16 @@ function productsPage() {
             if (this.search) params.set('search', this.search);
             if (this.categoryFilter) params.set('category_id', this.categoryFilter);
             if (this.stockStatusFilter) params.set('stock_status', this.stockStatusFilter);
+            if (this.supplierFilter) params.set('supplier_id', this.supplierFilter);
+            if (this.statusFilter) params.set('is_active', this.statusFilter === 'active' ? '1' : '0');
+            if (this.brandFilter) params.set('brand', this.brandFilter);
+            if (this.unitFilter) params.set('unit', this.unitFilter);
+            if (this.costMin !== '') params.set('cost_price_min', this.costMin);
+            if (this.costMax !== '') params.set('cost_price_max', this.costMax);
+            if (this.saleMin !== '') params.set('sale_price_min', this.saleMin);
+            if (this.saleMax !== '') params.set('sale_price_max', this.saleMax);
+            if (this.stockValueMin !== '') params.set('stock_value_min', this.stockValueMin);
+            if (this.stockValueMax !== '') params.set('stock_value_max', this.stockValueMax);
             return params;
         },
         async load() {
@@ -317,6 +435,10 @@ function productsPage() {
             try {
                 const cr = await apiFetch('/products/categories').then(r => r.json());
                 this.categories = cr.data ?? cr ?? [];
+            } catch (e) {}
+            try {
+                const sr = await apiFetch('/suppliers?per_page=500').then(r => r.json());
+                this.suppliers = sr.data ?? sr ?? [];
             } catch (e) {}
             await Promise.all([this.load(), this.loadStats()]);
         },

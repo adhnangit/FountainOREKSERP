@@ -36,6 +36,15 @@ class ProductController extends Controller
         return $sub;
     }
 
+    private function stockValueSubquery(?int $branchId): \Illuminate\Database\Query\Builder
+    {
+        $sub = DB::table('product_branch_stock')
+            ->selectRaw('COALESCE(SUM(quantity*avg_cost),0)')
+            ->whereColumn('product_id', 'products.id');
+        if ($branchId) $sub->where('branch_id', $branchId);
+        return $sub;
+    }
+
     private function applyProductFilters($q, Request $request): void
     {
         $this->branchContext->applyScope($q);
@@ -48,12 +57,21 @@ class ProductController extends Controller
             );
         }
         if ($request->category_id) $q->where('category_id', $request->category_id);
+        if ($request->supplier_id) $q->where('supplier_id', $request->supplier_id);
+        if ($request->brand) $q->where('brand', 'like', "%{$request->brand}%");
+        if ($request->unit) $q->where('unit', 'like', "%{$request->unit}%");
         if ($request->is_active !== null) $q->where('is_active', $request->boolean('is_active'));
+        if ($request->cost_price_min !== null && $request->cost_price_min !== '') $q->where('cost_price', '>=', (float) $request->cost_price_min);
+        if ($request->cost_price_max !== null && $request->cost_price_max !== '') $q->where('cost_price', '<=', (float) $request->cost_price_max);
+        if ($request->sale_price_min !== null && $request->sale_price_min !== '') $q->where('selling_price', '>=', (float) $request->sale_price_min);
+        if ($request->sale_price_max !== null && $request->sale_price_max !== '') $q->where('selling_price', '<=', (float) $request->sale_price_max);
 
         // reorder_level is referenced here via the "reorder_lvl" alias, not the bare
         // column — MySQL's strict mode (error 1463) rejects a plain products.* column
         // in a HAVING clause on a query with no GROUP BY, but accepts an explicitly
         // selected alias (which is why the computed "stock_qty" alias already worked).
+        // stock_value is selected as an alias for the same reason, so it can be
+        // filtered here alongside stock_qty.
         if ($request->stock_status === 'out') {
             $q->havingRaw('stock_qty <= 0');
         } elseif ($request->stock_status === 'low') {
@@ -61,20 +79,23 @@ class ProductController extends Controller
         } elseif ($request->stock_status === 'in_stock') {
             $q->havingRaw('stock_qty > reorder_lvl OR (reorder_lvl = 0 AND stock_qty > 0)');
         }
+        if ($request->stock_value_min !== null && $request->stock_value_min !== '') $q->havingRaw('stock_value >= ?', [(float) $request->stock_value_min]);
+        if ($request->stock_value_max !== null && $request->stock_value_max !== '') $q->havingRaw('stock_value <= ?', [(float) $request->stock_value_max]);
     }
 
     public function index(Request $request): JsonResponse
     {
         $branchId = $this->branchContext->getBranchId();
         $stockSub = $this->stockQtySubquery($branchId);
+        $valueSub = $this->stockValueSubquery($branchId);
 
         $q = Product::query()->selectRaw(
-            'products.*, (' . $stockSub->toSql() . ') as stock_qty, COALESCE(products.reorder_level, 0) as reorder_lvl',
-            $stockSub->getBindings()
+            'products.*, (' . $stockSub->toSql() . ') as stock_qty, (' . $valueSub->toSql() . ') as stock_value, COALESCE(products.reorder_level, 0) as reorder_lvl',
+            array_merge($stockSub->getBindings(), $valueSub->getBindings())
         );
         $this->applyProductFilters($q, $request);
 
-        $products = $q->with(['category', 'branchStocks' => fn($q) => ($branchId ? $q->where('branch_id', $branchId) : $q)->with('branch')])
+        $products = $q->with(['category', 'supplier', 'branchStocks' => fn($q) => ($branchId ? $q->where('branch_id', $branchId) : $q)->with('branch')])
             ->orderBy('name')
             ->paginate($request->input('per_page', 25));
 
@@ -85,10 +106,7 @@ class ProductController extends Controller
     {
         $branchId = $this->branchContext->getBranchId();
         $stockSub = $this->stockQtySubquery($branchId);
-        $valueSub = DB::table('product_branch_stock')
-            ->selectRaw('COALESCE(SUM(quantity*avg_cost),0)')
-            ->whereColumn('product_id', 'products.id');
-        if ($branchId) $valueSub->where('branch_id', $branchId);
+        $valueSub = $this->stockValueSubquery($branchId);
 
         $q = Product::query()->selectRaw(
             'products.*, (' . $stockSub->toSql() . ') as stock_qty, (' . $valueSub->toSql() . ') as stock_value, COALESCE(products.reorder_level, 0) as reorder_lvl',
